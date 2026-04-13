@@ -124,10 +124,6 @@ class _PodiumItem extends StatelessWidget {
         ? goldColor 
         : (rank == 2 ? silverColor : bronzeColor);
 
-    final String initial = entry.name.isNotEmpty 
-        ? entry.name[0].toUpperCase() 
-        : '?';
-
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
@@ -145,22 +141,11 @@ class _PodiumItem extends StatelessWidget {
               ),
               child: Center(
                 // Inner Avatar
-                child: CircleAvatar(
+                child: _UserAvatar(
+                  imageUrl: entry.image,
+                  name: entry.name,
                   radius: avatarSize / 2,
-                  backgroundColor: const Color(0xFF2A3441), // Fallback dark grey
-                  backgroundImage: (entry.image != null && entry.image!.isNotEmpty)
-                      ? NetworkImage(ServerImage.getFullUrl(entry.image!))
-                      : null,
-                  child: (entry.image == null || entry.image!.isEmpty)
-                      ? Text(
-                          initial,
-                          style: TextStyle(
-                            fontSize: isFirst ? 28 : 22,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        )
-                      : null,
+                  fontSize: isFirst ? 28 : 22,
                 ),
               ),
             ),
@@ -238,10 +223,6 @@ class _LeaderboardListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String initial = entry.name.isNotEmpty 
-        ? entry.name[0].toUpperCase() 
-        : '?';
-
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -267,21 +248,11 @@ class _LeaderboardListItem extends StatelessWidget {
           const SizedBox(width: 12),
           
           // Avatar
-          CircleAvatar(
+          _UserAvatar(
+            imageUrl: entry.image,
+            name: entry.name,
             radius: 20,
-            backgroundColor: Colors.black, // Matching the screenshot's dark placeholder
-            backgroundImage: (entry.image != null && entry.image!.isNotEmpty)
-                ? NetworkImage(ServerImage.getFullUrl(entry.image!))
-                : null,
-            child: (entry.image == null || entry.image!.isEmpty)
-                ? Text(
-                    initial,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  )
-                : null,
+            fontSize: 16,
           ),
           const SizedBox(width: 16),
           
@@ -316,6 +287,58 @@ class _LeaderboardListItem extends StatelessWidget {
             color: Color(0xFFD1D1D6), // Light grey chevron
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _UserAvatar extends StatelessWidget {
+  final String? imageUrl;
+  final String name;
+  final double radius;
+  final double fontSize;
+
+  const _UserAvatar({
+    required this.imageUrl,
+    required this.name,
+    required this.radius,
+    required this.fontSize,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final String initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    
+    final fallback = Container(
+      width: radius * 2,
+      height: radius * 2,
+      decoration: const BoxDecoration(
+        color: Color(0xFF2A3441), // Fallback dark grey
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: Text(
+          initial,
+          style: TextStyle(
+            fontSize: fontSize,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+      ),
+    );
+
+    if (imageUrl == null || imageUrl!.isEmpty || imageUrl == 'null') {
+      return fallback;
+    }
+
+    return ClipOval(
+      child: Image.network(
+        ServerImage.getFullUrl(imageUrl!),
+        width: radius * 2,
+        height: radius * 2,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => fallback,
       ),
     );
   }

@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/ui/server_image.dart';
 import '../../quiz/data/quiz_repository.dart';
-import '../../auth/present/auth_controller.dart';
 import '../../quiz/domain/quiz.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -20,17 +18,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 1. Fetch categories
+    final categoriesAsync = ref.watch(categoriesProvider);
+
+    // 2. Fetch ALL quizzes once
     final allQuizzesAsync = ref.watch(
-      quizzesProvider(const QuizQuery(limit: 6)),
+      quizzesProvider(const QuizQuery()), // Fetches all quizzes without category filter
     );
 
-    final categoryQuizzesAsync = _selectedCategory == 'all'
-        ? ref.watch(quizzesProvider(const QuizQuery(limit: 10)))
-        : ref.watch(
-            quizzesProvider(
-              QuizQuery(limit: 10, categoryId: _selectedCategory),
-            ),
-          );
+    // 3. Filter quizzes client-side
+    final filteredQuizzes = allQuizzesAsync.maybeWhen(
+      data: (quizzes) {
+        if (_selectedCategory == 'all') return quizzes;
+        return quizzes
+            .where((quiz) => 
+                quiz.categoryId == _selectedCategory || 
+                quiz.category?.id == _selectedCategory ||
+                quiz.category?.slug == _selectedCategory)
+            .toList();
+      },
+      orElse: () => [],
+    );
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -99,19 +107,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const SizedBox(height: 24),
 
               // Filter Chips
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Row(
-                  children: [
-                    _buildFilterChip('Alles', 'all'),
-                    const SizedBox(width: 12),
-                    _buildFilterChip('Oude Testament', 'oude-testament'),
-                    const SizedBox(width: 12),
-                    _buildFilterChip('Nieuwe Testament', 'nieuwe-testament'),
-                    const SizedBox(width: 12),
-                    _buildFilterChip('Algemeen', 'algemeen'),
-                  ],
+              categoriesAsync.when(
+                data: (categories) {
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Row(
+                      children: [
+                        _buildFilterChip('Alles', 'all'),
+                        ...categories.map((category) {
+                          return Padding(
+                            padding: const EdgeInsets.only(left: 12.0),
+                            child: _buildFilterChip(category.name, category.id),
+                          );
+                        }),
+                      ],
+                    ),
+                  );
+                },
+                loading: () => const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20.0),
+                  child: CircularProgressIndicator(),
+                ),
+                error: (err, _) => Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: Text('Fout bij laden categorieën: $err'),
                 ),
               ),
               const SizedBox(height: 32),
@@ -159,12 +179,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const SizedBox(height: 32),
 
               // Section 2
-              _buildSectionHeader('Populaire quizzen'),
+              _buildSectionHeader('Gefilterde quizzen'),
               const SizedBox(height: 16),
 
-              categoryQuizzesAsync.when(
+              allQuizzesAsync.when(
                 data: (quizzes) {
-                  if (quizzes.isEmpty) {
+                  final displayQuizzes = filteredQuizzes;
+                  if (displayQuizzes.isEmpty) {
                     return const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 20.0),
                       child: Text("Geen quizzen gevonden."),
@@ -175,9 +196,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     child: ListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 20.0),
                       scrollDirection: Axis.horizontal,
-                      itemCount: quizzes.length,
+                      itemCount: displayQuizzes.length,
                       itemBuilder: (context, index) {
-                        final quiz = quizzes[index];
+                        final quiz = displayQuizzes[index];
                         return Padding(
                           padding: const EdgeInsets.only(right: 16.0),
                           child: QuizCardNew(
