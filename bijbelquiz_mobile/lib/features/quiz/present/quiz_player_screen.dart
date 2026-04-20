@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:ui' show ImageFilter;
+import '../../profile/present/profile_provider.dart';
 import '../data/quiz_repository.dart';
 import '../domain/question.dart';
 import '../domain/answer.dart';
@@ -42,6 +44,11 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
   @override
   Widget build(BuildContext context) {
     final quizAsync = ref.watch(quizDetailProvider(widget.idOrSlug));
+    final profileAsync = ref.watch(profileProvider);
+    final isPremium = profileAsync.maybeWhen(
+      data: (profile) => profile.isPremium,
+      orElse: () => false,
+    );
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -150,7 +157,11 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
                             (answer) => _buildAnswerButton(answer),
                           ),
                           if (_isAnswered)
-                            _buildExplanationAndNext(question, totalQuestions),
+                            _buildExplanationAndNext(
+                              question,
+                              totalQuestions,
+                              isPremium,
+                            ),
                           const SizedBox(height: 40),
                         ],
                       ),
@@ -226,79 +237,285 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
     );
   }
 
-  Widget _buildExplanationAndNext(Question question, int totalQuestions) {
+  Widget _buildExplanationAndNext(
+    Question question,
+    int totalQuestions,
+    bool isPremium,
+  ) {
     final bool isLastQuestion = _currentIndex == totalQuestions - 1;
     final bool gotItRight = _selectedAnswer?.isCorrect ?? false;
+
+    // Use dummy blurred text if not premium to obscure length of explanation.
+    final String explanationText = isPremium
+        ? question.explanation
+        : 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident.';
+    final String referenceText = isPremium
+        ? question.bibleReference
+        : '1 Johannes 1:1-2';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: 24),
+        const SizedBox(height: 32),
+        // Unified Card Design
         Container(
-          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: gotItRight
                 ? const Color(0xFFE8F5E9)
                 : const Color(0xFFFFEBEE),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: gotItRight
+                    ? const Color(0xFF4CAF50).withOpacity(0.12)
+                    : const Color(0xFFE53935).withOpacity(0.12),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
             border: Border.all(
               color: gotItRight
-                  ? const Color(0xFF4CAF50).withOpacity(0.3)
-                  : const Color(0xFFE53935).withOpacity(0.3),
+                  ? const Color(0xFF4CAF50).withOpacity(0.2)
+                  : const Color(0xFFE53935).withOpacity(0.2),
+              width: 1.5,
             ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Stack(
             children: [
-              Row(
-                children: [
-                  Icon(
-                    gotItRight
-                        ? Icons.check_circle_outline
-                        : Icons.info_outline,
-                    color: gotItRight
-                        ? const Color(0xFF4CAF50)
-                        : const Color(0xFFE53935),
+              // Background gradient accent
+              Container(
+                height: 120,
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
                   ),
-                  const SizedBox(width: 12),
-                  Text(
-                    gotItRight ? 'Goed gedaan!' : 'Helaas, dat is niet juist.',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: gotItRight
-                          ? const Color(0xFF4CAF50)
-                          : const Color(0xFFE53935),
-                    ),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      gotItRight
+                          ? const Color(0xFF4CAF50).withOpacity(0.08)
+                          : const Color(0xFFE53935).withOpacity(0.08),
+                      gotItRight
+                          ? const Color(0xFF4CAF50).withOpacity(0.02)
+                          : const Color(0xFFE53935).withOpacity(0.02),
+                    ],
                   ),
-                ],
+                ),
               ),
-              if (question.explanation.isNotEmpty ||
-                  (question.bibleReference.isNotEmpty &&
-                      question.bibleReference != '-')) ...[
-                const SizedBox(height: 12),
-                if (question.explanation.isNotEmpty)
-                  Text(
-                    question.explanation,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      color: Colors.black87,
-                      height: 1.4,
+              // Main Content
+              Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Status Header
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: gotItRight
+                                ? const Color(0xFF4CAF50).withOpacity(0.15)
+                                : const Color(0xFFE53935).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            gotItRight
+                                ? Icons.check_circle_rounded
+                                : Icons.cancel_rounded,
+                            color: gotItRight
+                                ? const Color(0xFF4CAF50)
+                                : const Color(0xFFE53935),
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                gotItRight ? 'Goed gedaan!' : 'Helaas, dat is niet juist.',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: gotItRight
+                                      ? const Color(0xFF4CAF50)
+                                      : const Color(0xFFE53935),
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                gotItRight
+                                    ? 'Uitstekend antwoord gegeven!'
+                                    : 'Bekijk de uitleg hieronder',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.black.withOpacity(0.6),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                if (question.bibleReference.isNotEmpty &&
-                    question.bibleReference != '-') ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    'Referentie: ${question.bibleReference}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontStyle: FontStyle.italic,
-                      color: Color(0xFF131D2B),
+                    // Divider
+                    const SizedBox(height: 20),
+                    Container(
+                      height: 1,
+                      color: Colors.black.withOpacity(0.08),
                     ),
-                  ),
-                ],
-              ],
+                    // Explanation and Reference Section
+                    if (question.explanation.isNotEmpty ||
+                        (question.bibleReference.isNotEmpty &&
+                            question.bibleReference != '-')) ...[
+                      const SizedBox(height: 20),
+                      if (isPremium) ...[
+                        // Premium Content
+                        if (question.explanation.isNotEmpty)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Uitleg',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF131D2B),
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                explanationText,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  color: Colors.black87,
+                                  height: 1.5,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        if (question.bibleReference.isNotEmpty &&
+                            question.bibleReference != '-') ...[
+                          if (question.explanation.isNotEmpty)
+                            const SizedBox(height: 16),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Bijbelreferentie',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF131D2B),
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF131D2B)
+                                      .withOpacity(0.06),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: const Color(0xFF131D2B)
+                                        .withOpacity(0.1),
+                                  ),
+                                ),
+                                child: Text(
+                                  referenceText,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                    color: Color(0xFF131D2B),
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ] else ...[
+                        // Premium Lock Overlay
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.lock_rounded,
+                                  color: Color(0xFF131D2B),
+                                  size: 28,
+                                ),
+                                const SizedBox(height: 12),
+                                const Text(
+                                  'Premium Content',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Color(0xFF131D2B),
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Uitleg en bijbelreferentie zijn alleen zichtbaar voor premium leden',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Colors.black.withOpacity(0.65),
+                                    fontSize: 13,
+                                    height: 1.4,
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 42,
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      context.push('/premium');
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor:
+                                          const Color(0xFF131D2B),
+                                      foregroundColor: Colors.white,
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'Probeer Premium',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        letterSpacing: 0.3,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ],
+                ),
+              ),
             ],
           ),
         ),

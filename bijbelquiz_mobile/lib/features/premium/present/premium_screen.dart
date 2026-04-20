@@ -35,11 +35,14 @@ class _PremiumScreenState extends State<PremiumScreen> {
                 Container(
                   height: 320,
                   width: double.infinity,
-                  decoration: const BoxDecoration(
-                    image: DecorationImage(
-                      // Replace with your actual crown/bible asset path or network image
-                      image: NetworkImage('https://via.placeholder.com/600x400'),
-                      fit: BoxFit.cover,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        const Color(0xFF1A3A52).withOpacity(0.8),
+                        const Color(0xFF0F1F2E).withOpacity(0.9),
+                      ],
                     ),
                   ),
                 ),

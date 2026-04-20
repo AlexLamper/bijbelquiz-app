@@ -112,6 +112,23 @@ class ProfileScreen extends ConsumerWidget {
                         color: textMuted,
                       ),
                     ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: profile.isPremium ? const Color(0xFFD4AF37) : Colors.grey[300],
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        profile.isPremium ? 'PREMIUM' : 'GRATIS',
+                        style: TextStyle(
+                          color: profile.isPremium ? Colors.white : Colors.black87,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),

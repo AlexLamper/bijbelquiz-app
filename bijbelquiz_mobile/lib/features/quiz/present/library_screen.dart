@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/ui/server_image.dart';
+import '../../profile/present/profile_provider.dart';
 import '../data/quiz_repository.dart';
 import '../domain/quiz.dart';
 
@@ -41,6 +42,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         : QuizQuery(categoryId: _selectedCategory);
 
     final quizzesAsync = ref.watch(quizzesProvider(query));
+    final profileAsync = ref.watch(profileProvider);
+    final isPremium = profileAsync.maybeWhen(
+      data: (profile) => profile.isPremium,
+      orElse: () => false,
+    );
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -145,72 +151,74 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Premium Banner
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF9F9FB),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFEEEEEE)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Row(
-                        children: [
-                          Icon(Icons.star, color: Color(0xFFFFA000), size: 20),
-                          SizedBox(width: 8),
-                          Text(
-                            'Premium',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: Colors.black,
+              // Premium Banner (Only shown if NOT premium)
+              if (!isPremium) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF9F9FB),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFEEEEEE)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.star, color: Color(0xFFFFA000), size: 20),
+                            SizedBox(width: 8),
+                            Text(
+                              'Premium',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: Colors.black,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Ontgrendel alle quizzen inclusief diepere theologie en uitgebreide uitleg!',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF555555),
-                          height: 1.4,
+                          ],
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 44,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            context.push('/premium');
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF131D2B),
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: const Text(
-                            'Probeer Premium',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                            ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Ontgrendel alle quizzen inclusief diepere theologie en uitgebreide uitleg!',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF555555),
+                            height: 1.4,
                           ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 44,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              context.push('/premium');
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF131D2B),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text(
+                              'Probeer Premium',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 24),
+                const SizedBox(height: 24),
+              ],
 
               // Vertical List of Quiz Cards
               quizzesAsync.when(
