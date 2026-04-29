@@ -77,8 +77,8 @@ class QuizDetailScreen extends ConsumerWidget {
                             quiz.title,
                             textAlign: TextAlign.center,
                             style: const TextStyle(
-                              fontFamily: 'Courier',
-                              fontSize: 26,
+                              fontFamily: 'Geist Mono',
+                              fontSize: 22,
                               fontWeight: FontWeight.bold,
                               letterSpacing: 1.0,
                               color: Color(0xFF131D2B),
@@ -154,7 +154,9 @@ class QuizDetailScreen extends ConsumerWidget {
                     ),
                     child: ElevatedButton(
                       onPressed: () {
-                        final pathId = quiz.slug.isNotEmpty ? quiz.slug : quiz.id;
+                        final pathId = quiz.slug.isNotEmpty
+                            ? quiz.slug
+                            : quiz.id;
                         context.push('/quiz/$pathId/play');
                       },
                       style: ElevatedButton.styleFrom(

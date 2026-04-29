@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'profile_provider.dart';
+
+import '../../../core/theme/app_theme.dart';
+import '../../leaderboard/data/leaderboard_repository.dart';
+import '../../leaderboard/domain/leaderboard_entry.dart';
 import '../../auth/present/auth_controller.dart';
 import '../data/profile_model.dart';
-
-// Brand Colors
-const Color brandDark = Color(0xFF131D2B); // The darker blue requested
-const Color textMuted = Color(0xFF7C7C80);
-const Color borderLight = Color(0xFFE5E5EA);
+import 'profile_provider.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -16,30 +15,48 @@ class ProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(profileProvider);
+    final leaderboardAsync = ref.watch(leaderboardProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA), // Slightly off-white to let cards pop
+      backgroundColor: const Color(0xFFE9EDF4),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(profileProvider);
+          await ref.read(profileProvider.future);
         },
         child: profileAsync.when(
-          data: (profile) => _buildProfileBody(context, ref, profile),
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, stack) => ListView(
+          data: (profile) => _ProfileContent(
+            profile: profile,
+            rank: _findLeaderboardRank(
+              profile: profile,
+              entries: leaderboardAsync.asData?.value,
+            ),
+            onOpenSettings: () => _openSettingsSheet(context, ref, profile),
+            onViewAllAchievements: () {
+              context.push('/profile/achievements');
+            },
+          ),
+          loading: () => ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: const [
+              SizedBox(height: 260),
+              Center(child: CircularProgressIndicator()),
+            ],
+          ),
+          error: (err, _) => ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(24),
             children: [
-              const SizedBox(height: 100),
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
-              const SizedBox(height: 16),
-              Text(
-                'Fout bij laden van profiel:\n$err',
-                textAlign: TextAlign.center,
+              const SizedBox(height: 120),
+              const Icon(
+                Icons.error_outline,
+                size: 52,
+                color: Colors.redAccent,
               ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => ref.invalidate(profileProvider),
-                child: const Text('Opnieuw proberen'),
+              const SizedBox(height: 12),
+              Text(
+                'Fout bij laden van profiel: $err',
+                textAlign: TextAlign.center,
               ),
             ],
           ),
@@ -48,313 +65,357 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildProfileBody(
+  int? _findLeaderboardRank({
+    required ProfileModel profile,
+    required List<LeaderboardEntry>? entries,
+  }) {
+    if (entries == null || entries.isEmpty) {
+      return null;
+    }
+
+    final sorted = [...entries]..sort((a, b) => b.xp.compareTo(a.xp));
+
+    var index = sorted.indexWhere((entry) => entry.id == profile.id);
+
+    if (index < 0) {
+      final normalizedName = profile.name.trim().toLowerCase();
+      if (normalizedName.isNotEmpty) {
+        index = sorted.indexWhere(
+          (entry) => entry.name.trim().toLowerCase() == normalizedName,
+        );
+      }
+    }
+
+    return index >= 0 ? index + 1 : null;
+  }
+
+  Future<void> _openSettingsSheet(
     BuildContext context,
     WidgetRef ref,
     ProfileModel profile,
-  ) {
-    final userInitial = profile.name.isNotEmpty
-        ? profile.name[0].toUpperCase()
-        : 'U';
-
-    final currentXpInLevel = profile.xp % 500;
-    final progressPercentage = currentXpInLevel / 500.0;
-
-    return SafeArea(
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+  ) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              const SizedBox(height: 32),
-              
-              // 1. Profile Header
-              Center(
-                child: Column(
-                  children: [
-                    Container(
-                      width: 90,
-                      height: 90,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white,
-                        border: Border.all(color: borderLight, width: 1),
-                      ),
-                      child: Center(
-                        child: Text(
-                          userInitial,
-                          style: const TextStyle(
-                            fontSize: 36,
-                            color: brandDark,
-                            fontWeight: FontWeight.w300,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      profile.name,
-                      style: const TextStyle(
-                        fontFamily: 'Courier',
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.0,
-                        color: brandDark,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      profile.email,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        color: textMuted,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: profile.isPremium ? const Color(0xFFD4AF37) : Colors.grey[300],
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Text(
-                        profile.isPremium ? 'PREMIUM' : 'GRATIS',
-                        style: TextStyle(
-                          color: profile.isPremium ? Colors.white : Colors.black87,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // 2. Top Stats Row
-              Row(
-                children: [
-                  Expanded(
-                    child: StatCard(
-                      title: 'TOTALE XP',
-                      value: profile.xp.toString(),
-                      icon: Icons.emoji_events,
-                      iconColor: brandDark,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: StatCard(
-                      title: 'REEKS',
-                      value: profile.streak.toString(),
-                      icon: Icons.local_fire_department,
-                      iconColor: const Color(0xFFF5A623), // Gold/Orange flame
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // 3. Level Progress Card
-              LevelProgressCard(
-                level: profile.level,
-                levelTitle: profile.levelTitle,
-                currentXp: profile.xp,
-                requiredXp: ((profile.xp ~/ 500) + 1) * 500, // Total XP needed for next level
-                progress: progressPercentage,
-              ),
-              const SizedBox(height: 16),
-
-              // 4. Secondary Stats Row
-              Row(
-                children: [
-                  Expanded(
-                    child: StatCard(
-                      title: 'Quizzen Gespeeld',
-                      value: profile.recentProgress.length.toString(),
-                      isTitleCase: true,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  const Expanded(
-                    child: StatCard(
-                      title: 'Gem. Score',
-                      value: '33%', // Replace with dynamic average score if available
-                      isTitleCase: true,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // 5. Badges Card
-              BadgesCard(
-                earnedBadges: profile.badges.length,
-                totalBadges: 8,
-              ),
-              const SizedBox(height: 32),
-
-              // 6. Premium Upsell
-              if (!profile.isPremium) ...[
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(color: borderLight, width: 1),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            Text(
-                              'Ontdek Premium',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                fontFamily: 'Courier',
-                                color: brandDark, // Applied Darker Blue
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              'Krijg onbeperkt toegang',
-                              style: TextStyle(color: textMuted, fontSize: 13),
-                            ),
-                          ],
-                        ),
-                      ),
-                      ElevatedButton(
-                        onPressed: () {
-                          context.push('/premium');
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: brandDark,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: const Text('Probeer', style: TextStyle(fontWeight: FontWeight.bold)),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-              ],
-
-              // 7. Settings / Actions
-              const Text(
-                'Instellingen & Acties',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'Courier',
-                  color: brandDark, // Applied Darker Blue
-                ),
-              ),
-              const SizedBox(height: 16),
-
+              const SizedBox(height: 8),
               Container(
+                width: 42,
+                height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: borderLight, width: 1),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  children: [
-                    ListTile(
-                      title: const Text(
-                        'Uitloggen',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.red,
-                        ),
-                      ),
-                      trailing: const Icon(Icons.logout, color: Colors.red, size: 20),
-                      onTap: () async {
-                        final storage = ref.read(authStorageProvider);
-                        await storage.deleteToken();
-                        ref.invalidate(profileProvider);
-                        ref.invalidate(authControllerProvider);
-                        if (context.mounted) {
-                          context.go('/login');
-                        }
-                      },
-                    ),
-                  ],
+                  color: AppTheme.border,
+                  borderRadius: BorderRadius.circular(999),
                 ),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 10),
+              if (!profile.isPremium)
+                ListTile(
+                  leading: const Icon(Icons.workspace_premium_rounded),
+                  title: const Text('Ontdek Premium'),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    context.push('/premium');
+                  },
+                ),
+              ListTile(
+                leading: const Icon(Icons.refresh_rounded),
+                title: const Text('Profiel vernieuwen'),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  ref.invalidate(profileProvider);
+                },
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.logout_rounded,
+                  color: Colors.redAccent,
+                ),
+                title: const Text(
+                  'Uitloggen',
+                  style: TextStyle(color: Colors.redAccent),
+                ),
+                onTap: () async {
+                  Navigator.of(sheetContext).pop();
+
+                  final storage = ref.read(authStorageProvider);
+                  await storage.deleteToken();
+                  ref.invalidate(profileProvider);
+                  ref.invalidate(authControllerProvider);
+
+                  if (context.mounted) {
+                    context.go('/login');
+                  }
+                },
+              ),
+              const SizedBox(height: 10),
             ],
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
 
-// --- Reusable UI Components ---
-
-class StatCard extends StatelessWidget {
-  final String title;
-  final String value;
-  final IconData? icon;
-  final Color? iconColor;
-  final bool isTitleCase;
-
-  const StatCard({
-    super.key,
-    required this.title,
-    required this.value,
-    this.icon,
-    this.iconColor,
-    this.isTitleCase = false,
+class _ProfileContent extends StatelessWidget {
+  const _ProfileContent({
+    required this.profile,
+    required this.rank,
+    required this.onOpenSettings,
+    required this.onViewAllAchievements,
   });
+
+  final ProfileModel profile;
+  final int? rank;
+  final VoidCallback onOpenSettings;
+  final VoidCallback onViewAllAchievements;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 110,
-      padding: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderLight, width: 1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    final averageScore = _calculateAverageScore(profile.recentProgress);
+
+    const levelSpan = 1000;
+    final currentXpInLevel = profile.xp % levelSpan;
+    final progress = (currentXpInLevel / levelSpan).clamp(0.0, 1.0);
+    final xpRemaining = (levelSpan - currentXpInLevel).clamp(0, levelSpan);
+
+    return SafeArea(
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                isTitleCase ? title : title.toUpperCase(),
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: isTitleCase ? 0 : 0.5,
-                  color: isTitleCase ? textMuted : brandDark,
+              const Expanded(
+                child: Text(
+                  'Profiel',
+                  style: TextStyle(
+                    color: AppTheme.ink,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    fontFamily: AppTheme.sansFontName,
+                  ),
                 ),
               ),
-              if (icon != null) Icon(icon, size: 18, color: iconColor),
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDCE3EF),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: IconButton(
+                  onPressed: onOpenSettings,
+                  icon: const Icon(
+                    Icons.settings_rounded,
+                    color: AppTheme.ink,
+                    size: 20,
+                  ),
+                  padding: EdgeInsets.zero,
+                ),
+              ),
             ],
           ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontFamily: 'Courier',
-              fontSize: 32,
-              fontWeight: FontWeight.w500,
-              color: brandDark,
+          const SizedBox(height: 10),
+          _ProfileHeaderCard(profile: profile, rank: rank),
+          const SizedBox(height: 12),
+          _ProgressCard(
+            level: profile.level,
+            currentXpInLevel: currentXpInLevel,
+            levelSpan: levelSpan,
+            xpRemaining: xpRemaining,
+            progress: progress,
+          ),
+          const SizedBox(height: 18),
+          const Text(
+            'Jouw Statistieken',
+            style: TextStyle(
+              color: AppTheme.ink,
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              fontFamily: AppTheme.sansFontName,
+            ),
+          ),
+          const SizedBox(height: 10),
+          GridView.count(
+            crossAxisCount: 2,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            childAspectRatio: 2,
+            children: [
+              _StatCard(
+                title: 'Quizzen',
+                value: '${profile.recentProgress.length}',
+                icon: Icons.quiz_outlined,
+                iconColor: const Color(0xFF6D86DB),
+              ),
+              _StatCard(
+                title: 'Nauwkeurigheid',
+                value: '$averageScore%',
+                icon: Icons.track_changes_rounded,
+                iconColor: const Color(0xFF18A96B),
+              ),
+              _StatCard(
+                title: 'Reeks',
+                value: '${profile.streak}',
+                unit: profile.streak == 1 ? 'dag' : 'dagen',
+                icon: Icons.local_fire_department_outlined,
+                iconColor: const Color(0xFFF17A31),
+              ),
+              _StatCard(
+                title: 'Punten',
+                value: _formatNumber(profile.xp),
+                icon: Icons.bolt_rounded,
+                iconColor: const Color(0xFFE9A522),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Prestaties',
+                  style: TextStyle(
+                    color: AppTheme.ink,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    fontFamily: AppTheme.sansFontName,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: onViewAllAchievements,
+                style: TextButton.styleFrom(
+                  foregroundColor: AppTheme.accent,
+                  padding: EdgeInsets.zero,
+                  minimumSize: const Size(0, 0),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text(
+                  'Bekijk alles',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          _AchievementsRow(badges: profile.badges),
+          const SizedBox(height: 18),
+          const Text(
+            'Recente Activiteit',
+            style: TextStyle(
+              color: AppTheme.ink,
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              fontFamily: AppTheme.sansFontName,
+            ),
+          ),
+          const SizedBox(height: 10),
+          _RecentActivityList(recentProgress: profile.recentProgress),
+        ],
+      ),
+    );
+  }
+
+  int _calculateAverageScore(List<RecentProgressModel> recentProgress) {
+    if (recentProgress.isEmpty) return 0;
+
+    final totalScore = recentProgress.fold<int>(
+      0,
+      (sum, item) => sum + item.score,
+    );
+
+    return (totalScore / recentProgress.length).round().clamp(0, 100);
+  }
+}
+
+class _ProfileHeaderCard extends StatelessWidget {
+  const _ProfileHeaderCard({required this.profile, required this.rank});
+
+  final ProfileModel profile;
+  final int? rank;
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = profile.name.isEmpty ? 'U' : profile.name[0].toUpperCase();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 8),
+      child: Row(
+        children: [
+          Container(
+            width: 78,
+            height: 78,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE8EDF8),
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFFC5D0E7), width: 2),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              initial,
+              style: const TextStyle(
+                color: AppTheme.accent,
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                fontFamily: AppTheme.sansFontName,
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  profile.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppTheme.ink,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    fontFamily: AppTheme.sansFontName,
+                    height: 1.08,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  profile.email,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppTheme.muted,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _InfoPill(label: 'Level ${profile.level}'),
+                    _InfoPill(
+                      label: rank == null ? 'Rang onbekend' : 'Rang #$rank',
+                    ),
+                    if (profile.isPremium)
+                      const _InfoPill(
+                        label: 'Premium',
+                        tint: Color(0xFFFFF3D6),
+                        textColor: Color(0xFFB07B00),
+                      ),
+                  ],
+                ),
+              ],
             ),
           ),
         ],
@@ -363,97 +424,105 @@ class StatCard extends StatelessWidget {
   }
 }
 
-class LevelProgressCard extends StatelessWidget {
-  final int level;
-  final String levelTitle;
-  final int currentXp;
-  final int requiredXp;
-  final double progress;
+class _InfoPill extends StatelessWidget {
+  const _InfoPill({
+    required this.label,
+    this.tint = AppTheme.accentSoft,
+    this.textColor = AppTheme.accent,
+  });
 
-  const LevelProgressCard({
-    super.key,
+  final String label;
+  final Color tint;
+  final Color textColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+      decoration: BoxDecoration(
+        color: tint.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFD2DAEB)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: textColor,
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _ProgressCard extends StatelessWidget {
+  const _ProgressCard({
     required this.level,
-    required this.levelTitle,
-    required this.currentXp,
-    required this.requiredXp,
+    required this.currentXpInLevel,
+    required this.levelSpan,
+    required this.xpRemaining,
     required this.progress,
   });
 
+  final int level;
+  final int currentXpInLevel;
+  final int levelSpan;
+  final int xpRemaining;
+  final double progress;
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20.0),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderLight, width: 1),
+        color: const Color(0xFFF6F8FC),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFD2DAEB)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'NIVEAU $level',
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.5,
-                      color: brandDark,
-                    ),
+              Expanded(
+                child: Text(
+                  'Level $level',
+                  style: const TextStyle(
+                    color: AppTheme.ink,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    fontFamily: AppTheme.sansFontName,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    levelTitle,
-                    style: const TextStyle(
-                      fontFamily: 'Courier',
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: brandDark,
-                    ),
-                  ),
-                ],
+                ),
               ),
               Text(
-                '${(progress * 100).toInt()}%',
+                '${_formatNumber(currentXpInLevel)}/${_formatNumber(levelSpan)} XP',
                 style: const TextStyle(
-                  fontSize: 16,
-                  color: textMuted,
+                  color: AppTheme.muted,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          // Custom Progress Bar Track
-          Container(
-            height: 8,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF4F4F6),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: FractionallySizedBox(
-              alignment: Alignment.centerLeft,
-              widthFactor: progress.clamp(0.0, 1.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: brandDark, 
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              minHeight: 8,
+              value: progress,
+              backgroundColor: const Color(0xFFEFF3FC),
+              valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.accent),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Text(
-            '$currentXp / $requiredXp XP naar volgend niveau',
+            '${_formatNumber(xpRemaining)} XP tot Level ${level + 1}',
             style: const TextStyle(
+              color: AppTheme.muted,
               fontSize: 13,
-              color: textMuted,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -462,105 +531,302 @@ class LevelProgressCard extends StatelessWidget {
   }
 }
 
-class BadgesCard extends StatelessWidget {
-  final int earnedBadges;
-  final int totalBadges;
-
-  const BadgesCard({
-    super.key,
-    required this.earnedBadges,
-    required this.totalBadges,
+class _StatCard extends StatelessWidget {
+  const _StatCard({
+    required this.title,
+    required this.value,
+    this.unit,
+    required this.icon,
+    this.iconColor = AppTheme.accent,
   });
+
+  final String title;
+  final String value;
+  final String? unit;
+  final IconData icon;
+  final Color iconColor;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20.0),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderLight, width: 1),
+        color: const Color(0xFFF6F8FC),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFD2DAEB)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Badges',
-                style: TextStyle(
-                  fontFamily: 'Courier',
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: brandDark, // Applied Darker Blue
-                ),
-              ),
-              Text(
-                '$earnedBadges / $totalBadges verdiend',
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: textMuted,
+              Icon(icon, color: iconColor, size: 15),
+              const SizedBox(width: 5),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppTheme.muted,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 11,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _buildBadgeItem(
-                  isActive: earnedBadges > 0,
-                  icon: Icons.pets, 
+          const SizedBox(height: 6),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Flexible(
+                child: Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppTheme.ink,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    fontFamily: AppTheme.sansFontName,
+                    height: 1,
+                  ),
                 ),
-                const SizedBox(width: 12),
-                _buildBadgeItem(
-                  isActive: earnedBadges > 1,
-                  icon: Icons.search,
-                ),
-                const SizedBox(width: 12),
-                _buildBadgeItem(
-                  isActive: earnedBadges > 2,
-                  icon: Icons.star,
-                ),
-                const SizedBox(width: 12),
-                _buildBadgeItem(
-                  isActive: earnedBadges > 3,
-                  icon: Icons.emoji_events,
-                ),
-                const SizedBox(width: 12),
-                _buildBadgeItem(
-                  isActive: earnedBadges > 4,
-                  icon: Icons.local_fire_department,
+              ),
+              if (unit != null) ...[
+                const SizedBox(width: 6),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 2),
+                  child: Text(
+                    unit!,
+                    style: const TextStyle(
+                      color: AppTheme.muted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ],
-            ),
+            ],
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildBadgeItem({required bool isActive, required IconData icon}) {
-    return Container(
-      width: 80,
-      height: 60,
-      decoration: BoxDecoration(
-        color: isActive ? Colors.white : const Color(0xFFFAFAFC),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isActive ? const Color(0xFFD4AF37) : borderLight, // Gold if active
-          width: isActive ? 2 : 1,
-        ),
+class _AchievementsRow extends StatelessWidget {
+  const _AchievementsRow({required this.badges});
+
+  final List<String> badges;
+
+  @override
+  Widget build(BuildContext context) {
+    final defaults = <_AchievementItem>[
+      const _AchievementItem(
+        'Eerste Quiz',
+        Icons.star_border_rounded,
+        color: Color(0xFFE3A623),
+        tint: Color(0xFFFFF2D5),
       ),
-      child: Center(
-        child: Icon(
-          icon,
-          size: 28,
-          color: isActive ? brandDark : const Color(0xFFD1D1D6),
-        ),
+      const _AchievementItem(
+        '7-Dagen\nReeks',
+        Icons.local_fire_department_outlined,
+        color: Color(0xFFE87E2F),
+        tint: Color(0xFFFFE8D6),
+      ),
+      const _AchievementItem(
+        'Quiz Meester',
+        Icons.emoji_events_outlined,
+        color: Color(0xFF8A6CE0),
+        tint: Color(0xFFEDE7FF),
+      ),
+      const _AchievementItem(
+        'Perfecte\nScore',
+        Icons.gps_fixed_rounded,
+        color: Color(0xFF2EAA7F),
+        tint: Color(0xFFDFF5EC),
+      ),
+      const _AchievementItem(
+        '100 Quizzen',
+        Icons.auto_awesome_rounded,
+        color: Color(0xFF4C8BF3),
+        tint: Color(0xFFE4EEFF),
+      ),
+    ];
+
+    final normalizedBadges = badges.map((badge) => badge.toLowerCase()).toSet();
+
+    return SizedBox(
+      height: 98,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemBuilder: (context, index) {
+          final item = defaults[index];
+          final active =
+              index < badges.length ||
+              normalizedBadges.any((badge) => badge.contains(item.matchKey));
+
+          return SizedBox(
+            width: 74,
+            child: Column(
+              children: [
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: active ? item.tint : const Color(0xFFDCE2EC),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(
+                    item.icon,
+                    color: active ? item.color : const Color(0xFF9AA6BC),
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  item.label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: active ? AppTheme.ink : const Color(0xFF9AA6BC),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                    height: 1.16,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemCount: defaults.length,
       ),
     );
   }
+}
+
+class _AchievementItem {
+  const _AchievementItem(
+    this.label,
+    this.icon, {
+    required this.color,
+    required this.tint,
+  });
+
+  final String label;
+  final IconData icon;
+  final Color color;
+  final Color tint;
+
+  String get matchKey {
+    return label.replaceAll('\n', ' ').replaceAll('-', ' ').toLowerCase();
+  }
+}
+
+class _RecentActivityList extends StatelessWidget {
+  const _RecentActivityList({required this.recentProgress});
+
+  final List<RecentProgressModel> recentProgress;
+
+  @override
+  Widget build(BuildContext context) {
+    if (recentProgress.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF6F8FC),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFD2DAEB)),
+        ),
+        child: const Text(
+          'Nog geen recente activiteit gevonden.',
+          style: TextStyle(color: AppTheme.muted),
+        ),
+      );
+    }
+
+    final visible = recentProgress.take(5).toList();
+
+    return Column(
+      children: visible.map((item) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF6F8FC),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFD2DAEB)),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.quizTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppTheme.ink,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      item.isCompleted ? 'Voltooid' : 'In voortgang',
+                      style: const TextStyle(
+                        color: AppTheme.muted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEAF0FF),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '${item.score}%',
+                  style: const TextStyle(
+                    color: AppTheme.ink,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+String _formatNumber(int value) {
+  final isNegative = value < 0;
+  final digits = value.abs().toString();
+  final buffer = StringBuffer();
+
+  for (var i = 0; i < digits.length; i++) {
+    final reverseIndex = digits.length - i;
+    buffer.write(digits[i]);
+    if (reverseIndex > 1 && reverseIndex % 3 == 1) {
+      buffer.write(',');
+    }
+  }
+
+  return isNegative ? '-${buffer.toString()}' : buffer.toString();
 }

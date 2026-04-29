@@ -1,142 +1,122 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  // Light Mode Colors
-  static const Color _lightBg = Color(0xFFE9EFFB);
-  static const Color _lightFg = Color(0xFF1A2333);
-  static const Color _lightCard = Color(0xFFFFFFFF);
-  static final Color _lightPrimary = HSLColor.fromAHSL(
-    1.0,
-    223,
-    0.60,
-    0.48,
-  ).toColor();
-  static final Color _lightSecondary = HSLColor.fromAHSL(
-    1.0,
-    220,
-    0.20,
-    0.90,
-  ).toColor();
-  static final Color _lightMuted = HSLColor.fromAHSL(
-    1.0,
-    218,
-    0.16,
-    0.40,
-  ).toColor();
-  static final Color _lightBorder = HSLColor.fromAHSL(
-    1.0,
-    220,
-    0.20,
-    0.88,
-  ).toColor();
+  static const String sansFontName = 'Geist';
+  static const String monoFontName = 'Geist Mono';
 
-  // Dark Mode Colors
-  static final Color _darkBg = HSLColor.fromAHSL(
-    1.0,
-    218,
-    0.32,
-    0.10,
-  ).toColor();
-  static final Color _darkFg = HSLColor.fromAHSL(
-    1.0,
-    220,
-    0.30,
-    0.95,
-  ).toColor();
-  static final Color _darkCard = HSLColor.fromAHSL(
-    1.0,
-    218,
-    0.32,
-    0.13,
-  ).toColor();
-  static final Color _darkPrimary = HSLColor.fromAHSL(
-    1.0,
-    223,
-    0.77,
-    0.62,
-  ).toColor();
-  static final Color _darkMuted = HSLColor.fromAHSL(
-    1.0,
-    218,
-    0.20,
-    0.70,
-  ).toColor();
+  static const Color canvas = Color(0xFFF4F6FB);
+  static const Color surface = Colors.white;
+  static const Color ink = Color(0xFF131D2B);
+  static const Color muted = Color(0xFF7B8494);
+  static const Color border = Color(0xFFE2E7F1);
+  static const Color accent = Color(0xFF6D86DB);
+  static const Color accentSoft = Color(0xFFE8EEFF);
+  static const Color filterActive = Color(0xFF718DD5);
+  static const Color success = Color(0xFF22A06B);
+  static const Color warning = Color(0xFFF6A64D);
+
+  static TextStyle monoTextStyle([TextStyle? baseStyle]) {
+    return (baseStyle ?? const TextStyle()).copyWith(fontFamily: monoFontName);
+  }
 
   static ThemeData get lightTheme {
-    return ThemeData(
+    final base = ThemeData(
+      useMaterial3: true,
       brightness: Brightness.light,
-      scaffoldBackgroundColor: _lightBg,
-      primaryColor: _lightPrimary,
-      fontFamily: 'Inter',
-      colorScheme: ColorScheme.light(
-        primary: _lightPrimary,
-        secondary: _lightSecondary,
-        surface: _lightCard,
-        onSurface: _lightFg,
-        outline: _lightBorder,
+      colorScheme: const ColorScheme.light(
+        primary: accent,
+        secondary: accent,
+        surface: surface,
+        onSurface: ink,
+        outline: border,
+      ),
+    );
+
+    final roundedShape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(18),
+    );
+
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: canvas,
+      fontFamily: sansFontName,
+      colorScheme: base.colorScheme,
+      textTheme: base.textTheme.apply(
+        bodyColor: ink,
+        displayColor: ink,
+        fontFamily: sansFontName,
+      ),
+      primaryTextTheme: base.primaryTextTheme.apply(
+        bodyColor: ink,
+        displayColor: ink,
+        fontFamily: sansFontName,
       ),
       appBarTheme: const AppBarTheme(
-        backgroundColor: _lightBg,
-        foregroundColor: _lightFg,
+        backgroundColor: canvas,
+        foregroundColor: ink,
         elevation: 0,
+        centerTitle: false,
       ),
       cardTheme: CardThemeData(
-        color: _lightCard,
-        elevation: 2,
-        shadowColor: Colors.black.withOpacity(0.05),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        color: surface,
+        elevation: 0,
+        shape: roundedShape.copyWith(
+          side: const BorderSide(color: border, width: 1),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: accent,
+          foregroundColor: Colors.white,
+          shape: roundedShape,
+          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+          minimumSize: const Size.fromHeight(52),
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: accent,
+          foregroundColor: Colors.white,
+          shape: roundedShape,
+          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+          elevation: 0,
+          minimumSize: const Size.fromHeight(52),
+        ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: _lightCard,
+        fillColor: const Color(0xFFF8FAFF),
+        hintStyle: const TextStyle(color: muted),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: _lightBorder),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: border),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: _lightBorder),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: border),
         ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: accent, width: 1.3),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
+      ),
+      dividerTheme: const DividerThemeData(color: border, thickness: 1),
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: surface,
+        selectedItemColor: accent,
+        unselectedItemColor: muted,
+        type: BottomNavigationBarType.fixed,
+        elevation: 0,
       ),
     );
   }
 
   static ThemeData get darkTheme {
-    return ThemeData(
-      brightness: Brightness.dark,
-      scaffoldBackgroundColor: _darkBg,
-      primaryColor: _darkPrimary,
-      fontFamily: 'Inter',
-      colorScheme: ColorScheme.dark(
-        primary: _darkPrimary,
-        surface: _darkCard,
-        onSurface: _darkFg,
-        outline: _darkMuted, // Using muted for outline in dark mode roughly
-      ),
-      appBarTheme: AppBarTheme(
-        backgroundColor: _darkBg,
-        foregroundColor: _darkFg,
-        elevation: 0,
-      ),
-      cardTheme: CardThemeData(
-        color: _darkCard,
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(
-            color: _darkBg,
-            width: 2,
-          ), // Gives a slight inset look
-        ),
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: _darkCard,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-      ),
-    );
+    return lightTheme;
   }
 }

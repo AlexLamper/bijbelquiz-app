@@ -37,7 +37,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     // Matches the dark navy brand color used across the app
-    const Color brandDark = Color(0xFF131D2B); 
+    const Color brandDark = Color(0xFF131D2B);
 
     return Scaffold(
       backgroundColor: Colors.white, // Clean white background
@@ -68,21 +68,21 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               ),
             ),
             const SizedBox(height: 32),
-            
+
             // Title matching the app's headers
             const Text(
               'Bijbelquiz',
               style: TextStyle(
-                fontFamily: 'Courier', // Signature monospace font
-                fontSize: 36,
+                fontFamily: 'Geist Mono',
+                fontSize: 26,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 2.0,
-                color: brandDark, // Dark navy text
+                color: brandDark,
               ),
             ),
-            
+
             const SizedBox(height: 48),
-            
+
             // Optional: A subtle loading indicator
             const SizedBox(
               width: 24,

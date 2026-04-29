@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'dart:ui' show ImageFilter;
 import '../../profile/present/profile_provider.dart';
 import '../data/quiz_repository.dart';
 import '../domain/question.dart';
@@ -97,7 +96,9 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 48), // Balances the Row to keep text perfectly centered
+                      const SizedBox(
+                        width: 48,
+                      ), // Balances the Row to keep text perfectly centered
                     ],
                   ),
                 ),
@@ -134,8 +135,8 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
                     question.text,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
-                      fontFamily: 'Courier',
-                      fontSize: 24,
+                      fontFamily: 'Geist Mono',
+                      fontSize: 21,
                       height: 1.4,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.5,
@@ -182,9 +183,11 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
 
   Widget _buildAnswerButton(Answer answer) {
     final bool isSelected = _selectedAnswer == answer;
-    
+
     // Default styling (Unanswered)
-    Color backgroundColor = const Color(0xFFF4F4F6); // Subtle light grey background
+    Color backgroundColor = const Color(
+      0xFFF4F4F6,
+    ); // Subtle light grey background
     Color textColor = Colors.black;
     Border? border;
 
@@ -219,11 +222,7 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
               Expanded(
                 child: Text(
                   answer.text,
-                  style: TextStyle(
-                    fontSize: 16, 
-                    color: textColor, 
-                    height: 1.3
-                  ),
+                  style: TextStyle(fontSize: 16, color: textColor, height: 1.3),
                 ),
               ),
               if (_isAnswered && answer.isCorrect)
@@ -244,14 +243,8 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
   ) {
     final bool isLastQuestion = _currentIndex == totalQuestions - 1;
     final bool gotItRight = _selectedAnswer?.isCorrect ?? false;
-
-    // Use dummy blurred text if not premium to obscure length of explanation.
-    final String explanationText = isPremium
-        ? question.explanation
-        : 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident.';
-    final String referenceText = isPremium
-        ? question.bibleReference
-        : '1 Johannes 1:1-2';
+    final teasedExplanation = _teaseExplanation(question.explanation);
+    final teasedReference = _teaseReference(question.bibleReference);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -337,7 +330,9 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                gotItRight ? 'Goed gedaan!' : 'Helaas, dat is niet juist.',
+                                gotItRight
+                                    ? 'Goed gedaan!'
+                                    : 'Helaas, dat is niet juist.',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -365,10 +360,7 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
                     ),
                     // Divider
                     const SizedBox(height: 20),
-                    Container(
-                      height: 1,
-                      color: Colors.black.withOpacity(0.08),
-                    ),
+                    Container(height: 1, color: Colors.black.withOpacity(0.08)),
                     // Explanation and Reference Section
                     if (question.explanation.isNotEmpty ||
                         (question.bibleReference.isNotEmpty &&
@@ -391,7 +383,7 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
                               ),
                               const SizedBox(height: 10),
                               Text(
-                                explanationText,
+                                question.explanation,
                                 style: const TextStyle(
                                   fontSize: 15,
                                   color: Colors.black87,
@@ -424,16 +416,18 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
                                   vertical: 8,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF131D2B)
-                                      .withOpacity(0.06),
+                                  color: const Color(
+                                    0xFF131D2B,
+                                  ).withOpacity(0.06),
                                   borderRadius: BorderRadius.circular(10),
                                   border: Border.all(
-                                    color: const Color(0xFF131D2B)
-                                        .withOpacity(0.1),
+                                    color: const Color(
+                                      0xFF131D2B,
+                                    ).withOpacity(0.1),
                                   ),
                                 ),
                                 child: Text(
-                                  referenceText,
+                                  question.bibleReference,
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w600,
                                     fontSize: 14,
@@ -446,70 +440,167 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
                           ),
                         ],
                       ] else ...[
-                        // Premium Lock Overlay
-                        Center(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8.0),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.lock_rounded,
+                        // Teaser + lock for non-premium users.
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (question.explanation.isNotEmpty) ...[
+                              const Text(
+                                'Uitleg preview',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
                                   color: Color(0xFF131D2B),
-                                  size: 28,
+                                  letterSpacing: 0.3,
                                 ),
-                                const SizedBox(height: 12),
-                                const Text(
-                                  'Premium Content',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: Color(0xFF131D2B),
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 0.3,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  'Uitleg en bijbelreferentie zijn alleen zichtbaar voor premium leden',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: Colors.black.withOpacity(0.65),
-                                    fontSize: 13,
-                                    height: 1.4,
-                                  ),
-                                ),
-                                const SizedBox(height: 14),
-                                SizedBox(
-                                  width: double.infinity,
-                                  height: 42,
-                                  child: ElevatedButton(
-                                    onPressed: () {
-                                      context.push('/premium');
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor:
-                                          const Color(0xFF131D2B),
-                                      foregroundColor: Colors.white,
-                                      elevation: 0,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(12),
+                              ),
+                              const SizedBox(height: 8),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Stack(
+                                  children: [
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.all(12),
+                                      color: const Color(0xFF131D2B).withOpacity(
+                                        0.04,
+                                      ),
+                                      child: Text(
+                                        teasedExplanation,
+                                        maxLines: 4,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.black87,
+                                          height: 1.45,
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                       ),
                                     ),
-                                    child: const Text(
-                                      'Probeer Premium',
+                                    Positioned.fill(
+                                      child: IgnorePointer(
+                                        child: DecoratedBox(
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              begin: Alignment.topCenter,
+                                              end: Alignment.bottomCenter,
+                                              colors: [
+                                                Colors.transparent,
+                                                Colors.white.withOpacity(0.15),
+                                                Colors.white.withOpacity(0.88),
+                                              ],
+                                              stops: const [0.35, 0.62, 1.0],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                            ],
+                            if (question.bibleReference.isNotEmpty &&
+                                question.bibleReference != '-') ...[
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF131D2B).withOpacity(
+                                    0.06,
+                                  ),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.menu_book_rounded,
+                                      size: 16,
+                                      color: Color(0xFF131D2B),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        'Referentie preview: $teasedReference',
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          color: Color(0xFF131D2B),
+                                          fontStyle: FontStyle.italic,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                            ],
+                            Center(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 2.0),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.lock_rounded,
+                                      color: Color(0xFF131D2B),
+                                      size: 28,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    const Text(
+                                      'Volledige Uitleg = Premium',
+                                      textAlign: TextAlign.center,
                                       style: TextStyle(
+                                        color: Color(0xFF131D2B),
+                                        fontSize: 15,
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 14,
                                         letterSpacing: 0.3,
                                       ),
                                     ),
-                                  ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      'Ontgrendel alle uitleg en complete bijbelreferenties na elke vraag.',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: Colors.black.withOpacity(0.65),
+                                        fontSize: 13,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 14),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      height: 42,
+                                      child: ElevatedButton(
+                                        onPressed: () {
+                                          context.push('/premium');
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(0xFF131D2B),
+                                          foregroundColor: Colors.white,
+                                          elevation: 0,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                        ),
+                                        child: const Text(
+                                          'Ontgrendel Premium',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                            letterSpacing: 0.3,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ],
+                              ),
                             ),
-                          ),
+                          ],
                         ),
                       ],
                     ],
@@ -544,6 +635,45 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
         ),
       ],
     );
+  }
+
+  String _teaseExplanation(String explanation) {
+    final normalized = explanation.trim().replaceAll(RegExp(r'\s+'), ' ');
+    if (normalized.isEmpty) {
+      return '';
+    }
+
+    const maxChars = 160;
+    if (normalized.length <= maxChars) {
+      if (normalized.length <= 8) {
+        return '${normalized.substring(0, 1)}...';
+      }
+
+      final cutIndex =
+          (normalized.length * 0.6).round().clamp(8, normalized.length - 1)
+              as int;
+      return '${normalized.substring(0, cutIndex).trimRight()}...';
+    }
+
+    return '${normalized.substring(0, maxChars).trimRight()}...';
+  }
+
+  String _teaseReference(String reference) {
+    final trimmed = reference.trim();
+    if (trimmed.isEmpty || trimmed == '-') {
+      return '';
+    }
+
+    final colonIndex = trimmed.indexOf(':');
+    if (colonIndex > 0) {
+      return '${trimmed.substring(0, colonIndex)}:...';
+    }
+
+    if (trimmed.length <= 6) {
+      return '${trimmed.substring(0, 1)}...';
+    }
+
+    return '${trimmed.substring(0, 6)}...';
   }
 
   Widget _buildEmptyState() {
@@ -626,8 +756,8 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
             const Text(
               'Quiz Voltooid!',
               style: TextStyle(
-                fontFamily: 'Courier',
-                fontSize: 28,
+                fontFamily: 'Geist Mono',
+                fontSize: 22,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF131D2B),
               ),

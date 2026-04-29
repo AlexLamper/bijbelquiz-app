@@ -1,104 +1,125 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../data/leaderboard_repository.dart';
+
+import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/server_image.dart';
+import '../data/leaderboard_repository.dart';
+import '../domain/leaderboard_entry.dart';
 
-// Brand Colors derived from the screenshot
-const Color brandDark = Color(0xFF131A26); // Dark Navy background for header
-const Color bgLight = Color(0xFFFAFAFC); // Off-white for the list background
-const Color textMuted = Color(0xFF8E8E93);
-const Color borderLight = Color(0xFFE5E5EA);
-
-const Color goldColor = Color(0xFFD4AF37);
-const Color silverColor = Color(0xFFA8A8A8);
-const Color bronzeColor = Color(0xFFCD7F32);
-
-class LeaderboardScreen extends ConsumerWidget {
+class LeaderboardScreen extends ConsumerStatefulWidget {
   const LeaderboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final leaderboardAsync = ref.watch(leaderboardProvider);
+  ConsumerState<LeaderboardScreen> createState() => _LeaderboardScreenState();
+}
+
+class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
+  LeaderboardPeriod _selectedRange = LeaderboardPeriod.week;
+
+  Future<void> _refreshData() async {
+    ref.invalidate(leaderboardByPeriodProvider(_selectedRange));
+    await ref.read(leaderboardByPeriodProvider(_selectedRange).future);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final leaderboardAsync = ref.watch(leaderboardByPeriodProvider(_selectedRange));
 
     return Scaffold(
-      backgroundColor: bgLight,
-      body: leaderboardAsync.when(
-        data: (entries) {
-          if (entries.isEmpty) {
-            return const Center(child: Text("Geen ranglijst data beschikbaar."));
-          }
+      backgroundColor: AppTheme.canvas,
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: _refreshData,
+          child: leaderboardAsync.when(
+            data: (entries) {
+              final sortedEntries = [...entries]
+                ..sort((a, b) => b.xp.compareTo(a.xp));
 
-          // Safely extract top 3 for the podium
-          final top1 = entries.isNotEmpty ? entries[0] : null;
-          final top2 = entries.length > 1 ? entries[1] : null;
-          final top3 = entries.length > 2 ? entries[2] : null;
-
-          return Column(
-            children: [
-              // Custom Dark Header with Podium
-              Container(
-                width: double.infinity,
-                color: brandDark,
-                child: SafeArea(
-                  bottom: false,
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Ranglijst',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          if (top2 != null)
-                            Expanded(child: _PodiumItem(entry: top2, rank: 2)),
-                          if (top1 != null)
-                            Expanded(child: _PodiumItem(entry: top1, rank: 1)),
-                          if (top3 != null)
-                            Expanded(child: _PodiumItem(entry: top3, rank: 3)),
-                        ],
-                      ),
-                      const SizedBox(height: 32),
-                    ],
+              return ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                children: [
+                  const Text(
+                    'Ranglijst',
+                    style: TextStyle(
+                      color: AppTheme.ink,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      fontFamily: AppTheme.sansFontName,
+                    ),
                   ),
+                  const SizedBox(height: 16),
+                  _RangeSelector(
+                    selectedRange: _selectedRange,
+                    onSelect: (value) {
+                      setState(() {
+                        _selectedRange = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  if (sortedEntries.isNotEmpty)
+                    _TopPlayerCard(
+                      entry: sortedEntries.first,
+                      periodLabel: _selectedRange.displayName.toLowerCase(),
+                    )
+                  else
+                    const _EmptyLeaderboardState(),
+                  const SizedBox(height: 12),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: AppTheme.border),
+                    ),
+                    child: sortedEntries.isEmpty
+                        ? const Padding(
+                            padding: EdgeInsets.all(18),
+                            child: Text(
+                              'Nog geen ranglijstdata beschikbaar.',
+                              style: TextStyle(color: AppTheme.muted),
+                            ),
+                          )
+                        : Column(
+                            children: List.generate(sortedEntries.length, (
+                              index,
+                            ) {
+                              final entry = sortedEntries[index];
+                              return _LeaderboardRow(
+                                entry: entry,
+                                rank: index + 1,
+                                isLast: index == sortedEntries.length - 1,
+                              );
+                            }),
+                          ),
+                  ),
+                ],
+              );
+            },
+            loading: () => ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: const [
+                SizedBox(height: 260),
+                Center(child: CircularProgressIndicator()),
+              ],
+            ),
+            error: (err, _) => ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(24),
+              children: [
+                const SizedBox(height: 120),
+                const Icon(
+                  Icons.error_outline,
+                  size: 52,
+                  color: Colors.redAccent,
                 ),
-              ),
-
-              // Scrollable List for the rest of the players
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(20),
-                  itemCount: entries.length > 3 ? entries.length - 3 : 0,
-                  itemBuilder: (context, index) {
-                    final entry = entries[index + 3];
-                    final rank = index + 4;
-                    return _LeaderboardListItem(entry: entry, rank: rank);
-                  },
+                const SizedBox(height: 12),
+                Text(
+                  'Fout bij laden van ranglijst: $err',
+                  textAlign: TextAlign.center,
                 ),
-              ),
-            ],
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error, color: Colors.red, size: 48),
-              const SizedBox(height: 16),
-              Text('Fout bij laden van ranglijst: $err'),
-              TextButton(
-                onPressed: () => ref.invalidate(leaderboardProvider),
-                child: const Text('Opnieuw proberen'),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -106,185 +127,130 @@ class LeaderboardScreen extends ConsumerWidget {
   }
 }
 
-class _PodiumItem extends StatelessWidget {
-  final dynamic entry; // Replace with LeaderboardEntry model type
-  final int rank;
+class _RangeSelector extends StatelessWidget {
+  const _RangeSelector({required this.selectedRange, required this.onSelect});
 
-  const _PodiumItem({
-    required this.entry,
-    required this.rank,
-  });
+  final LeaderboardPeriod selectedRange;
+  final ValueChanged<LeaderboardPeriod> onSelect;
 
-  @override
-  Widget build(BuildContext context) {
-    final isFirst = rank == 1;
-    final double avatarSize = isFirst ? 80.0 : 64.0;
-    
-    final Color ringColor = rank == 1 
-        ? goldColor 
-        : (rank == 2 ? silverColor : bronzeColor);
-
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        Stack(
-          clipBehavior: Clip.none,
-          alignment: Alignment.center,
-          children: [
-            // Outer Ring
-            Container(
-              width: avatarSize + 12,
-              height: avatarSize + 12,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: ringColor, width: 3),
-              ),
-              child: Center(
-                // Inner Avatar
-                child: _UserAvatar(
-                  imageUrl: entry.image,
-                  name: entry.name,
-                  radius: avatarSize / 2,
-                  fontSize: isFirst ? 28 : 22,
-                ),
-              ),
-            ),
-            
-            // Lightning Bolt for #1
-            if (isFirst)
-              Positioned(
-                top: -18,
-                child: Icon(Icons.bolt, color: ringColor, size: 32),
-              ),
-
-            // Rank Badge
-            Positioned(
-              bottom: -8,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-                decoration: BoxDecoration(
-                  color: ringColor,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '$rank',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        
-        // Name
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-          child: Text(
-            entry.name,
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 13,
-            ),
-          ),
-        ),
-        const SizedBox(height: 4),
-        
-        // XP
-        Text(
-          '${entry.xp} XP',
-          style: const TextStyle(
-            color: textMuted,
-            fontSize: 12,
-          ),
-        ),
-        // Add a bit of bottom spacing for rank 2 & 3 to slightly stagger them upward
-        if (!isFirst) const SizedBox(height: 10),
-      ],
-    );
-  }
-}
-
-class _LeaderboardListItem extends StatelessWidget {
-  final dynamic entry; // Replace with LeaderboardEntry model type
-  final int rank;
-
-  const _LeaderboardListItem({
-    required this.entry,
-    required this.rank,
-  });
+  static const Map<LeaderboardPeriod, String> _labels = {
+    LeaderboardPeriod.week: 'Deze Week',
+    LeaderboardPeriod.month: 'Deze Maand',
+    LeaderboardPeriod.all: 'Altijd',
+  };
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderLight, width: 1),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Row(
+        children: _labels.entries.map((entry) {
+          final active = selectedRange == entry.key;
+
+          return Expanded(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: () => onSelect(entry.key),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: active ? AppTheme.filterActive : Colors.transparent,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  entry.value,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: active ? Colors.white : AppTheme.muted,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+class _TopPlayerCard extends StatelessWidget {
+  const _TopPlayerCard({required this.entry, required this.periodLabel});
+
+  final LeaderboardEntry entry;
+  final String periodLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF6D86DB), Color(0xFF8EA5F2)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
         children: [
-          // Rank Number
-          SizedBox(
-            width: 24,
-            child: Text(
-              '$rank',
-              style: const TextStyle(
-                color: textMuted,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-          ),
+          _Avatar(imageUrl: entry.image, name: entry.name, radius: 24),
           const SizedBox(width: 12),
-          
-          // Avatar
-          _UserAvatar(
-            imageUrl: entry.image,
-            name: entry.name,
-            radius: 20,
-            fontSize: 16,
-          ),
-          const SizedBox(width: 16),
-          
-          // Details (Name & XP)
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const Text(
+                  'Nummer 1',
+                  style: TextStyle(
+                    color: Color(0xFFEAF0FF),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 1),
                 Text(
-                  entry.name,
+                  periodLabel,
                   style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: Colors.black,
+                    color: Color(0xFFDDE7FF),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${entry.xp} XP',
+                  entry.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: textMuted,
-                    fontSize: 12,
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ],
             ),
           ),
-          
-          // Trailing Arrow
-          const Icon(
-            Icons.chevron_right,
-            color: Color(0xFFD1D1D6), // Light grey chevron
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              const Icon(Icons.emoji_events_rounded, color: Colors.white),
+              const SizedBox(height: 4),
+              Text(
+                '${entry.xp} XP',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -292,38 +258,122 @@ class _LeaderboardListItem extends StatelessWidget {
   }
 }
 
-class _UserAvatar extends StatelessWidget {
-  final String? imageUrl;
-  final String name;
-  final double radius;
-  final double fontSize;
-
-  const _UserAvatar({
-    required this.imageUrl,
-    required this.name,
-    required this.radius,
-    required this.fontSize,
+class _LeaderboardRow extends StatelessWidget {
+  const _LeaderboardRow({
+    required this.entry,
+    required this.rank,
+    required this.isLast,
   });
+
+  final LeaderboardEntry entry;
+  final int rank;
+  final bool isLast;
 
   @override
   Widget build(BuildContext context) {
-    final String initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
-    
-    final fallback = Container(
-      width: radius * 2,
-      height: radius * 2,
-      decoration: const BoxDecoration(
-        color: Color(0xFF2A3441), // Fallback dark grey
-        shape: BoxShape.circle,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        border: isLast
+            ? null
+            : const Border(bottom: BorderSide(color: AppTheme.border)),
       ),
-      child: Center(
-        child: Text(
-          initial,
-          style: TextStyle(
-            fontSize: fontSize,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+      child: Row(
+        children: [
+          SizedBox(
+            width: 24,
+            child: Text(
+              '$rank',
+              style: const TextStyle(
+                color: AppTheme.muted,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
+          const SizedBox(width: 8),
+          _Avatar(imageUrl: entry.image, name: entry.name, radius: 19),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  entry.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppTheme.ink,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${entry.xp} punten',
+                  style: const TextStyle(
+                    color: AppTheme.muted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0F4FF),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              '${entry.xp} XP',
+              style: const TextStyle(
+                color: AppTheme.ink,
+                fontWeight: FontWeight.w700,
+                fontSize: 11,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+extension on LeaderboardPeriod {
+  String get displayName {
+    switch (this) {
+      case LeaderboardPeriod.week:
+        return 'Deze week';
+      case LeaderboardPeriod.month:
+        return 'Deze maand';
+      case LeaderboardPeriod.all:
+        return 'All-time';
+    }
+  }
+}
+
+class _Avatar extends StatelessWidget {
+  const _Avatar({
+    required this.imageUrl,
+    required this.name,
+    required this.radius,
+  });
+
+  final String? imageUrl;
+  final String name;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    final fallback = CircleAvatar(
+      radius: radius,
+      backgroundColor: const Color(0xFFE9EDF8),
+      child: Text(
+        name.isEmpty ? '?' : name.characters.first.toUpperCase(),
+        style: TextStyle(
+          color: AppTheme.ink,
+          fontWeight: FontWeight.w700,
+          fontSize: radius * 0.8,
         ),
       ),
     );
@@ -338,7 +388,27 @@ class _UserAvatar extends StatelessWidget {
         width: radius * 2,
         height: radius * 2,
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => fallback,
+        errorBuilder: (_, __, ___) => fallback,
+      ),
+    );
+  }
+}
+
+class _EmptyLeaderboardState extends StatelessWidget {
+  const _EmptyLeaderboardState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: const Text(
+        'Nog geen spelers gevonden.',
+        style: TextStyle(color: AppTheme.muted),
       ),
     );
   }

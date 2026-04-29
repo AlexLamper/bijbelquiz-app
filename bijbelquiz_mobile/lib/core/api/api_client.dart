@@ -1,12 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import '../../features/auth/data/auth_local_storage.dart';
+import '../config/app_config.dart';
 
 class ApiClient {
   late final Dio dio;
   final AuthLocalStorage _storage;
 
-  static const String baseUrl = 'http://localhost:3000/api/mobile';
+  static String get baseUrl => AppConfig.effectiveApiBaseUrl;
 
   ApiClient(this._storage) {
     dio = Dio(
