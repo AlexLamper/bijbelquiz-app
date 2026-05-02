@@ -65,6 +65,10 @@ jobs:
 
           # Make keychain visible to codesign
           security list-keychain -d user -s "$KEYCHAIN_PATH"
+          security default-keychain -s "$KEYCHAIN_PATH"
+
+          # Allow codesign tools to access the imported key in CI
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
 
       - name: Install provisioning profile
         env:
@@ -74,6 +78,13 @@ jobs:
           echo -n "$BUILD_PROVISION_PROFILE_BASE64" | base64 --decode -o "$PP_PATH"
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/build_pp.mobileprovision
+
+          # Extract metadata so signing can use the exact profile name/UUID
+          PP_UUID=$(/usr/libexec/PlistBuddy -c 'Print UUID' /dev/stdin <<< "$(security cms -D -i "$PP_PATH")")
+          PP_NAME=$(/usr/libexec/PlistBuddy -c 'Print Name' /dev/stdin <<< "$(security cms -D -i "$PP_PATH")")
+
+          echo "PP_UUID=$PP_UUID" >> $GITHUB_ENV
+          echo "PP_NAME=$PP_NAME" >> $GITHUB_ENV
 
       # ── 4. ExportOptions ─────────────────────────────────────────────────────
       # Tells Xcode to export for App Store Connect distribution.
@@ -89,7 +100,9 @@ jobs:
           <plist version="1.0">
           <dict>
             <key>method</key>
-            <string>app-store-connect</string>
+            <string>app-store</string>
+            <key>signingStyle</key>
+            <string>manual</string>
             <key>teamID</key>
             <string>${TEAM_ID}</string>
             <key>uploadBitcode</key>
@@ -99,26 +112,45 @@ jobs:
             <key>provisioningProfiles</key>
             <dict>
               <key>${BUNDLE_ID}</key>
-              <string>build_pp</string>
+              <string>${PP_NAME}</string>
             </dict>
           </dict>
           </plist>
           EOF
 
       # ── 5. Build IPA ─────────────────────────────────────────────────────────
-      - name: Build Flutter IPA
+      - name: Build Flutter iOS (unsigned)
         working-directory: bijbelquiz_mobile
-        env:
-          BUNDLE_ID: ${{ secrets.BUNDLE_ID }}
         run: |
           BUILD_NAME=${{ github.event.inputs.build_name || '1.0.0' }}
           BUILD_NUMBER=${{ github.run_number }}
 
-          flutter build ipa --release \
+          flutter build ios --release --no-codesign \
             --build-name="$BUILD_NAME" \
             --build-number="$BUILD_NUMBER" \
-            --dart-define=USE_PRODUCTION_API=true \
-            --export-options-plist=/tmp/ExportOptions.plist
+            --dart-define=USE_PRODUCTION_API=true
+
+      - name: Archive and export signed IPA
+        working-directory: bijbelquiz_mobile/ios
+        env:
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          BUNDLE_ID: ${{ secrets.BUNDLE_ID }}
+        run: |
+          xcodebuild -workspace Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -archivePath "$RUNNER_TEMP/Runner.xcarchive" \
+            archive \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="$PP_NAME"
+
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/Runner.xcarchive" \
+            -exportOptionsPlist /tmp/ExportOptions.plist \
+            -exportPath ../build/ios/ipa
 
       # ── 6. Upload to TestFlight ───────────────────────────────────────────────
       # Secrets required:
