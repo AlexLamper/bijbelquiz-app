@@ -82,13 +82,18 @@ jobs:
           # Extract metadata so signing can use the exact profile name/UUID
           PP_UUID=$(/usr/libexec/PlistBuddy -c 'Print UUID' /dev/stdin <<< "$(security cms -D -i "$PP_PATH")")
           PP_NAME=$(/usr/libexec/PlistBuddy -c 'Print Name' /dev/stdin <<< "$(security cms -D -i "$PP_PATH")")
+          PP_APP_ID=$(/usr/libexec/PlistBuddy -c 'Print Entitlements:application-identifier' /dev/stdin <<< "$(security cms -D -i "$PP_PATH")")
+          APP_BUNDLE_ID="${PP_APP_ID#*.}"
 
           echo "PP_UUID=$PP_UUID" >> $GITHUB_ENV
           echo "PP_NAME=$PP_NAME" >> $GITHUB_ENV
+          echo "APP_BUNDLE_ID=$APP_BUNDLE_ID" >> $GITHUB_ENV
+
+          echo "Using provisioning profile: $PP_NAME ($PP_UUID)"
+          echo "Provisioning profile app id: $APP_BUNDLE_ID"
 
       # ── 4. ExportOptions ─────────────────────────────────────────────────────
       # Tells Xcode to export for App Store Connect distribution.
-      # BUNDLE_ID secret must match the Bundle ID registered in App Store Connect.
       - name: Create ExportOptions.plist
         env:
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -101,7 +106,7 @@ jobs:
             <key>method</key>
             <string>app-store-connect</string>
             <key>signingStyle</key>
-            <string>automatic</string>
+            <string>manual</string>
             <key>teamID</key>
             <string>${TEAM_ID}</string>
             <key>signingCertificate</key>
@@ -110,6 +115,11 @@ jobs:
             <false/>
             <key>uploadSymbols</key>
             <true/>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>${APP_BUNDLE_ID}</key>
+              <string>${PP_NAME}</string>
+            </dict>
           </dict>
           </plist>
           EOF
@@ -130,7 +140,6 @@ jobs:
         working-directory: bijbelquiz_mobile/ios
         env:
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          BUNDLE_ID: ${{ secrets.BUNDLE_ID }}
         run: |
           xcodebuild -workspace Runner.xcworkspace \
             -scheme Runner \
@@ -139,7 +148,6 @@ jobs:
             -archivePath "$RUNNER_TEMP/Runner.xcarchive" \
             archive \
             DEVELOPMENT_TEAM="$TEAM_ID" \
-            PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY=""
