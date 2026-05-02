@@ -91,7 +91,6 @@ jobs:
       # BUNDLE_ID secret must match the Bundle ID registered in App Store Connect.
       - name: Create ExportOptions.plist
         env:
-          BUNDLE_ID: ${{ secrets.BUNDLE_ID }}
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           cat > /tmp/ExportOptions.plist <<EOF
@@ -100,20 +99,17 @@ jobs:
           <plist version="1.0">
           <dict>
             <key>method</key>
-            <string>app-store</string>
+            <string>app-store-connect</string>
             <key>signingStyle</key>
-            <string>manual</string>
+            <string>automatic</string>
             <key>teamID</key>
             <string>${TEAM_ID}</string>
+            <key>signingCertificate</key>
+            <string>Apple Distribution</string>
             <key>uploadBitcode</key>
             <false/>
             <key>uploadSymbols</key>
             <true/>
-            <key>provisioningProfiles</key>
-            <dict>
-              <key>${BUNDLE_ID}</key>
-              <string>${PP_NAME}</string>
-            </dict>
           </dict>
           </plist>
           EOF
