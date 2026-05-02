@@ -169,7 +169,11 @@ jobs:
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           APP_STORE_CONNECT_API_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
         run: |
-          KEY_PATH=$RUNNER_TEMP/authkey.p8
+          set -euo pipefail
+
+          KEY_DIR="$HOME/.appstoreconnect/private_keys"
+          KEY_PATH="$KEY_DIR/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8"
+          mkdir -p "$KEY_DIR"
           echo -n "$APP_STORE_CONNECT_API_KEY_P8" | base64 --decode -o "$KEY_PATH"
 
           IPA_PATH=$(find bijbelquiz_mobile/build/ios/ipa -name "*.ipa" | head -1)
@@ -180,7 +184,6 @@ jobs:
             --file "$IPA_PATH" \
             --apiKey "$APP_STORE_CONNECT_KEY_ID" \
             --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID" \
-            --private-key-path "$KEY_PATH" \
             --verbose
 
       # ── 7. Cleanup ───────────────────────────────────────────────────────────
@@ -189,4 +192,4 @@ jobs:
         run: |
           security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
           rm -f ~/Library/MobileDevice/Provisioning\ Profiles/build_pp.mobileprovision
-          rm -f $RUNNER_TEMP/authkey.p8
+          rm -f "$HOME/.appstoreconnect/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8"
