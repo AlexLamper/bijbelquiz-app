@@ -15,7 +15,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.bijbelquiz_mobile"
+    namespace = "com.bijbelquiz.app"
     compileSdk = 36
     ndkVersion = "27.0.12077973"
 

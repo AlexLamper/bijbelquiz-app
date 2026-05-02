@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../data/quiz_repository.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/server_image.dart';
 
 class QuizDetailScreen extends ConsumerWidget {
@@ -77,10 +78,10 @@ class QuizDetailScreen extends ConsumerWidget {
                             quiz.title,
                             textAlign: TextAlign.center,
                             style: const TextStyle(
-                              fontFamily: 'Geist Mono',
+                              fontFamily: AppTheme.sansFontName,
                               fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.0,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.2,
                               color: Color(0xFF131D2B),
                             ),
                           ),
@@ -146,7 +147,7 @@ class QuizDetailScreen extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF131D2B).withOpacity(0.15),
+                          color: AppTheme.accent.withOpacity(0.22),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -160,7 +161,7 @@ class QuizDetailScreen extends ConsumerWidget {
                         context.push('/quiz/$pathId/play');
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF131D2B),
+                        backgroundColor: AppTheme.accent,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(

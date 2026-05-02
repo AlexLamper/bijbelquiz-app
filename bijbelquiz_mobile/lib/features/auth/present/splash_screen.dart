@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/theme/app_theme.dart';
 import '../present/auth_controller.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -73,7 +74,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             const Text(
               'Bijbelquiz',
               style: TextStyle(
-                fontFamily: 'Geist Mono',
+                fontFamily: AppTheme.sansFontName,
                 fontSize: 26,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 2.0,

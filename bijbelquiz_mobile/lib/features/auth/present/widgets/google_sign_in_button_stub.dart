@@ -7,7 +7,7 @@ Widget buildButton({
   required bool isLoading,
 }) {
   return PrimaryButton(
-    text: 'Continue with Google',
+    text: 'Inloggen met Google',
     isSecondary: true,
     isLoading: isLoading,
     onPressed: isLoading ? null : onPressed,

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../../core/theme/app_theme.dart';
 import '../../profile/present/profile_provider.dart';
 import '../data/quiz_repository.dart';
-import '../domain/question.dart';
 import '../domain/answer.dart';
+import '../domain/question.dart';
 
 class QuizPlayerScreen extends ConsumerStatefulWidget {
   final String idOrSlug;
@@ -68,11 +70,10 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
 
             return Column(
               children: [
-                // Header Row (Close Button & Progress Text)
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16.0,
-                    vertical: 8.0,
+                    vertical: 4.0,
                   ),
                   child: Row(
                     children: [
@@ -91,26 +92,23 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black,
+                              fontFamily: AppTheme.sansFontName,
+                              color: AppTheme.accent,
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(
-                        width: 48,
-                      ), // Balances the Row to keep text perfectly centered
+                      const SizedBox(width: 48),
                     ],
                   ),
                 ),
-
-                // Progress Bar Track
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
                   child: Container(
                     height: 4,
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE5E5EA), // Light grey track
+                      color: const Color(0xFFE5E5EA),
                       borderRadius: BorderRadius.circular(2),
                     ),
                     child: FractionallySizedBox(
@@ -118,57 +116,53 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
                       widthFactor: progress.clamp(0.0, 1.0),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: const Color(0xFF131D2B), // Dark filled state
+                          color: const Color(0xFF131D2B),
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
                     ),
                   ),
                 ),
-
-                const SizedBox(height: 48),
-
-                // Question Text
+                const SizedBox(height: 24),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
                   child: Text(
                     question.text,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
-                      fontFamily: 'Geist Mono',
-                      fontSize: 21,
-                      height: 1.4,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
+                      fontFamily: AppTheme.sansFontName,
+                      fontSize: 19,
+                      height: 1.3,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.15,
                       color: Colors.black,
                     ),
                   ),
                 ),
-
-                const SizedBox(height: 48),
-
-                // Options List
+                const SizedBox(height: 20),
                 Expanded(
-                  child: SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: SingleChildScrollView(
                       child: Column(
                         children: [
-                          ...question.answers.map(
-                            (answer) => _buildAnswerButton(answer),
-                          ),
+                          ...question.answers.map(_buildAnswerButton),
                           if (_isAnswered)
-                            _buildExplanationAndNext(
-                              question,
-                              totalQuestions,
-                              isPremium,
-                            ),
-                          const SizedBox(height: 40),
+                            _buildExplanationCard(question, isPremium),
+                          const SizedBox(height: 20),
                         ],
                       ),
                     ),
                   ),
                 ),
+                if (_isAnswered)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                    child: SafeArea(
+                      top: false,
+                      child: _buildNextQuestionButton(totalQuestions),
+                    ),
+                  ),
               ],
             );
           },
@@ -184,14 +178,10 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
   Widget _buildAnswerButton(Answer answer) {
     final bool isSelected = _selectedAnswer == answer;
 
-    // Default styling (Unanswered)
-    Color backgroundColor = const Color(
-      0xFFF4F4F6,
-    ); // Subtle light grey background
+    Color backgroundColor = const Color(0xFFF4F4F6);
     Color textColor = Colors.black;
     Border? border;
 
-    // Styling after an answer is selected
     if (_isAnswered) {
       if (answer.isCorrect) {
         backgroundColor = const Color(0xFFE8F5E9);
@@ -205,16 +195,16 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
     }
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
+      padding: const EdgeInsets.only(bottom: 10.0),
       child: InkWell(
         onTap: () => _handleOptionSelected(answer),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
           decoration: BoxDecoration(
             color: backgroundColor,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
             border: border,
           ),
           child: Row(
@@ -222,7 +212,7 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
               Expanded(
                 child: Text(
                   answer.text,
-                  style: TextStyle(fontSize: 16, color: textColor, height: 1.3),
+                  style: TextStyle(fontSize: 15, color: textColor, height: 1.3),
                 ),
               ),
               if (_isAnswered && answer.isCorrect)
@@ -236,404 +226,226 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
     );
   }
 
-  Widget _buildExplanationAndNext(
-    Question question,
-    int totalQuestions,
-    bool isPremium,
-  ) {
-    final bool isLastQuestion = _currentIndex == totalQuestions - 1;
+  Widget _buildExplanationCard(Question question, bool isPremium) {
     final bool gotItRight = _selectedAnswer?.isCorrect ?? false;
+    final bool hasExplanation = question.explanation.isNotEmpty;
+    final bool hasReference =
+        question.bibleReference.isNotEmpty && question.bibleReference != '-';
     final teasedExplanation = _teaseExplanation(question.explanation);
     final teasedReference = _teaseReference(question.bibleReference);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: 32),
-        // Unified Card Design
+        const SizedBox(height: 14),
         Container(
           decoration: BoxDecoration(
             color: gotItRight
                 ? const Color(0xFFE8F5E9)
                 : const Color(0xFFFFEBEE),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: gotItRight
-                    ? const Color(0xFF4CAF50).withOpacity(0.12)
-                    : const Color(0xFFE53935).withOpacity(0.12),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: gotItRight
-                  ? const Color(0xFF4CAF50).withOpacity(0.2)
-                  : const Color(0xFFE53935).withOpacity(0.2),
-              width: 1.5,
+                  ? const Color(0xFF4CAF50).withOpacity(0.35)
+                  : const Color(0xFFE53935).withOpacity(0.35),
+              width: 1,
             ),
           ),
-          child: Stack(
-            children: [
-              // Background gradient accent
-              Container(
-                height: 120,
-                decoration: BoxDecoration(
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    topRight: Radius.circular(20),
-                  ),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      gotItRight
-                          ? const Color(0xFF4CAF50).withOpacity(0.08)
-                          : const Color(0xFFE53935).withOpacity(0.08),
-                      gotItRight
-                          ? const Color(0xFF4CAF50).withOpacity(0.02)
-                          : const Color(0xFFE53935).withOpacity(0.02),
-                    ],
-                  ),
-                ),
-              ),
-              // Main Content
-              Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    // Status Header
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: gotItRight
-                                ? const Color(0xFF4CAF50).withOpacity(0.15)
-                                : const Color(0xFFE53935).withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(
-                            gotItRight
-                                ? Icons.check_circle_rounded
-                                : Icons.cancel_rounded,
-                            color: gotItRight
-                                ? const Color(0xFF4CAF50)
-                                : const Color(0xFFE53935),
-                            size: 24,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                gotItRight
-                                    ? 'Goed gedaan!'
-                                    : 'Helaas, dat is niet juist.',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: gotItRight
-                                      ? const Color(0xFF4CAF50)
-                                      : const Color(0xFFE53935),
-                                  letterSpacing: 0.3,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                gotItRight
-                                    ? 'Uitstekend antwoord gegeven!'
-                                    : 'Bekijk de uitleg hieronder',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.black.withOpacity(0.6),
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                    Icon(
+                      gotItRight
+                          ? Icons.check_circle_rounded
+                          : Icons.cancel_rounded,
+                      color: gotItRight
+                          ? const Color(0xFF4CAF50)
+                          : const Color(0xFFE53935),
+                      size: 20,
                     ),
-                    // Divider
-                    const SizedBox(height: 20),
-                    Container(height: 1, color: Colors.black.withOpacity(0.08)),
-                    // Explanation and Reference Section
-                    if (question.explanation.isNotEmpty ||
-                        (question.bibleReference.isNotEmpty &&
-                            question.bibleReference != '-')) ...[
-                      const SizedBox(height: 20),
-                      if (isPremium) ...[
-                        // Premium Content
-                        if (question.explanation.isNotEmpty)
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Uitleg',
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF131D2B),
-                                  letterSpacing: 0.3,
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                question.explanation,
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  color: Colors.black87,
-                                  height: 1.5,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        if (question.bibleReference.isNotEmpty &&
-                            question.bibleReference != '-') ...[
-                          if (question.explanation.isNotEmpty)
-                            const SizedBox(height: 16),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Bijbelreferentie',
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF131D2B),
-                                  letterSpacing: 0.3,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(
-                                    0xFF131D2B,
-                                  ).withOpacity(0.06),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: const Color(
-                                      0xFF131D2B,
-                                    ).withOpacity(0.1),
-                                  ),
-                                ),
-                                child: Text(
-                                  question.bibleReference,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
-                                    color: Color(0xFF131D2B),
-                                    fontStyle: FontStyle.italic,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ] else ...[
-                        // Teaser + lock for non-premium users.
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (question.explanation.isNotEmpty) ...[
-                              const Text(
-                                'Uitleg preview',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF131D2B),
-                                  letterSpacing: 0.3,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Stack(
-                                  children: [
-                                    Container(
-                                      width: double.infinity,
-                                      padding: const EdgeInsets.all(12),
-                                      color: const Color(0xFF131D2B).withOpacity(
-                                        0.04,
-                                      ),
-                                      child: Text(
-                                        teasedExplanation,
-                                        maxLines: 4,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.black87,
-                                          height: 1.45,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ),
-                                    Positioned.fill(
-                                      child: IgnorePointer(
-                                        child: DecoratedBox(
-                                          decoration: BoxDecoration(
-                                            gradient: LinearGradient(
-                                              begin: Alignment.topCenter,
-                                              end: Alignment.bottomCenter,
-                                              colors: [
-                                                Colors.transparent,
-                                                Colors.white.withOpacity(0.15),
-                                                Colors.white.withOpacity(0.88),
-                                              ],
-                                              stops: const [0.35, 0.62, 1.0],
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                            ],
-                            if (question.bibleReference.isNotEmpty &&
-                                question.bibleReference != '-') ...[
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 10,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF131D2B).withOpacity(
-                                    0.06,
-                                  ),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.menu_book_rounded,
-                                      size: 16,
-                                      color: Color(0xFF131D2B),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        'Referentie preview: $teasedReference',
-                                        style: const TextStyle(
-                                          fontSize: 13,
-                                          color: Color(0xFF131D2B),
-                                          fontStyle: FontStyle.italic,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 14),
-                            ],
-                            Center(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 2.0),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(
-                                      Icons.lock_rounded,
-                                      color: Color(0xFF131D2B),
-                                      size: 28,
-                                    ),
-                                    const SizedBox(height: 12),
-                                    const Text(
-                                      'Volledige Uitleg = Premium',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        color: Color(0xFF131D2B),
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 0.3,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      'Ontgrendel alle uitleg en complete bijbelreferenties na elke vraag.',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        color: Colors.black.withOpacity(0.65),
-                                        fontSize: 13,
-                                        height: 1.4,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 14),
-                                    SizedBox(
-                                      width: double.infinity,
-                                      height: 42,
-                                      child: ElevatedButton(
-                                        onPressed: () {
-                                          context.push('/premium');
-                                        },
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(0xFF131D2B),
-                                          foregroundColor: Colors.white,
-                                          elevation: 0,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                        ),
-                                        child: const Text(
-                                          'Ontgrendel Premium',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 14,
-                                            letterSpacing: 0.3,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        gotItRight ? 'Goed gedaan!' : 'Niet juist.',
+                        style: TextStyle(
+                          fontFamily: AppTheme.sansFontName,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: gotItRight
+                              ? const Color(0xFF2E7D32)
+                              : const Color(0xFFC62828),
                         ),
-                      ],
-                    ],
+                      ),
+                    ),
                   ],
                 ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 32),
-        SizedBox(
-          height: 56,
-          child: ElevatedButton(
-            onPressed: () => _nextQuestion(totalQuestions),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF131D2B),
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-            child: Text(
-              isLastQuestion ? 'Rond Quiz Af' : 'Volgende Vraag',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.5,
-              ),
+                if (hasExplanation || hasReference) ...[
+                  const SizedBox(height: 10),
+                  Container(height: 1, color: Colors.black.withOpacity(0.08)),
+                  const SizedBox(height: 10),
+                ],
+                if (hasExplanation) ...[
+                  const Text(
+                    'Uitleg',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF131D2B),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  if (isPremium)
+                    Text(
+                      question.explanation,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Colors.black87,
+                        height: 1.35,
+                      ),
+                    )
+                  else
+                    _buildFadedPreviewText(
+                      teasedExplanation,
+                      maxLines: 3,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Colors.black87,
+                        height: 1.35,
+                      ),
+                    ),
+                ],
+                if (hasReference) ...[
+                  if (hasExplanation) const SizedBox(height: 10),
+                  const Text(
+                    'Referentie',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF131D2B),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  if (isPremium)
+                    Text(
+                      question.bibleReference,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF131D2B),
+                        fontWeight: FontWeight.w600,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    )
+                  else
+                    _buildFadedPreviewText(
+                      teasedReference,
+                      maxLines: 1,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF131D2B),
+                        fontWeight: FontWeight.w600,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                ],
+                if (!isPremium && (hasExplanation || hasReference)) ...[
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 38,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        context.push('/premium');
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.accent,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text(
+                        'Ontgrendel premium voor uitleg',
+                        style: TextStyle(
+                          fontFamily: AppTheme.sansFontName,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildNextQuestionButton(int totalQuestions) {
+    final bool isLastQuestion = _currentIndex == totalQuestions - 1;
+
+    return SizedBox(
+      height: 50,
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: () => _nextQuestion(totalQuestions),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppTheme.accent,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        child: Text(
+          isLastQuestion ? 'Rond quiz af' : 'Volgende vraag',
+          style: const TextStyle(
+            fontFamily: AppTheme.sansFontName,
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.2,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFadedPreviewText(
+    String text, {
+    required TextStyle style,
+    required int maxLines,
+  }) {
+    final gradient = maxLines == 1
+        ? const LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: <Color>[Colors.black, Colors.black, Colors.transparent],
+            stops: <double>[0.0, 0.78, 1.0],
+          )
+        : const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: <Color>[Colors.black, Colors.black, Colors.transparent],
+            stops: <double>[0.0, 0.68, 1.0],
+          );
+
+    return ShaderMask(
+      blendMode: BlendMode.dstIn,
+      shaderCallback: (Rect bounds) {
+        return gradient.createShader(bounds);
+      },
+      child: Text(
+        text,
+        maxLines: maxLines,
+        overflow: TextOverflow.clip,
+        style: style,
+      ),
     );
   }
 
@@ -643,14 +455,14 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
       return '';
     }
 
-    const maxChars = 160;
+    const maxChars = 90;
     if (normalized.length <= maxChars) {
-      if (normalized.length <= 8) {
+      if (normalized.length <= 10) {
         return '${normalized.substring(0, 1)}...';
       }
 
       final cutIndex =
-          (normalized.length * 0.6).round().clamp(8, normalized.length - 1)
+          (normalized.length * 0.4).round().clamp(10, normalized.length - 1)
               as int;
       return '${normalized.substring(0, cutIndex).trimRight()}...';
     }
@@ -659,21 +471,24 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
   }
 
   String _teaseReference(String reference) {
-    final trimmed = reference.trim();
-    if (trimmed.isEmpty || trimmed == '-') {
+    final normalized = reference.trim().replaceAll(RegExp(r'\s+'), ' ');
+    if (normalized.isEmpty) {
       return '';
     }
 
-    final colonIndex = trimmed.indexOf(':');
-    if (colonIndex > 0) {
-      return '${trimmed.substring(0, colonIndex)}:...';
+    const maxChars = 26;
+    if (normalized.length <= maxChars) {
+      if (normalized.length <= 6) {
+        return '${normalized.substring(0, 1)}...';
+      }
+
+      final cutIndex =
+          (normalized.length * 0.6).round().clamp(6, normalized.length - 1)
+              as int;
+      return '${normalized.substring(0, cutIndex).trimRight()}...';
     }
 
-    if (trimmed.length <= 6) {
-      return '${trimmed.substring(0, 1)}...';
-    }
-
-    return '${trimmed.substring(0, 6)}...';
+    return '${normalized.substring(0, maxChars).trimRight()}...';
   }
 
   Widget _buildEmptyState() {
@@ -756,9 +571,9 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
             const Text(
               'Quiz Voltooid!',
               style: TextStyle(
-                fontFamily: 'Geist Mono',
+                fontFamily: AppTheme.sansFontName,
                 fontSize: 22,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w800,
                 color: Color(0xFF131D2B),
               ),
             ),
@@ -774,7 +589,7 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
               child: ElevatedButton(
                 onPressed: () => context.go('/'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF131D2B),
+                  backgroundColor: AppTheme.accent,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(

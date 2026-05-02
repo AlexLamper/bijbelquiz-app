@@ -60,7 +60,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
               const SizedBox(height: 24),
               Text(
-                'Welcome Back',
+                'Welkom terug',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Theme.of(context).colorScheme.onSurface,
@@ -68,28 +68,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Log in to continue your progress.',
+                'Log in om je voortgang bij te houden.',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.outline,
+                  color: const Color(0xFF131D2B), // AppTheme.ink, dark gray
                 ),
               ),
               const SizedBox(height: 32),
               CustomTextField(
-                label: 'Email',
+                label: 'E-mail',
                 controller: _emailController,
                 prefixIcon: Icons.email,
                 keyboardType: TextInputType.emailAddress,
               ),
               const SizedBox(height: 16),
               CustomTextField(
-                label: 'Password',
+                label: 'Wachtwoord',
                 controller: _passwordController,
                 obscureText: true,
                 prefixIcon: Icons.lock,
               ),
               const SizedBox(height: 32),
               PrimaryButton(
-                text: 'Sign In',
+                text: 'Inloggen',
                 isLoading: isLoading,
                 onPressed: isLoading ? null : _login,
               ),
@@ -105,7 +105,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   context.push('/register');
                 },
                 child: Text(
-                  'Don\'t have an account? Sign Up',
+                  'Nog geen account? Registreren',
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.primary,
                   ),
