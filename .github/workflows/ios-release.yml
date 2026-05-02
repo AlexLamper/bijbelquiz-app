@@ -143,7 +143,10 @@ jobs:
             -archivePath "$RUNNER_TEMP/Runner.xcarchive" \
             archive \
             DEVELOPMENT_TEAM="$TEAM_ID" \
-            PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID"
+            PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
 
           xcodebuild -exportArchive \
             -archivePath "$RUNNER_TEMP/Runner.xcarchive" \
