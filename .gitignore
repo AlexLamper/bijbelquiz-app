@@ -1,2 +1,8 @@
 /docs*
 .github/instructions/
+
+# Sensitive Apple credentials (never commit)
+**/AuthKey_*.p8
+**/*.p12
+**/*.mobileprovision
+**/*_certificate*.p12
