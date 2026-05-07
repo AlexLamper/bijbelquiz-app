@@ -5,6 +5,7 @@ import '../../../core/ui/primary_button.dart';
 import '../../../core/ui/custom_text_field.dart';
 import 'auth_controller.dart';
 import 'widgets/google_sign_in_button.dart';
+import 'widgets/apple_sign_in_button.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -25,6 +26,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _loginWithGoogle() async {
     final auth = ref.read(authControllerProvider.notifier);
     await auth.signInWithGoogle();
+  }
+
+  Future<void> _loginWithApple() async {
+    final auth = ref.read(authControllerProvider.notifier);
+    await auth.signInWithApple();
   }
 
   @override
@@ -98,6 +104,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 context: context,
                 isLoading: isLoading,
                 onPressed: isLoading ? null : _loginWithGoogle,
+              ),
+              const SizedBox(height: 12),
+              buildAppleSignInButton(
+                context: context,
+                isLoading: isLoading,
+                onPressed: isLoading ? null : _loginWithApple,
               ),
               const SizedBox(height: 16),
               TextButton(

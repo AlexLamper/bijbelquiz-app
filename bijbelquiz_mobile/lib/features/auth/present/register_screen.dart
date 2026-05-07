@@ -5,6 +5,7 @@ import '../../../core/ui/primary_button.dart';
 import '../../../core/ui/custom_text_field.dart';
 import 'auth_controller.dart';
 import 'widgets/google_sign_in_button.dart';
+import 'widgets/apple_sign_in_button.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -30,6 +31,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   Future<void> _registerWithGoogle() async {
     final auth = ref.read(authControllerProvider.notifier);
     await auth.signInWithGoogle();
+  }
+
+  Future<void> _registerWithApple() async {
+    final auth = ref.read(authControllerProvider.notifier);
+    await auth.signInWithApple();
   }
 
   @override
@@ -122,6 +128,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 context: context,
                 isLoading: isLoading,
                 onPressed: isLoading ? null : _registerWithGoogle,
+              ),
+              const SizedBox(height: 12),
+              buildAppleSignInButton(
+                context: context,
+                isLoading: isLoading,
+                onPressed: isLoading ? null : _registerWithApple,
               ),
               const SizedBox(height: 16),
               Center(

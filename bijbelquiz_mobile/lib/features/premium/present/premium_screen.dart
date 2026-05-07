@@ -1,42 +1,96 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../data/purchase_service.dart';
+import 'premium_controller.dart';
 
 enum _PremiumPlan { monthly, lifetime }
 
-class PremiumScreen extends StatefulWidget {
+class PremiumScreen extends ConsumerStatefulWidget {
   const PremiumScreen({super.key});
 
   @override
-  State<PremiumScreen> createState() => _PremiumScreenState();
+  ConsumerState<PremiumScreen> createState() => _PremiumScreenState();
 }
 
-class _PremiumScreenState extends State<PremiumScreen> {
+class _PremiumScreenState extends ConsumerState<PremiumScreen> {
   _PremiumPlan _selectedPlan = _PremiumPlan.monthly;
 
-  static const _monthlyPlan = _PlanSpec(
-    id: _PremiumPlan.monthly,
-    title: 'Maandelijks',
-    subtitle: 'Flexibel opzegbaar, volledige toegang',
-    price: '€5,99',
-    billingLabel: 'per maand',
-    badge: 'Aanbevolen',
-  );
+  void _showSuccess(bool isPremium) {
+    if (isPremium) {
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Welkom bij Premium! 🎉'),
+          content: const Text(
+            'Je hebt nu volledige toegang tot alle premium functies. Veel plezier!',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                context.pop();
+              },
+              child: const Text('Super!'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Aankopen hersteld.')),
+      );
+    }
+  }
 
-  static const _lifetimePlan = _PlanSpec(
-    id: _PremiumPlan.lifetime,
-    title: 'Lifetime toegang',
-    subtitle: 'Eenmalig betalen, altijd premium',
-    price: '€74,99',
-    billingLabel: 'eenmalig',
-  );
+  void _onPurchase() {
+    final notifier = ref.read(premiumControllerProvider.notifier);
+    if (_selectedPlan == _PremiumPlan.monthly) {
+      notifier.purchaseMonthly();
+    } else {
+      notifier.purchaseLifetime();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final selectedSpec = _selectedPlan == _PremiumPlan.monthly
-        ? _monthlyPlan
-        : _lifetimePlan;
+    ref.listen<PremiumState>(premiumControllerProvider, (prev, next) {
+      if (next.status == PurchaseStatus.success) {
+        _showSuccess(next.isPremium);
+        ref.read(premiumControllerProvider.notifier).clearStatus();
+      } else if (next.status == PurchaseStatus.error &&
+          next.errorMessage != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.errorMessage!),
+            backgroundColor: Colors.red,
+          ),
+        );
+        ref.read(premiumControllerProvider.notifier).clearStatus();
+      }
+    });
+
+    final premiumState = ref.watch(premiumControllerProvider);
+    final isLoading = premiumState.status == PurchaseStatus.loading;
+
+    final monthlyPackage = premiumState.packages
+        .cast<Package?>()
+        .firstWhere(
+          (p) => p?.storeProduct.identifier == kRcMonthlyProductId,
+          orElse: () => null,
+        );
+    final lifetimePackage = premiumState.packages
+        .cast<Package?>()
+        .firstWhere(
+          (p) => p?.storeProduct.identifier == kRcLifetimeProductId,
+          orElse: () => null,
+        );
+
+    final monthlyPrice = monthlyPackage?.storeProduct.priceString ?? '€5,99';
+    final lifetimePrice = lifetimePackage?.storeProduct.priceString ?? '€74,99';
 
     return Scaffold(
       backgroundColor: AppTheme.canvas,
@@ -78,54 +132,53 @@ class _PremiumScreenState extends State<PremiumScreen> {
             ),
             const SizedBox(height: 10),
             _PlanCard(
-              spec: _monthlyPlan,
+              title: 'Maandelijks',
+              subtitle: 'Flexibel opzegbaar, volledige toegang',
+              price: monthlyPrice,
+              billingLabel: 'per maand',
+              badge: 'Aanbevolen',
               selected: _selectedPlan == _PremiumPlan.monthly,
-              onTap: () {
-                setState(() {
-                  _selectedPlan = _PremiumPlan.monthly;
-                });
-              },
+              onTap: () => setState(() => _selectedPlan = _PremiumPlan.monthly),
             ),
             const SizedBox(height: 10),
             _PlanCard(
-              spec: _lifetimePlan,
+              title: 'Lifetime toegang',
+              subtitle: 'Eenmalig betalen, altijd premium',
+              price: lifetimePrice,
+              billingLabel: 'eenmalig',
               selected: _selectedPlan == _PremiumPlan.lifetime,
-              onTap: () {
-                setState(() {
-                  _selectedPlan = _PremiumPlan.lifetime;
-                });
-              },
+              onTap: () => setState(() => _selectedPlan = _PremiumPlan.lifetime),
             ),
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () {
-                  final label = selectedSpec.id == _PremiumPlan.monthly
-                      ? 'Maandelijks'
-                      : 'Lifetime';
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        '$label aankoop wordt binnenkort geactiveerd.',
-                      ),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.workspace_premium_rounded),
-                label: Text('Ga verder met ${selectedSpec.title}'),
+                onPressed: isLoading ? null : _onPurchase,
+                icon: isLoading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.workspace_premium_rounded),
+                label: Text(
+                  isLoading
+                      ? 'Verwerken…'
+                      : 'Ga verder met ${_selectedPlan == _PremiumPlan.monthly ? 'Maandelijks' : 'Lifetime'}',
+                ),
               ),
             ),
             const SizedBox(height: 8),
             Center(
               child: TextButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Herstellen van aankopen volgt binnenkort.'),
-                    ),
-                  );
-                },
+                onPressed: isLoading
+                    ? null
+                    : () => ref
+                        .read(premiumControllerProvider.notifier)
+                        .restorePurchases(),
                 child: const Text('Aankopen herstellen'),
               ),
             ),
@@ -145,6 +198,8 @@ class _PremiumScreenState extends State<PremiumScreen> {
     );
   }
 }
+
+// ─── Hero card ────────────────────────────────────────────────────────────────
 
 class _PremiumHeroCard extends StatelessWidget {
   const _PremiumHeroCard();
@@ -244,6 +299,8 @@ class _PremiumHeroCard extends StatelessWidget {
   }
 }
 
+// ─── Benefits ─────────────────────────────────────────────────────────────────
+
 class _BenefitsCard extends StatelessWidget {
   const _BenefitsCard();
 
@@ -313,16 +370,26 @@ class _BenefitRow extends StatelessWidget {
   }
 }
 
+// ─── Plan card ────────────────────────────────────────────────────────────────
+
 class _PlanCard extends StatelessWidget {
   const _PlanCard({
-    required this.spec,
+    required this.title,
+    required this.subtitle,
+    required this.price,
+    required this.billingLabel,
     required this.selected,
     required this.onTap,
+    this.badge,
   });
 
-  final _PlanSpec spec;
+  final String title;
+  final String subtitle;
+  final String price;
+  final String billingLabel;
   final bool selected;
   final VoidCallback onTap;
+  final String? badge;
 
   @override
   Widget build(BuildContext context) {
@@ -382,14 +449,14 @@ class _PlanCard extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        spec.title,
+                        title,
                         style: const TextStyle(
                           color: AppTheme.ink,
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
-                      if (spec.badge != null) ...[
+                      if (badge != null) ...[
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -401,7 +468,7 @@ class _PlanCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: Text(
-                            spec.badge!,
+                            badge!,
                             style: const TextStyle(
                               color: AppTheme.accent,
                               fontSize: 10,
@@ -414,7 +481,7 @@ class _PlanCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    spec.subtitle,
+                    subtitle,
                     style: const TextStyle(
                       color: AppTheme.muted,
                       fontSize: 12,
@@ -428,7 +495,7 @@ class _PlanCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  spec.price,
+                  price,
                   style: const TextStyle(
                     color: AppTheme.ink,
                     fontSize: 18,
@@ -436,7 +503,7 @@ class _PlanCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  spec.billingLabel,
+                  billingLabel,
                   style: const TextStyle(
                     color: AppTheme.muted,
                     fontSize: 11,
@@ -450,22 +517,4 @@ class _PlanCard extends StatelessWidget {
       ),
     );
   }
-}
-
-class _PlanSpec {
-  const _PlanSpec({
-    required this.id,
-    required this.title,
-    required this.subtitle,
-    required this.price,
-    required this.billingLabel,
-    this.badge,
-  });
-
-  final _PremiumPlan id;
-  final String title;
-  final String subtitle;
-  final String price;
-  final String billingLabel;
-  final String? badge;
 }

@@ -61,6 +61,35 @@ class AuthRepository {
     }
   }
 
+  Future<User?> loginWithApple({
+    required String identityToken,
+    required String authorizationCode,
+    String? givenName,
+    String? familyName,
+    String? email,
+  }) async {
+    try {
+      final response = await _apiClient.dio.post(
+        '/apple-login',
+        data: {
+          'identityToken': identityToken,
+          'authorizationCode': authorizationCode,
+          if (givenName != null) 'givenName': givenName,
+          if (familyName != null) 'familyName': familyName,
+          if (email != null) 'email': email,
+        },
+      );
+      return _processAuthResponse(response.data);
+    } on DioException catch (e) {
+      if (e.response != null && e.response?.data != null) {
+        throw Exception(e.response!.data['error'] ?? 'Apple login failed');
+      }
+      throw Exception('Failed to login with Apple: ${e.message}');
+    } catch (e) {
+      throw Exception('Unexpected Apple login error: $e');
+    }
+  }
+
   Future<void> logout() async {
     await _localStorage.deleteToken();
   }

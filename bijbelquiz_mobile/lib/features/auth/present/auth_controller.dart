@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart' as gAuth;
+import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../data/auth_repository.dart';
 import '../../../core/api/api_client.dart';
 import '../data/auth_local_storage.dart';
@@ -60,6 +62,7 @@ class AuthController extends AsyncNotifier<User?> {
             
             final repository = ref.read(authRepositoryProvider);
             final user = await repository.loginWithGoogle(idToken);
+            await _linkRevenueCat(user);
             state = AsyncValue.data(user);
           } catch (e, st) {
             state = AsyncValue.error(e, st);
@@ -74,11 +77,23 @@ class AuthController extends AsyncNotifier<User?> {
     return null;
   }
 
+  /// Link RevenueCat to the authenticated user so subscription status
+  /// is correctly attributed across devices.
+  Future<void> _linkRevenueCat(User? user) async {
+    if (user == null || kIsWeb) return;
+    try {
+      await Purchases.logIn(user.id);
+    } catch (_) {
+      // Non-fatal: RC linking failure shouldn't block auth.
+    }
+  }
+
   Future<void> login(String email, String password) async {
     state = const AsyncValue.loading();
     try {
       final repository = ref.read(authRepositoryProvider);
       final user = await repository.login(email, password);
+      await _linkRevenueCat(user);
       state = AsyncValue.data(user);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
@@ -90,6 +105,7 @@ class AuthController extends AsyncNotifier<User?> {
     try {
       final repository = ref.read(authRepositoryProvider);
       final user = await repository.register(name, email, password);
+      await _linkRevenueCat(user);
       state = AsyncValue.data(user);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
@@ -113,6 +129,7 @@ class AuthController extends AsyncNotifier<User?> {
       state = const AsyncValue.loading();
       final repository = ref.read(authRepositoryProvider);
       final user = await repository.loginWithGoogle(idToken);
+      await _linkRevenueCat(user);
       state = AsyncValue.data(user);
     } on gAuth.GoogleSignInException catch (e, st) {
       if (e.code == gAuth.GoogleSignInExceptionCode.canceled ||
@@ -125,13 +142,55 @@ class AuthController extends AsyncNotifier<User?> {
     }
   }
 
+  Future<void> signInWithApple() async {
+    try {
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+      );
+
+      final identityToken = credential.identityToken;
+      final authorizationCode = credential.authorizationCode;
+
+      if (identityToken == null) {
+        throw Exception('Geen identity token ontvangen van Apple.');
+      }
+
+      state = const AsyncValue.loading();
+      final repository = ref.read(authRepositoryProvider);
+      final user = await repository.loginWithApple(
+        identityToken: identityToken,
+        authorizationCode: authorizationCode,
+        givenName: credential.givenName,
+        familyName: credential.familyName,
+        email: credential.email,
+      );
+      await _linkRevenueCat(user);
+      state = AsyncValue.data(user);
+    } on SignInWithAppleAuthorizationException catch (e) {
+      if (e.code == AuthorizationErrorCode.canceled) return;
+      state = AsyncValue.error(e, StackTrace.current);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
+
   Future<void> logout() async {
     state = const AsyncValue.loading();
     final repository = ref.read(authRepositoryProvider);
     await repository.logout();
-    
+
     await ensureGoogleSignInInitialized();
     await gAuth.GoogleSignIn.instance.signOut();
+
+    if (!kIsWeb) {
+      try {
+        await Purchases.logOut();
+      } catch (_) {}
+    }
+
     state = const AsyncValue.data(null);
   }
 }
