@@ -132,14 +132,22 @@ jobs:
       # ── 5. Build IPA ─────────────────────────────────────────────────────────
       - name: Build Flutter iOS (unsigned)
         working-directory: bijbelquiz_mobile
+        env:
+          REVENUECAT_APPLE_KEY: ${{ secrets.REVENUECAT_APPLE_KEY }}
         run: |
           BUILD_NAME=${{ github.event.inputs.build_name || '1.0.0' }}
           BUILD_NUMBER=${{ github.run_number }}
 
+          if [ -z "${REVENUECAT_APPLE_KEY:-}" ]; then
+            echo "Missing required secret: REVENUECAT_APPLE_KEY"
+            exit 1
+          fi
+
           flutter build ios --release --no-codesign \
             --build-name="$BUILD_NAME" \
             --build-number="$BUILD_NUMBER" \
-            --dart-define=USE_PRODUCTION_API=true
+            --dart-define=USE_PRODUCTION_API=true \
+            --dart-define=REVENUECAT_APPLE_KEY="$REVENUECAT_APPLE_KEY"
 
       - name: Archive and export signed IPA
         working-directory: bijbelquiz_mobile/ios
