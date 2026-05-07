@@ -20,6 +20,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
   _PremiumPlan _selectedPlan = _PremiumPlan.monthly;
 
   void _showSuccess(bool isPremium) {
+    if (!mounted) return;
     if (isPremium) {
       showDialog(
         context: context,
@@ -58,11 +59,13 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
   @override
   Widget build(BuildContext context) {
     ref.listen<PremiumState>(premiumControllerProvider, (prev, next) {
+      if (!mounted) return;
       if (next.status == PurchaseStatus.success) {
         _showSuccess(next.isPremium);
         ref.read(premiumControllerProvider.notifier).clearStatus();
       } else if (next.status == PurchaseStatus.error &&
           next.errorMessage != null) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(next.errorMessage!),
