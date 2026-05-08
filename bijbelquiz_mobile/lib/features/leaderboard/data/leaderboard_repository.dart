@@ -9,11 +9,11 @@ extension LeaderboardPeriodX on LeaderboardPeriod {
   String get apiValue {
     switch (this) {
       case LeaderboardPeriod.week:
-        return 'week';
+        return 'weekly';
       case LeaderboardPeriod.month:
-        return 'month';
+        return 'monthly';
       case LeaderboardPeriod.all:
-        return 'all';
+        return 'all-time';
     }
   }
 }

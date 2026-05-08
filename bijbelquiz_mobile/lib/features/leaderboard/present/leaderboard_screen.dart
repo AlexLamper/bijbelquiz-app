@@ -134,9 +134,9 @@ class _RangeSelector extends StatelessWidget {
   final ValueChanged<LeaderboardPeriod> onSelect;
 
   static const Map<LeaderboardPeriod, String> _labels = {
-    LeaderboardPeriod.week: 'Deze Week',
-    LeaderboardPeriod.month: 'Deze Maand',
-    LeaderboardPeriod.all: 'Altijd',
+    LeaderboardPeriod.week: 'Weekly',
+    LeaderboardPeriod.month: 'Monthly',
+    LeaderboardPeriod.all: 'All-time',
   };
 
   @override
@@ -343,9 +343,9 @@ extension on LeaderboardPeriod {
   String get displayName {
     switch (this) {
       case LeaderboardPeriod.week:
-        return 'Deze week';
+        return 'Weekly';
       case LeaderboardPeriod.month:
-        return 'Deze maand';
+        return 'Monthly';
       case LeaderboardPeriod.all:
         return 'All-time';
     }

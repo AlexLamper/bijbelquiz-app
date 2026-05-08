@@ -5,6 +5,7 @@ class PrimaryButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool isLoading;
   final bool isSecondary;
+  final Widget? leading;
 
   const PrimaryButton({
     super.key,
@@ -12,6 +13,7 @@ class PrimaryButton extends StatelessWidget {
     this.onPressed,
     this.isLoading = false,
     this.isSecondary = false,
+    this.leading,
   });
 
   @override
@@ -47,12 +49,21 @@ class PrimaryButton extends StatelessWidget {
                   valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                 ),
               )
-            : Text(
-                text,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (leading != null) ...[
+                    leading!,
+                    const SizedBox(width: 10),
+                  ],
+                  Text(
+                    text,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
       ),
     );

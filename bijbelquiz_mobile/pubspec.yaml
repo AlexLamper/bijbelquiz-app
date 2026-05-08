@@ -44,7 +44,6 @@ dependencies:
   cached_network_image: ^3.4.1
   flutter_svg: ^2.2.3
   google_sign_in_web: ^1.1.0
-  sign_in_with_apple: ^6.1.4
   purchases_flutter: ^8.7.3
 
 dev_dependencies:

@@ -5,7 +5,6 @@ import '../../../core/ui/primary_button.dart';
 import '../../../core/ui/custom_text_field.dart';
 import 'auth_controller.dart';
 import 'widgets/google_sign_in_button.dart';
-import 'widgets/apple_sign_in_button.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -31,11 +30,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   Future<void> _registerWithGoogle() async {
     final auth = ref.read(authControllerProvider.notifier);
     await auth.signInWithGoogle();
-  }
-
-  Future<void> _registerWithApple() async {
-    final auth = ref.read(authControllerProvider.notifier);
-    await auth.signInWithApple();
   }
 
   @override
@@ -72,68 +66,77 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Center(
                 child: Image.asset(
                   'assets/images/logo-dark.png',
-                  width: 60,
-                  height: 60,
+                  width: 80,
+                  height: 80,
                   errorBuilder: (c, o, s) => const SizedBox.shrink(),
                 ),
               ),
-              const SizedBox(height: 16),
-              Text(
-                'Create Account',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onSurface,
+              const SizedBox(height: 24),
+              Center(
+                child: Text(
+                  'Account aanmaken',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
               ),
               const SizedBox(height: 8),
-              Text(
-                'Sign up to save your quiz progress and compete on the leaderboard.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.outline,
+              Center(
+                child: Text(
+                  'Maak een account aan om je voortgang op te slaan en mee te doen op het klassement.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFF131D2B),
+                  ),
                 ),
               ),
               const SizedBox(height: 32),
               CustomTextField(
-                label: 'Name',
+                label: 'Naam',
                 controller: _nameController,
                 prefixIcon: Icons.person,
               ),
               const SizedBox(height: 16),
               CustomTextField(
-                label: 'Email',
+                label: 'E-mail',
                 controller: _emailController,
                 prefixIcon: Icons.email,
                 keyboardType: TextInputType.emailAddress,
               ),
               const SizedBox(height: 16),
               CustomTextField(
-                label: 'Password',
+                label: 'Wachtwoord',
                 controller: _passwordController,
                 obscureText: true,
                 prefixIcon: Icons.lock,
               ),
               const SizedBox(height: 32),
               PrimaryButton(
-                text: 'Sign Up',
+                text: 'Registreren',
                 isLoading: isLoading,
                 onPressed: isLoading ? null : _register,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'of log in met',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: const Color(0xFF8A8F98),
+                  fontWeight: FontWeight.w500,
+                ),
               ),
               const SizedBox(height: 16),
               buildGoogleSignInButton(
                 context: context,
                 isLoading: isLoading,
                 onPressed: isLoading ? null : _registerWithGoogle,
-              ),
-              const SizedBox(height: 12),
-              buildAppleSignInButton(
-                context: context,
-                isLoading: isLoading,
-                onPressed: isLoading ? null : _registerWithApple,
               ),
               const SizedBox(height: 16),
               Center(
@@ -142,7 +145,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     context.pop();
                   },
                   child: Text(
-                    'Already have an account? Log In',
+                    'Heb je al een account? Inloggen',
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.primary,
                     ),
