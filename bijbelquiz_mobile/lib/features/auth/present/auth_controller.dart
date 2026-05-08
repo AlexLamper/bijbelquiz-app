@@ -36,14 +36,14 @@ class AuthController extends AsyncNotifier<User?> {
   Future<void> ensureGoogleSignInInitialized() async {
     if (!_googleSignInInitialized) {
       await gAuth.GoogleSignIn.instance.initialize(
-        // Web requires explicit clientId. On iOS/Android, native platform config
-        // is used (Info.plist / Google services), so we don't force clientId there.
+        // Web requires explicit clientId. Native iOS/Android should rely on
+        // platform OAuth setup (Info.plist / google-services).
         clientId: kIsWeb
             ? '1036826851129-29bsvr0f17j6bj4g9hsrhhbotsasp4tu.apps.googleusercontent.com'
             : null,
-        serverClientId: kIsWeb
-            ? null
-            : '1036826851129-29bsvr0f17j6bj4g9hsrhhbotsasp4tu.apps.googleusercontent.com',
+        // Passing a serverClientId for native without using serverAuthCode can
+        // cause "invalid_request" on some iOS OAuth setups.
+        serverClientId: null,
       );
       _googleSignInInitialized = true;
     }

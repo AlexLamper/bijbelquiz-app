@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:purchases_flutter/purchases_flutter.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../data/purchase_service.dart';
@@ -79,18 +78,9 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
     final premiumState = ref.watch(premiumControllerProvider);
     final isLoading = premiumState.status == PurchaseStatus.loading;
 
-    final monthlyPackage = premiumState.packages
-        .cast<Package?>()
-        .firstWhere(
-          (p) => p?.storeProduct.identifier == kRcMonthlyProductId,
-          orElse: () => null,
-        );
-    final lifetimePackage = premiumState.packages
-        .cast<Package?>()
-        .firstWhere(
-          (p) => p?.storeProduct.identifier == kRcLifetimeProductId,
-          orElse: () => null,
-        );
+    final service = ref.read(purchaseServiceProvider);
+    final monthlyPackage = service.findMonthlyPackage(premiumState.packages);
+    final lifetimePackage = service.findLifetimePackage(premiumState.packages);
 
     final monthlyPrice = monthlyPackage?.storeProduct.priceString ?? '€5,99';
     final lifetimePrice = lifetimePackage?.storeProduct.priceString ?? '€74,99';

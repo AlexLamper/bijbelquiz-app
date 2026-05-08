@@ -2,11 +2,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
-// ─── RevenueCat product identifiers ──────────────────────────────────────────
-// These must match EXACTLY what you configure in RevenueCat dashboard
-// → App Store Connect product ID / Google Play product ID.
+// ─── RevenueCat identifiers ──────────────────────────────────────────────────
+// Product IDs must match App Store Connect / Play exactly.
 const kRcMonthlyProductId = 'bijbelquiz_premium_monthly';
 const kRcLifetimeProductId = 'bijbelquiz_premium_lifetime';
+// RevenueCat package IDs are usually stable ($rc_monthly / $rc_lifetime).
+const kRcMonthlyPackageId = '\$rc_monthly';
+const kRcLifetimePackageId = '\$rc_lifetime';
 
 // RevenueCat entitlement identifier (configured in RC dashboard)
 const kRcPremiumEntitlement = 'premium';
@@ -71,6 +73,36 @@ class PurchaseService {
     });
 
     return packages;
+  }
+
+  Package? findMonthlyPackage(List<Package> packages) {
+    return _findPackage(
+      packages,
+      packageId: kRcMonthlyPackageId,
+      productId: kRcMonthlyProductId,
+    );
+  }
+
+  Package? findLifetimePackage(List<Package> packages) {
+    return _findPackage(
+      packages,
+      packageId: kRcLifetimePackageId,
+      productId: kRcLifetimeProductId,
+    );
+  }
+
+  Package? _findPackage(
+    List<Package> packages, {
+    required String packageId,
+    required String productId,
+  }) {
+    for (final pkg in packages) {
+      if (pkg.identifier == packageId ||
+          pkg.storeProduct.identifier == productId) {
+        return pkg;
+      }
+    }
+    return null;
   }
 
   /// Purchase a RevenueCat package from current offering.

@@ -78,28 +78,31 @@ class PremiumController extends Notifier<PremiumState> {
     }
   }
 
-  Package? _findPackage(String productId) {
-    try {
-      return state.packages.firstWhere(
-        (p) => p.storeProduct.identifier == productId,
-      );
-    } catch (_) {
-      return null;
-    }
-  }
-
   Future<void> purchaseMonthly() => _purchase(kRcMonthlyProductId);
   Future<void> purchaseLifetime() => _purchase(kRcLifetimeProductId);
 
   Future<void> _purchase(String productId) async {
     _log('Purchase requested for product="$productId"');
-    final package = _findPackage(productId);
+    final package = productId == kRcMonthlyProductId
+        ? _svc.findMonthlyPackage(state.packages)
+        : _svc.findLifetimePackage(state.packages);
     if (package == null) {
+      final availableProducts = state.packages
+          .map((p) => p.storeProduct.identifier)
+          .toList(growable: false);
+      final availablePackages = state.packages
+          .map((p) => p.identifier)
+          .toList(growable: false);
       state = state.copyWith(
         status: PurchaseStatus.error,
-        errorMessage: 'Product niet gevonden. Probeer opnieuw.',
+        errorMessage:
+            'Product niet gevonden. Controleer RevenueCat offering/product IDs.',
       );
-      _log('Product not found in current offering.');
+      _log(
+        'Product not found. Requested="$productId". '
+        'Available package IDs=$availablePackages '
+        'Available product IDs=$availableProducts',
+      );
       return;
     }
 
