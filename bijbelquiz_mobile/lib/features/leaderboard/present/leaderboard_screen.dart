@@ -14,7 +14,7 @@ class LeaderboardScreen extends ConsumerStatefulWidget {
 }
 
 class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
-  LeaderboardPeriod _selectedRange = LeaderboardPeriod.week;
+  LeaderboardPeriod _selectedRange = LeaderboardPeriod.all;
 
   Future<void> _refreshData() async {
     ref.invalidate(leaderboardByPeriodProvider(_selectedRange));
