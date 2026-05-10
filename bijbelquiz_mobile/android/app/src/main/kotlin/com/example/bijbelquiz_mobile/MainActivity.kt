@@ -1,4 +1,4 @@
-package com.example.bijbelquiz_mobile
+package com.bijbelquiz.app
 
 import io.flutter.embedding.android.FlutterActivity
 

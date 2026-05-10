@@ -39,7 +39,14 @@ Future<void> _initRevenueCat() async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await _initRevenueCat();
+  try {
+    await _initRevenueCat();
+  } catch (e, st) {
+    assert(() {
+      debugPrint('[RevenueCat][Main] init failed: $e\n$st');
+      return true;
+    }());
+  }
   runApp(const ProviderScope(child: BijbelquizApp()));
 }
 
