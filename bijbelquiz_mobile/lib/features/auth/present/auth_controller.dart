@@ -148,6 +148,13 @@ class AuthController extends AsyncNotifier<User?> {
 
   Future<void> signInWithApple() async {
     try {
+      final isAvailable = await SignInWithApple.isAvailable();
+      if (!isAvailable) {
+        throw Exception(
+          'Apple-login is niet beschikbaar op dit apparaat. Controleer of je bent ingelogd met een Apple ID en dat Sign in with Apple is ingeschakeld voor deze app.',
+        );
+      }
+
       final credential = await SignInWithApple.getAppleIDCredential(
         scopes: [
           AppleIDAuthorizationScopes.email,
@@ -175,6 +182,15 @@ class AuthController extends AsyncNotifier<User?> {
       state = AsyncValue.data(user);
     } on SignInWithAppleAuthorizationException catch (e) {
       if (e.code == AuthorizationErrorCode.canceled) {
+        return;
+      }
+      if (e.code == AuthorizationErrorCode.unknown) {
+        state = AsyncValue.error(
+          Exception(
+            'Apple-login kon niet worden gestart (AuthorizationError 1000). Controleer in Xcode/Apple Developer dat het bundle ID de Sign in with Apple capability heeft en bouw de app opnieuw.',
+          ),
+          StackTrace.current,
+        );
         return;
       }
       state = AsyncValue.error(e, StackTrace.current);
