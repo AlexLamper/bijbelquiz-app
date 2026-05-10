@@ -134,6 +134,8 @@ jobs:
         working-directory: bijbelquiz_mobile
         env:
           REVENUECAT_APPLE_KEY: ${{ secrets.REVENUECAT_APPLE_KEY }}
+          APPLE_SERVICE_ID: ${{ vars.APPLE_SERVICE_ID }}
+          APPLE_REDIRECT_URI: ${{ vars.APPLE_REDIRECT_URI }}
         run: |
           BUILD_NAME=${{ github.event.inputs.build_name || '1.0.0' }}
           BUILD_NUMBER=${{ github.run_number }}
@@ -142,12 +144,22 @@ jobs:
             echo "Missing required secret: REVENUECAT_APPLE_KEY"
             exit 1
           fi
+          if [ -z "${APPLE_SERVICE_ID:-}" ]; then
+            echo "Missing required variable: APPLE_SERVICE_ID"
+            exit 1
+          fi
+          if [ -z "${APPLE_REDIRECT_URI:-}" ]; then
+            echo "Missing required variable: APPLE_REDIRECT_URI"
+            exit 1
+          fi
 
           flutter build ios --release --no-codesign \
             --build-name="$BUILD_NAME" \
             --build-number="$BUILD_NUMBER" \
             --dart-define=USE_PRODUCTION_API=true \
-            --dart-define=REVENUECAT_APPLE_KEY="$REVENUECAT_APPLE_KEY"
+            --dart-define=REVENUECAT_APPLE_KEY="$REVENUECAT_APPLE_KEY" \
+            --dart-define=APPLE_SERVICE_ID="$APPLE_SERVICE_ID" \
+            --dart-define=APPLE_REDIRECT_URI="$APPLE_REDIRECT_URI"
 
       - name: Archive and export signed IPA
         working-directory: bijbelquiz_mobile/ios

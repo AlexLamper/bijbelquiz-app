@@ -5,7 +5,9 @@
  * a session token for the app.
  *
  * Required environment variables:
- *   APPLE_CLIENT_ID   – your app's bundle ID, e.g. "com.example.bijbelquiz"
+ *   APPLE_CLIENT_IDS  – comma-separated allowed Apple client IDs
+ *                       (e.g. "com.example.bijbelquiz,com.example.bijbelquiz.signin")
+ *                       APPLE_CLIENT_ID is still supported for backwards compatibility.
  *   JWT_SECRET        – secret used to sign your own session tokens
  *   MONGODB_URI       – MongoDB connection string
  *
@@ -78,9 +80,15 @@ export async function POST(req: NextRequest) {
     // -----------------------------------------------------------------------
     // 1. Verify the identity token with Apple's public JWKS
     // -----------------------------------------------------------------------
-    const clientId = process.env.APPLE_CLIENT_ID;
-    if (!clientId) {
-      console.error('APPLE_CLIENT_ID is not set');
+    const rawClientIds =
+      process.env.APPLE_CLIENT_IDS ?? process.env.APPLE_CLIENT_ID ?? '';
+    const clientIds = rawClientIds
+      .split(',')
+      .map((v) => v.trim())
+      .filter(Boolean);
+
+    if (clientIds.length == 0) {
+      console.error('APPLE_CLIENT_IDS / APPLE_CLIENT_ID is not set');
       return NextResponse.json(
         { error: 'Server configuration error' },
         { status: 500 },
@@ -91,16 +99,26 @@ export async function POST(req: NextRequest) {
       sub: string;
       email?: string;
       email_verified?: boolean | string;
-    };
+    } | null = null;
 
-    try {
-      applePayload = await appleSignin.verifyIdToken(identityToken, {
-        audience: clientId,
-        // Ignore expiration during development if needed:
-        // ignoreExpiration: true,
-      });
-    } catch (err) {
-      console.error('Apple token verification failed:', err);
+    let tokenVerified = false;
+    let verificationError: unknown = null;
+    for (const audience of clientIds) {
+      try {
+        applePayload = await appleSignin.verifyIdToken(identityToken, {
+          audience,
+          // Ignore expiration during development if needed:
+          // ignoreExpiration: true,
+        });
+        tokenVerified = true;
+        break;
+      } catch (err) {
+        verificationError = err;
+      }
+    }
+
+    if (!tokenVerified || !applePayload) {
+      console.error('Apple token verification failed:', verificationError);
       return NextResponse.json(
         { error: 'Invalid Apple identity token' },
         { status: 401 },

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart' as gAuth;
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+import '../../../core/config/apple_sign_in_config.dart';
 import '../data/auth_repository.dart';
 import '../../../core/api/api_client.dart';
 import '../data/auth_local_storage.dart';
@@ -148,18 +149,19 @@ class AuthController extends AsyncNotifier<User?> {
 
   Future<void> signInWithApple() async {
     try {
+      var useWebFallback = false;
       final isAvailable = await SignInWithApple.isAvailable();
-      if (!isAvailable) {
+      if (!isAvailable && !AppleSignInConfig.hasWebFallbackConfig) {
         throw Exception(
-          'Apple-login is niet beschikbaar op dit apparaat. Controleer of je bent ingelogd met een Apple ID en dat Sign in with Apple is ingeschakeld voor deze app.',
+          'Apple-login is niet beschikbaar op dit apparaat. Voeg web fallback toe met APPLE_SERVICE_ID en APPLE_REDIRECT_URI of controleer je Apple ID/provisioning.',
         );
       }
+      if (!isAvailable && AppleSignInConfig.hasWebFallbackConfig) {
+        useWebFallback = true;
+      }
 
-      final credential = await SignInWithApple.getAppleIDCredential(
-        scopes: [
-          AppleIDAuthorizationScopes.email,
-          AppleIDAuthorizationScopes.fullName,
-        ],
+      final credential = await _getAppleCredentialWithFallback(
+        forceWebFallback: useWebFallback,
       );
 
       final identityToken = credential.identityToken;
@@ -187,7 +189,7 @@ class AuthController extends AsyncNotifier<User?> {
       if (e.code == AuthorizationErrorCode.unknown) {
         state = AsyncValue.error(
           Exception(
-            'Apple-login kon niet worden gestart (AuthorizationError 1000). Controleer in Xcode/Apple Developer dat het bundle ID de Sign in with Apple capability heeft en bouw de app opnieuw.',
+            'Apple-login kon niet worden gestart (AuthorizationError 1000). Dit is meestal een iOS-device/provisioning probleem: gebruik een echte iPhone (of iOS-simulator met Apple ID), vernieuw signing/provisioning in Xcode voor bundle ID com.bijbelquiz.app en installeer de app opnieuw.',
           ),
           StackTrace.current,
         );
@@ -197,6 +199,50 @@ class AuthController extends AsyncNotifier<User?> {
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     }
+  }
+
+  Future<AuthorizationCredentialAppleID> _getAppleCredentialWithFallback({
+    required bool forceWebFallback,
+  }) async {
+    const scopes = [
+      AppleIDAuthorizationScopes.email,
+      AppleIDAuthorizationScopes.fullName,
+    ];
+
+    if (forceWebFallback) {
+      final credential = await _getAppleCredentialViaWeb(scopes);
+      if (credential != null) return credential;
+      throw Exception(
+        'Apple web-fallback is niet geconfigureerd. Stel APPLE_SERVICE_ID en APPLE_REDIRECT_URI in.',
+      );
+    }
+
+    try {
+      return await SignInWithApple.getAppleIDCredential(scopes: scopes);
+    } on SignInWithAppleAuthorizationException catch (e) {
+      // AuthorizationError 1000 is often entitlement/provisioning related.
+      if (e.code == AuthorizationErrorCode.unknown) {
+        final viaWeb = await _getAppleCredentialViaWeb(scopes);
+        if (viaWeb != null) return viaWeb;
+      }
+      rethrow;
+    }
+  }
+
+  Future<AuthorizationCredentialAppleID?> _getAppleCredentialViaWeb(
+    List<AppleIDAuthorizationScopes> scopes,
+  ) async {
+    if (!AppleSignInConfig.hasWebFallbackConfig) return null;
+    final redirectUri = AppleSignInConfig.redirectUri;
+    if (redirectUri == null) return null;
+
+    return SignInWithApple.getAppleIDCredential(
+      scopes: scopes,
+      webAuthenticationOptions: WebAuthenticationOptions(
+        clientId: AppleSignInConfig.serviceId,
+        redirectUri: redirectUri,
+      ),
+    );
   }
 
   Future<void> logout() async {
