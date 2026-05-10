@@ -183,7 +183,10 @@ jobs:
             DEVELOPMENT_TEAM="$TEAM_ID" \
             PRODUCT_BUNDLE_IDENTIFIER="$APP_BUNDLE_ID" \
             PROVISIONING_PROFILE_SPECIFIER="$PP_NAME" \
-            CODE_SIGN_STYLE=Manual
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            CODE_SIGNING_ALLOWED=YES \
+            CODE_SIGNING_REQUIRED=YES
 
           APP_PATH="$RUNNER_TEMP/Runner.xcarchive/Products/Applications/Runner.app"
           ENTITLEMENTS_PATH="$RUNNER_TEMP/runner-entitlements.plist"
