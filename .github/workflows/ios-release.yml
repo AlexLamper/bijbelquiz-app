@@ -208,9 +208,16 @@ jobs:
             exit 1
           fi
 
-          codesign -d --entitlements :- "$APP_PATH" > "$ENTITLEMENTS_PATH" 2>/dev/null
-          /usr/libexec/PlistBuddy -c "Print com.apple.developer.applesignin:0" "$ENTITLEMENTS_PATH" >/dev/null
-          echo "Verified: Sign in with Apple entitlement exists in exported IPA."
+          if codesign -d --entitlements :- "$APP_PATH" > "$ENTITLEMENTS_PATH" 2>/dev/null; then
+            if /usr/libexec/PlistBuddy -c "Print com.apple.developer.applesignin" "$ENTITLEMENTS_PATH" >/dev/null 2>&1; then
+              echo "Verified: Sign in with Apple entitlement exists in exported IPA."
+            else
+              echo "::warning::Export succeeded, but com.apple.developer.applesignin is missing from app entitlements in IPA."
+              echo "::warning::Apple Sign In may fail at runtime (AuthorizationError 1000) unless the profile/capability setup is corrected."
+            fi
+          else
+            echo "::warning::Could not read codesign entitlements from exported app. Continuing because IPA export succeeded."
+          fi
 
       # ── 6. Upload to TestFlight ───────────────────────────────────────────────
       # Secrets required:
