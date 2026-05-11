@@ -270,7 +270,7 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        gotItRight ? 'Goed gedaan!' : 'Niet juist.',
+                        gotItRight ? 'Goed gedaan!' : 'Onjuist.',
                         style: TextStyle(
                           fontFamily: AppTheme.sansFontName,
                           fontSize: 15,
@@ -462,8 +462,7 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
       }
 
       final cutIndex =
-          (normalized.length * 0.4).round().clamp(10, normalized.length - 1)
-              as int;
+          (normalized.length * 0.4).round().clamp(10, normalized.length - 1);
       return '${normalized.substring(0, cutIndex).trimRight()}...';
     }
 
@@ -483,8 +482,7 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
       }
 
       final cutIndex =
-          (normalized.length * 0.6).round().clamp(6, normalized.length - 1)
-              as int;
+          (normalized.length * 0.6).round().clamp(6, normalized.length - 1);
       return '${normalized.substring(0, cutIndex).trimRight()}...';
     }
 

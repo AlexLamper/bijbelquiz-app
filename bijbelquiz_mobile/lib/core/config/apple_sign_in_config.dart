@@ -3,7 +3,8 @@ class AppleSignInConfig {
   // Pass via: --dart-define=APPLE_SERVICE_ID=...
   static const String serviceId = String.fromEnvironment(
     'APPLE_SERVICE_ID',
-    defaultValue: '',
+    // Safe default for this app; can still be overridden per environment.
+    defaultValue: 'com.bijbelquiz.app.signin',
   );
 
   // Redirect URI configured on the Apple Services ID, e.g.
@@ -11,7 +12,8 @@ class AppleSignInConfig {
   // Pass via: --dart-define=APPLE_REDIRECT_URI=...
   static const String redirectUriRaw = String.fromEnvironment(
     'APPLE_REDIRECT_URI',
-    defaultValue: '',
+    // Safe default for this app; can still be overridden per environment.
+    defaultValue: 'https://www.bijbelquiz.com/api/mobile/apple/callback',
   );
 
   static Uri? get redirectUri {

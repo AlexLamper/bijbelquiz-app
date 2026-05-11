@@ -644,9 +644,7 @@ class _PopularQuizTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final minutes = (quiz.questionCount / 2).ceil().clamp(3, 25);
-    final difficultyLabel = quiz.difficulty.isEmpty
-        ? 'Gemiddeld'
-        : quiz.difficulty;
+    final difficultyLabel = quiz.difficultyLabelNl;
 
     return InkWell(
       borderRadius: BorderRadius.circular(18),

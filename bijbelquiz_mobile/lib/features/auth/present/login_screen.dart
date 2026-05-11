@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/ui/primary_button.dart';
@@ -6,6 +7,7 @@ import '../../../core/ui/custom_text_field.dart';
 import 'auth_controller.dart';
 import 'widgets/google_sign_in_button.dart';
 import 'widgets/apple_sign_in_button.dart';
+import 'widgets/user_data_info_link.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -47,7 +49,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
 
     final state = ref.watch(authControllerProvider);
-    final isGoogleInit = ref.watch(googleSignInInitProvider).hasValue;
+    final isIOSApp = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+    final showGoogleSignIn = !isIOSApp;
+    final isGoogleInit =
+        showGoogleSignIn ? ref.watch(googleSignInInitProvider).hasValue : true;
     final isLoading = state.isLoading || !isGoogleInit;
 
     return Scaffold(
@@ -109,12 +114,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              buildGoogleSignInButton(
-                context: context,
-                isLoading: isLoading,
-                onPressed: isLoading ? null : _loginWithGoogle,
-              ),
-              const SizedBox(height: 12),
+              if (showGoogleSignIn)
+                buildGoogleSignInButton(
+                  context: context,
+                  isLoading: isLoading,
+                  onPressed: isLoading ? null : _loginWithGoogle,
+                ),
+              if (showGoogleSignIn) const SizedBox(height: 12),
               buildAppleSignInButton(
                 isLoading: isLoading,
                 onPressed: isLoading ? null : _loginWithApple,
@@ -131,6 +137,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ),
               ),
+              const SizedBox(height: 2),
+              buildUserDataInfoLink(context),
             ],
           ),
         ),

@@ -74,3 +74,21 @@ class Quiz {
     };
   }
 }
+
+extension QuizDifficultyLocalization on Quiz {
+  String get difficultyLabelNl {
+    switch (difficulty.trim().toLowerCase()) {
+      case 'easy':
+        return 'MAKKELIJK';
+      case 'medium':
+        return 'GEMIDDELD';
+      case 'hard':
+        return 'MOEILIJK';
+      default:
+        if (difficulty.trim().isEmpty) {
+          return 'GEMIDDELD';
+        }
+        return difficulty.toUpperCase();
+    }
+  }
+}

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/ui/primary_button.dart';
@@ -6,6 +7,7 @@ import '../../../core/ui/custom_text_field.dart';
 import 'auth_controller.dart';
 import 'widgets/google_sign_in_button.dart';
 import 'widgets/apple_sign_in_button.dart';
+import 'widgets/user_data_info_link.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -52,7 +54,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     });
 
     final state = ref.watch(authControllerProvider);
-    final isGoogleInit = ref.watch(googleSignInInitProvider).hasValue;
+    final isIOSApp = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+    final showGoogleSignIn = !isIOSApp;
+    final isGoogleInit =
+        showGoogleSignIn ? ref.watch(googleSignInInitProvider).hasValue : true;
     final isLoading = state.isLoading || !isGoogleInit;
 
     return Scaffold(
@@ -139,12 +144,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              buildGoogleSignInButton(
-                context: context,
-                isLoading: isLoading,
-                onPressed: isLoading ? null : _registerWithGoogle,
-              ),
-              const SizedBox(height: 12),
+              if (showGoogleSignIn)
+                buildGoogleSignInButton(
+                  context: context,
+                  isLoading: isLoading,
+                  onPressed: isLoading ? null : _registerWithGoogle,
+                ),
+              if (showGoogleSignIn) const SizedBox(height: 12),
               buildAppleSignInButton(
                 isLoading: isLoading,
                 onPressed: isLoading ? null : _registerWithApple,
@@ -163,6 +169,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   ),
                 ),
               ),
+              const SizedBox(height: 2),
+              Center(child: buildUserDataInfoLink(context)),
             ],
           ),
         ),

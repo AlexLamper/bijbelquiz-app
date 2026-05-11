@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../data/quiz_repository.dart';
+import '../domain/quiz.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/server_image.dart';
 
@@ -124,7 +125,7 @@ class QuizDetailScreen extends ConsumerWidget {
                                   width: 32,
                                 ),
                                 _buildStatColumn(
-                                  quiz.difficulty.toUpperCase(),
+                                  quiz.difficultyLabelNl,
                                   'Niveau',
                                 ),
                               ],

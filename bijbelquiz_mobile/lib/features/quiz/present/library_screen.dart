@@ -352,7 +352,7 @@ class _QuizListCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final minutes = (quiz.questionCount / 2).ceil().clamp(3, 25);
-    final difficulty = quiz.difficulty.isEmpty ? 'Gemiddeld' : quiz.difficulty;
+    final difficulty = quiz.difficultyLabelNl;
 
     return InkWell(
       borderRadius: BorderRadius.circular(18),
