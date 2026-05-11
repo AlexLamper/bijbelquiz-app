@@ -1,5 +1,9 @@
 # Bijbelquiz - Mobiele App
 
+---
+
+![Bijbelquiz Banner](https://raw.githubusercontent.com/AlexLamper/bijbelquiz-app/main/public/screenshots/bijbelquiz_banner.png)
+
 Test je kennis van de Bijbel op een interactieve en leuke manier! Speel alleen, daag jezelf uit tegen vrienden in live multiplayer-wedstrijden, en zie hoe hoog jij op de ranglijst kunt komen.
 
 ## Over Bijbelquiz

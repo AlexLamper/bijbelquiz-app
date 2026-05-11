@@ -6,7 +6,6 @@ import '../../../core/ui/primary_button.dart';
 import '../../../core/ui/custom_text_field.dart';
 import 'auth_controller.dart';
 import 'widgets/google_sign_in_button.dart';
-import 'widgets/apple_sign_in_button.dart';
 import 'widgets/user_data_info_link.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -30,11 +29,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     await auth.signInWithGoogle();
   }
 
-  Future<void> _loginWithApple() async {
-    final auth = ref.read(authControllerProvider.notifier);
-    await auth.signInWithApple();
-  }
-
   @override
   Widget build(BuildContext context) {
     ref.listen(authControllerProvider, (previous, next) {
@@ -51,6 +45,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final state = ref.watch(authControllerProvider);
     final isIOSApp = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
     final showGoogleSignIn = !isIOSApp;
+    final hasSocialLoginOption = showGoogleSignIn;
     final isGoogleInit =
         showGoogleSignIn ? ref.watch(googleSignInInitProvider).hasValue : true;
     final isLoading = state.isLoading || !isGoogleInit;
@@ -104,27 +99,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 isLoading: isLoading,
                 onPressed: isLoading ? null : _login,
               ),
-              const SizedBox(height: 10),
-              Text(
-                'of log in met',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFF8A8F98),
-                  fontWeight: FontWeight.w500,
+              if (hasSocialLoginOption) ...[
+                const SizedBox(height: 10),
+                Text(
+                  'of log in met',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFF8A8F98),
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              if (showGoogleSignIn)
+                const SizedBox(height: 16),
                 buildGoogleSignInButton(
                   context: context,
                   isLoading: isLoading,
                   onPressed: isLoading ? null : _loginWithGoogle,
                 ),
-              if (showGoogleSignIn) const SizedBox(height: 12),
-              buildAppleSignInButton(
-                isLoading: isLoading,
-                onPressed: isLoading ? null : _loginWithApple,
-              ),
+                const SizedBox(height: 12),
+              ],
               const SizedBox(height: 16),
               TextButton(
                 onPressed: () {
