@@ -24,6 +24,19 @@ class AppConfig {
     defaultValue: false,
   );
 
+  // Legal links used in subscription and account flows.
+  // Override per environment via dart-define if needed.
+  static const String privacyPolicyUrl = String.fromEnvironment(
+    'PRIVACY_POLICY_URL',
+    defaultValue:
+        'https://github.com/AlexLamper/bijbelquiz-app/blob/main/docs/privacy-policy.md',
+  );
+  static const String termsOfUseUrl = String.fromEnvironment(
+    'TERMS_OF_USE_URL',
+    defaultValue:
+        'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/',
+  );
+
   /// Get the appropriate API base URL based on build mode
   /// Debug builds use localhost for local development
   /// Release builds use production URL

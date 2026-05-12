@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../../core/theme/app_theme.dart';
 import '../data/purchase_service.dart';
 import 'premium_controller.dart';
@@ -40,9 +42,9 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
         ),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Aankopen hersteld.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Aankopen hersteld.')));
     }
   }
 
@@ -52,6 +54,19 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
       notifier.purchaseMonthly();
     } else {
       notifier.purchaseLifetime();
+    }
+  }
+
+  Future<void> _openLegalUrl(String url) async {
+    final uri = Uri.parse(url);
+    final didLaunch = await launchUrl(
+      uri,
+      mode: LaunchMode.externalApplication,
+    );
+    if (!didLaunch && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kon link niet openen. Probeer opnieuw.')),
+      );
     }
   }
 
@@ -125,7 +140,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
             ),
             const SizedBox(height: 10),
             _PlanCard(
-              title: 'Maandelijks',
+              title: 'Bijbelquiz Premium Maandelijks',
               subtitle: 'Flexibel opzegbaar, volledige toegang',
               price: monthlyPrice,
               billingLabel: 'per maand',
@@ -140,7 +155,8 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
               price: lifetimePrice,
               billingLabel: 'eenmalig',
               selected: _selectedPlan == _PremiumPlan.lifetime,
-              onTap: () => setState(() => _selectedPlan = _PremiumPlan.lifetime),
+              onTap: () =>
+                  setState(() => _selectedPlan = _PremiumPlan.lifetime),
             ),
             const SizedBox(height: 16),
             SizedBox(
@@ -170,20 +186,47 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                 onPressed: isLoading
                     ? null
                     : () => ref
-                        .read(premiumControllerProvider.notifier)
-                        .restorePurchases(),
+                          .read(premiumControllerProvider.notifier)
+                          .restorePurchases(),
                 child: const Text('Aankopen herstellen'),
               ),
             ),
             const SizedBox(height: 6),
             const Text(
-              'Betaling loopt via je app store account. Je kunt je maandabonnement op elk moment opzeggen.',
+              'Abonnementen worden via je App Store-account beheerd en verlengen automatisch, tenzij je minimaal 24 uur voor het einde van de lopende periode opzegt.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: AppTheme.muted,
                 fontSize: 12,
                 height: 1.4,
               ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Abonnementdetails: Bijbelquiz Premium Maandelijks - $monthlyPrice per maand.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: AppTheme.muted,
+                fontSize: 12,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              alignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 6,
+              children: [
+                TextButton(
+                  onPressed: () => _openLegalUrl(AppConfig.privacyPolicyUrl),
+                  child: const Text('Privacybeleid'),
+                ),
+                const Text('•', style: TextStyle(color: AppTheme.muted)),
+                TextButton(
+                  onPressed: () => _openLegalUrl(AppConfig.termsOfUseUrl),
+                  child: const Text('Gebruiksvoorwaarden (EULA)'),
+                ),
+              ],
             ),
           ],
         ),

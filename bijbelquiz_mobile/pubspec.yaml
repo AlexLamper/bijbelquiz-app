@@ -46,6 +46,7 @@ dependencies:
   flutter_svg: ^2.2.3
   google_sign_in_web: ^1.1.0
   purchases_flutter: ^8.7.3
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:
