@@ -10,6 +10,12 @@ import 'core/config/revenuecat_config.dart';
 Future<void> _initRevenueCat() async {
   if (kIsWeb) return;
   final apiKey = RevenueCatConfig.sdkPublicApiKey();
+  assert(() {
+    debugPrint(
+      '[RevenueCat][Main] key source: ${RevenueCatConfig.sdkKeySource()}',
+    );
+    return true;
+  }());
   if (apiKey.isEmpty) {
     assert(() {
       debugPrint(

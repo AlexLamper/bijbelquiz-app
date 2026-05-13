@@ -41,15 +41,32 @@ class RevenueCatConfig {
     defaultValue: '',
   );
 
+  /// Set true only when you explicitly want to run against RevenueCat Test Store.
+  static const bool useTestStore = bool.fromEnvironment(
+    'REVENUECAT_USE_TEST_STORE',
+    defaultValue: false,
+  );
+
+  static bool get _isApplePlatform =>
+      defaultTargetPlatform == TargetPlatform.iOS ||
+      defaultTargetPlatform == TargetPlatform.macOS;
+
+  /// Human-readable source for diagnostics/logging.
+  static String sdkKeySource() {
+    if (kIsWeb) return 'none:web';
+    if (useTestStore && testKey.isNotEmpty) return 'test_store';
+    if (_isApplePlatform) return appleKey.isNotEmpty ? 'apple' : 'none:apple';
+    return googleKey.isNotEmpty ? 'google' : 'none:google';
+  }
+
   /// Key used by [Purchases.configure] in [main.dart].
   static String sdkPublicApiKey() {
     if (kIsWeb) return '';
 
-    // Prefer Test Store when provided (handy while wiring the SDK before store linking).
-    if (testKey.isNotEmpty) return testKey;
+    // Test Store should be opt-in; avoid accidental usage in TestFlight/release.
+    if (useTestStore && testKey.isNotEmpty) return testKey;
 
-    if (defaultTargetPlatform == TargetPlatform.iOS ||
-        defaultTargetPlatform == TargetPlatform.macOS) {
+    if (_isApplePlatform) {
       return appleKey;
     }
 
