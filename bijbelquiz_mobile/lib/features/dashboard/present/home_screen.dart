@@ -40,8 +40,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Future<void> _refreshData() async {
     ref.invalidate(profileProvider);
     ref.invalidate(categoriesProvider);
-    ref.invalidate(quizzesProvider(const QuizQuery()));
-    await ref.read(quizzesProvider(const QuizQuery()).future);
+    ref.invalidate(quizzesProvider(const QuizQuery(includePremium: true)));
+    await ref.read(
+      quizzesProvider(const QuizQuery(includePremium: true)).future,
+    );
   }
 
   List<Quiz> _filterQuizzes(List<Quiz> quizzes) {
@@ -61,14 +63,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }).toList();
   }
 
+  List<Quiz> _sortForHome(List<Quiz> quizzes, {required bool isPremiumUser}) {
+    final sorted = [...quizzes];
+    if (!isPremiumUser) {
+      sorted.sort((a, b) {
+        if (a.isPremium == b.isPremium) return 0;
+        return a.isPremium ? -1 : 1;
+      });
+    }
+    return sorted;
+  }
+
   @override
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(profileProvider);
     final categoriesAsync = ref.watch(categoriesProvider);
-    final quizzesAsync = ref.watch(quizzesProvider(const QuizQuery()));
+    final quizzesAsync = ref.watch(
+      quizzesProvider(const QuizQuery(includePremium: true)),
+    );
 
     final userName = profileAsync.asData?.value.name ?? 'Speler';
     final streak = profileAsync.asData?.value.streak ?? 0;
+    final isPremiumUser = profileAsync.asData?.value.isPremium ?? false;
 
     return Scaffold(
       backgroundColor: AppTheme.canvas,
@@ -77,7 +93,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           onRefresh: _refreshData,
           child: quizzesAsync.when(
             data: (quizzes) {
-              final filteredQuizzes = _filterQuizzes(quizzes);
+              final filteredQuizzes = _sortForHome(
+                _filterQuizzes(quizzes),
+                isPremiumUser: isPremiumUser,
+              );
               final featuredQuiz = filteredQuizzes.isNotEmpty
                   ? filteredQuizzes.first
                   : (quizzes.isNotEmpty ? quizzes.first : null);
@@ -103,9 +122,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   if (featuredQuiz != null)
                     _FeaturedChallengeCard(
                       quiz: featuredQuiz,
-                      onTap: () => context.push(
-                        '/quiz/${featuredQuiz.slug.isNotEmpty ? featuredQuiz.slug : featuredQuiz.id}/play',
-                      ),
+                      isLockedPremium: featuredQuiz.isPremium && !isPremiumUser,
+                      onTap: () {
+                        if (featuredQuiz.isPremium && !isPremiumUser) {
+                          context.push('/premium');
+                          return;
+                        }
+                        context.push(
+                          '/quiz/${featuredQuiz.slug.isNotEmpty ? featuredQuiz.slug : featuredQuiz.id}/play',
+                        );
+                      },
                     )
                   else
                     const _EmptyFeaturedCard(),
@@ -150,9 +176,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             padding: const EdgeInsets.only(bottom: 12),
                             child: _PopularQuizTile(
                               quiz: quiz,
-                              onTap: () => context.push(
-                                '/quiz/${quiz.slug.isNotEmpty ? quiz.slug : quiz.id}',
-                              ),
+                              isLockedPremium: quiz.isPremium && !isPremiumUser,
+                              onTap: () {
+                                if (quiz.isPremium && !isPremiumUser) {
+                                  context.push('/premium');
+                                  return;
+                                }
+                                context.push(
+                                  '/quiz/${quiz.slug.isNotEmpty ? quiz.slug : quiz.id}',
+                                );
+                              },
                             ),
                           ),
                         ),
@@ -382,10 +415,15 @@ class _CategoryChip extends StatelessWidget {
 }
 
 class _FeaturedChallengeCard extends StatelessWidget {
-  const _FeaturedChallengeCard({required this.quiz, required this.onTap});
+  const _FeaturedChallengeCard({
+    required this.quiz,
+    required this.onTap,
+    required this.isLockedPremium,
+  });
 
   final Quiz quiz;
   final VoidCallback onTap;
+  final bool isLockedPremium;
 
   @override
   Widget build(BuildContext context) {
@@ -446,23 +484,48 @@ class _FeaturedChallengeCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: const Text(
-                      'Uitgelicht',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: const Text(
+                          'Uitgelicht',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
-                    ),
+                      if (quiz.isPremium) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: const Text(
+                            'Premium',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                   const SizedBox(height: 12),
                   Text(
@@ -479,9 +542,11 @@ class _FeaturedChallengeCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    quiz.description.isEmpty
-                        ? 'Test vandaag je kennis in deze uitdaging.'
-                        : quiz.description,
+                    isLockedPremium
+                        ? 'Deze quiz is exclusief voor Premium. Ontgrendel om direct te spelen.'
+                        : (quiz.description.isEmpty
+                              ? 'Test vandaag je kennis in deze uitdaging.'
+                              : quiz.description),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -517,7 +582,11 @@ class _FeaturedChallengeCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      child: const Text('Start Uitdaging'),
+                      child: Text(
+                        isLockedPremium
+                            ? 'Ontgrendel Premium'
+                            : 'Start Uitdaging',
+                      ),
                     ),
                   ),
                 ],
@@ -636,10 +705,15 @@ class _PlayTogetherEntryCard extends StatelessWidget {
 }
 
 class _PopularQuizTile extends StatelessWidget {
-  const _PopularQuizTile({required this.quiz, required this.onTap});
+  const _PopularQuizTile({
+    required this.quiz,
+    required this.onTap,
+    required this.isLockedPremium,
+  });
 
   final Quiz quiz;
   final VoidCallback onTap;
+  final bool isLockedPremium;
 
   @override
   Widget build(BuildContext context) {
@@ -725,6 +799,27 @@ class _PopularQuizTile extends StatelessWidget {
                         ),
                       ),
                       const Spacer(),
+                      if (quiz.isPremium) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFF4D6),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text(
+                            'PREMIUM',
+                            style: TextStyle(
+                              color: Color(0xFF8C6500),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 8,
@@ -745,6 +840,18 @@ class _PopularQuizTile extends StatelessWidget {
                       ),
                     ],
                   ),
+                  if (isLockedPremium)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 8),
+                      child: Text(
+                        'Alleen beschikbaar met Premium',
+                        style: TextStyle(
+                          color: AppTheme.accent,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),

@@ -21,11 +21,6 @@ class ServerImage extends StatelessWidget {
     caseSensitive: false,
   );
 
-  // A session-scoped version value helps bypass stale in-memory/browser image cache.
-  static final String _quizImageSessionVersion = DateTime.now()
-      .millisecondsSinceEpoch
-      .toString();
-
   /// Supports multiple backend formats:
   /// - /images/quizzes/img8.png
   /// - images/quizzes/img8.png
@@ -71,32 +66,12 @@ class ServerImage extends StatelessWidget {
     return ensureQuizPngExtension('/images/quizzes/$withoutPublicPrefix');
   }
 
-  static bool _isQuizImagePath(String path) {
-    return path.toLowerCase().contains('/images/quizzes/');
-  }
-
-  static String _appendSessionVersion(String url) {
-    final uri = Uri.parse(url);
-
-    // Keep explicit URL versioning untouched.
-    if (uri.queryParameters.containsKey('v')) {
-      return url;
-    }
-
-    final query = Map<String, String>.from(uri.queryParameters)
-      ..['sv'] = _quizImageSessionVersion;
-
-    return uri.replace(queryParameters: query).toString();
-  }
-
   static String getFullUrl(String imagePath) {
     final String normalizedPath = normalizePath(imagePath);
     if (normalizedPath.isEmpty) return '';
 
     if (_httpUrlPattern.hasMatch(normalizedPath)) {
-      return _isQuizImagePath(normalizedPath)
-          ? _appendSessionVersion(normalizedPath)
-          : normalizedPath;
+      return normalizedPath;
     }
 
     // Get the base host URL (without /api/mobile)
@@ -104,9 +79,7 @@ class ServerImage extends StatelessWidget {
 
     // Combine them safely
     final fullUrl = '$host$normalizedPath';
-    return _isQuizImagePath(normalizedPath)
-        ? _appendSessionVersion(fullUrl)
-        : fullUrl;
+    return fullUrl;
   }
 
   String _buildFullUrl() {
@@ -118,6 +91,8 @@ class ServerImage extends StatelessWidget {
     return Image.network(
       _buildFullUrl(),
       fit: fit,
+      filterQuality: FilterQuality.low,
+      gaplessPlayback: true,
       errorBuilder: (context, error, stackTrace) {
         return Container(
           color: Colors.grey[200],

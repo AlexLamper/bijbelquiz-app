@@ -12,6 +12,7 @@ class Quiz {
   final String image;
   final int xpReward;
   final int questionCount;
+  final bool isPremium;
   final List<Question> questions;
 
   Quiz({
@@ -25,6 +26,7 @@ class Quiz {
     required this.image,
     required this.xpReward,
     this.questionCount = 0,
+    this.isPremium = false,
     this.questions = const [],
   });
 
@@ -35,11 +37,12 @@ class Quiz {
         .toList();
 
     // Try to grab the image from any possible key your backend might be using
-    String parsedImage = json['imageUrl']?.toString() ?? 
-                         json['image_url']?.toString() ?? 
-                         json['image']?.toString() ?? 
-                         json['coverImage']?.toString() ?? 
-                         '';
+    String parsedImage =
+        json['imageUrl']?.toString() ??
+        json['image_url']?.toString() ??
+        json['image']?.toString() ??
+        json['coverImage']?.toString() ??
+        '';
 
     return Quiz(
       id: json['id']?.toString() ?? json['_id']?.toString() ?? '',
@@ -52,8 +55,17 @@ class Quiz {
           ? Category.fromJson(json['category'] as Map<String, dynamic>)
           : null,
       image: parsedImage,
-      xpReward: (json['xpReward'] as num?)?.toInt() ?? (json['rewardXp'] as num?)?.toInt() ?? 0,
-      questionCount: (json['questionCount'] as num?)?.toInt() ?? parsedQuestions.length,
+      xpReward:
+          (json['xpReward'] as num?)?.toInt() ??
+          (json['rewardXp'] as num?)?.toInt() ??
+          0,
+      questionCount:
+          (json['questionCount'] as num?)?.toInt() ?? parsedQuestions.length,
+      isPremium:
+          json['isPremium'] == true ||
+          json['premiumOnly'] == true ||
+          json['requiresPremium'] == true ||
+          json['premium'] == true,
       questions: parsedQuestions,
     );
   }
@@ -70,6 +82,7 @@ class Quiz {
       'imageUrl': image,
       'xpReward': xpReward,
       'questionCount': questionCount,
+      'isPremium': isPremium,
       'questions': questions.map((q) => q.toJson()).toList(),
     };
   }

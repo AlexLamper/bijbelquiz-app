@@ -43,9 +43,7 @@ class PurchaseService {
       return [];
     }
 
-    final packages = <Package>[
-      ...current.availablePackages,
-    ];
+    final packages = <Package>[...current.availablePackages];
     _log(
       'Current offering="${current.identifier}" with ${packages.length} package(s).',
     );
@@ -62,13 +60,13 @@ class PurchaseService {
       final aRank = aId == kRcMonthlyProductId
           ? 0
           : aId == kRcLifetimeProductId
-              ? 1
-              : 99;
+          ? 1
+          : 99;
       final bRank = bId == kRcMonthlyProductId
           ? 0
           : bId == kRcLifetimeProductId
-              ? 1
-              : 99;
+          ? 1
+          : 99;
       return aRank.compareTo(bRank);
     });
 
@@ -114,6 +112,20 @@ class PurchaseService {
     return Purchases.purchasePackage(package);
   }
 
+  /// Fallback flow for when offering packages are temporarily unavailable.
+  Future<CustomerInfo> purchaseByProductId(String productId) async {
+    _log('Fallback purchase requested for product="$productId"');
+    final products = await Purchases.getProducts([productId]);
+    if (products.isEmpty) {
+      throw StateError('Store product niet gevonden voor id: $productId');
+    }
+    final product = products.first;
+    _log(
+      'Fallback product found id="${product.identifier}" price="${product.priceString}"',
+    );
+    return Purchases.purchaseStoreProduct(product);
+  }
+
   /// Restore previous purchases (required by App Store guidelines).
   Future<CustomerInfo> restorePurchases() async {
     _log('Restoring purchases...');
@@ -124,7 +136,9 @@ class PurchaseService {
   Future<bool> hasPremiumAccess() async {
     if (kIsWeb) return false;
     final info = await Purchases.getCustomerInfo();
-    final hasPremium = info.entitlements.active.containsKey(kRcPremiumEntitlement);
+    final hasPremium = info.entitlements.active.containsKey(
+      kRcPremiumEntitlement,
+    );
     _log('hasPremiumAccess=$hasPremium');
     return hasPremium;
   }
@@ -133,7 +147,9 @@ class PurchaseService {
   Future<CustomerInfo> getCustomerInfo() async {
     final info = await Purchases.getCustomerInfo();
     final activeIds = info.entitlements.active.keys.join(', ');
-    _log('CustomerInfo active entitlements: ${activeIds.isEmpty ? '(none)' : activeIds}');
+    _log(
+      'CustomerInfo active entitlements: ${activeIds.isEmpty ? '(none)' : activeIds}',
+    );
     return info;
   }
 }

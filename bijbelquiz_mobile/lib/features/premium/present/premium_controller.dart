@@ -86,29 +86,11 @@ class PremiumController extends Notifier<PremiumState> {
     final package = productId == kRcMonthlyProductId
         ? _svc.findMonthlyPackage(state.packages)
         : _svc.findLifetimePackage(state.packages);
-    if (package == null) {
-      final availableProducts = state.packages
-          .map((p) => p.storeProduct.identifier)
-          .toList(growable: false);
-      final availablePackages = state.packages
-          .map((p) => p.identifier)
-          .toList(growable: false);
-      state = state.copyWith(
-        status: PurchaseStatus.error,
-        errorMessage:
-            'Product niet gevonden. Controleer RevenueCat offering/product IDs.',
-      );
-      _log(
-        'Product not found. Requested="$productId". '
-        'Available package IDs=$availablePackages '
-        'Available product IDs=$availableProducts',
-      );
-      return;
-    }
-
     state = state.copyWith(status: PurchaseStatus.loading);
     try {
-      final info = await _svc.purchasePackage(package);
+      final info = package != null
+          ? await _svc.purchasePackage(package)
+          : await _svc.purchaseByProductId(productId);
       state = state.copyWith(
         status: PurchaseStatus.success,
         customerInfo: info,
@@ -128,6 +110,23 @@ class PremiumController extends Notifier<PremiumState> {
         errorMessage: _errorMessage(e),
       );
       _log('Purchase failed with PurchasesErrorCode=$e');
+    } on StateError catch (e) {
+      final availableProducts = state.packages
+          .map((p) => p.storeProduct.identifier)
+          .toList(growable: false);
+      final availablePackages = state.packages
+          .map((p) => p.identifier)
+          .toList(growable: false);
+      state = state.copyWith(
+        status: PurchaseStatus.error,
+        errorMessage:
+            'Product niet gevonden in App Store/RevenueCat. Controleer of je IAP-producten gekoppeld en beschikbaar zijn.',
+      );
+      _log(
+        'Product lookup failed. Requested="$productId", error="$e". '
+        'Available package IDs=$availablePackages '
+        'Available product IDs=$availableProducts',
+      );
     } catch (e) {
       state = state.copyWith(
         status: PurchaseStatus.error,

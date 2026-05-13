@@ -19,19 +19,22 @@ final categoriesProvider = FutureProvider.autoDispose<List<Category>>((
 class QuizQuery {
   final int? limit;
   final String? categoryId;
+  final bool? includePremium;
 
-  const QuizQuery({this.limit, this.categoryId});
+  const QuizQuery({this.limit, this.categoryId, this.includePremium});
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     return other is QuizQuery &&
         other.limit == limit &&
-        other.categoryId == categoryId;
+        other.categoryId == categoryId &&
+        other.includePremium == includePremium;
   }
 
   @override
-  int get hashCode => limit.hashCode ^ categoryId.hashCode;
+  int get hashCode =>
+      limit.hashCode ^ categoryId.hashCode ^ includePremium.hashCode;
 }
 
 // Added limit and category support to prevent overfetching
@@ -41,6 +44,7 @@ final quizzesProvider = FutureProvider.autoDispose
       return repository.getQuizzes(
         limit: query.limit,
         categoryId: query.categoryId,
+        includePremium: query.includePremium,
       );
     });
 
@@ -70,13 +74,21 @@ class QuizRepository {
     }
   }
 
-  Future<List<Quiz>> getQuizzes({int? limit, String? categoryId}) async {
+  Future<List<Quiz>> getQuizzes({
+    int? limit,
+    String? categoryId,
+    bool? includePremium,
+  }) async {
     try {
       // Build query string based on params
       Map<String, dynamic> queryParameters = {};
       if (limit != null) queryParameters['limit'] = limit;
-      if (categoryId != null && categoryId != 'all')
+      if (categoryId != null && categoryId != 'all') {
         queryParameters['category'] = categoryId;
+      }
+      if (includePremium != null) {
+        queryParameters['includePremium'] = includePremium;
+      }
 
       final response = await _apiClient.dio.get(
         '/quizzes',

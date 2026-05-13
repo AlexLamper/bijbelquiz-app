@@ -28,8 +28,7 @@ class AppConfig {
   // Override per environment via dart-define if needed.
   static const String privacyPolicyUrl = String.fromEnvironment(
     'PRIVACY_POLICY_URL',
-    defaultValue:
-        'https://github.com/AlexLamper/bijbelquiz-app/blob/main/docs/privacy-policy.md',
+    defaultValue: 'https://www.bijbelquiz.com/privacy-policy',
   );
   static const String termsOfUseUrl = String.fromEnvironment(
     'TERMS_OF_USE_URL',

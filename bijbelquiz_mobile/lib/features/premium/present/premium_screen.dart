@@ -99,6 +99,13 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
 
     final monthlyPrice = monthlyPackage?.storeProduct.priceString ?? '€5,99';
     final lifetimePrice = lifetimePackage?.storeProduct.priceString ?? '€74,99';
+    final isMonthlyPlan = _selectedPlan == _PremiumPlan.monthly;
+    final selectedPlanDetails = isMonthlyPlan
+        ? 'Abonnementdetails: Bijbelquiz Premium Maandelijks - $monthlyPrice per maand.'
+        : 'Abonnementdetails: Bijbelquiz Premium Levenslang - $lifetimePrice eenmalig.';
+    final billingInfoText = isMonthlyPlan
+        ? 'Abonnementen worden via je App Store-account beheerd en verlengen automatisch, tenzij je minimaal 24 uur voor het einde van de lopende periode opzegt.'
+        : 'Levenslang is een eenmalige aankoop via je App Store-account en verlengt niet automatisch.';
 
     return Scaffold(
       backgroundColor: AppTheme.canvas,
@@ -191,11 +198,20 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                 child: const Text('Aankopen herstellen'),
               ),
             ),
-            const SizedBox(height: 6),
             const Text(
-              'Abonnementen worden via je App Store-account beheerd en verlengen automatisch, tenzij je minimaal 24 uur voor het einde van de lopende periode opzegt.',
+              'Gebruik dit als je al eerder Premium hebt gekocht met hetzelfde Apple-account. De app controleert dan je eerdere aankopen en activeert Premium opnieuw.',
               textAlign: TextAlign.center,
               style: TextStyle(
+                color: AppTheme.muted,
+                fontSize: 11,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              billingInfoText,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
                 color: AppTheme.muted,
                 fontSize: 12,
                 height: 1.4,
@@ -203,7 +219,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Abonnementdetails: Bijbelquiz Premium Maandelijks - $monthlyPrice per maand.',
+              selectedPlanDetails,
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: AppTheme.muted,
@@ -482,39 +498,37 @@ class _PlanCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Text(
-                        title,
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppTheme.ink,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  if (badge != null) ...[
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.accentSoft,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        badge!,
                         style: const TextStyle(
-                          color: AppTheme.ink,
-                          fontSize: 15,
+                          color: AppTheme.accent,
+                          fontSize: 10,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
-                      if (badge != null) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppTheme.accentSoft,
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(
-                            badge!,
-                            style: const TextStyle(
-                              color: AppTheme.accent,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
+                    ),
+                  ],
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
