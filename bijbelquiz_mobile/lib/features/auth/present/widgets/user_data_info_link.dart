@@ -19,7 +19,7 @@ Widget buildUserDataInfoLink(BuildContext context) {
               'Je gegevens worden via beveiligde verbindingen verzonden en we delen '
               'ze niet voor advertenties zonder jouw toestemming.\n\n'
               'Je kunt altijd je account laten verwijderen. Neem hiervoor contact op '
-              'met support vanuit de app of via onze supportkanalen. Na verwijdering '
+              'via info@bijbelquiz.com of via de supportkanalen in de app. Na verwijdering '
               'worden je accountgegevens verwijderd volgens ons privacybeleid.',
               style: theme.textTheme.bodyMedium,
             ),

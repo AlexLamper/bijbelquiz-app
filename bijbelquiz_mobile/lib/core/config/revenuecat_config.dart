@@ -19,10 +19,15 @@ import 'package:flutter/foundation.dart';
 /// flutter run --dart-define=REVENUECAT_TEST_KEY=test_xxx
 /// ```
 ///
-/// CI (Codemagic, GitHub Actions): store keys as **secrets** and inject via
-/// `--dart-define=...` — still not a `.env` file in the repo.
+/// CI: prefer injecting keys with `--dart-define=...` (e.g. GitHub Actions secrets)
+/// so you can rotate without a code change.
 class RevenueCatConfig {
   RevenueCatConfig._();
+
+  /// Public RevenueCat **Android** SDK key (`goog_...`) for this app.
+  /// Safe to embed; override at build time with `--dart-define=REVENUECAT_GOOGLE_KEY=...`.
+  static const String _defaultGooglePublicKey =
+      'goog_PpgkHtnCyRmGavtvaqDGjZNHMFD';
 
   /// Optional: RevenueCat **Test Store** key (`test_...`) for early integration
   /// testing before iOS/Android store apps are linked.
@@ -38,7 +43,7 @@ class RevenueCatConfig {
 
   static const String googleKey = String.fromEnvironment(
     'REVENUECAT_GOOGLE_KEY',
-    defaultValue: '',
+    defaultValue: _defaultGooglePublicKey,
   );
 
   /// Set true only when you explicitly want to run against RevenueCat Test Store.

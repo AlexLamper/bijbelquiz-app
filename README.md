@@ -148,7 +148,7 @@ Dit project is gemaakt met liefde en is beschikbaar onder de MIT Licentie.
 ## Contact & Support
 
 Vragen of suggesties?
-- 📧 Support: devlamper06@gmail.com
+- 📧 Support: info@bijbelquiz.com
 - 💬 Feedback: We horen graag wat je ervan vindt!
 
 ## Meer Informatie
