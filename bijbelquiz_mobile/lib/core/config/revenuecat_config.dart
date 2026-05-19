@@ -24,6 +24,11 @@ import 'package:flutter/foundation.dart';
 class RevenueCatConfig {
   RevenueCatConfig._();
 
+  /// Public RevenueCat **iOS** SDK key (`appl_...`) for this app.
+  /// Safe to embed; override at build time with `--dart-define=REVENUECAT_APPLE_KEY=...`.
+  static const String _defaultApplePublicKey =
+      'appl_YqUIguFZVKmAqXdCYaRNThVjmiI';
+
   /// Public RevenueCat **Android** SDK key (`goog_...`) for this app.
   /// Safe to embed; override at build time with `--dart-define=REVENUECAT_GOOGLE_KEY=...`.
   static const String _defaultGooglePublicKey =
@@ -38,7 +43,7 @@ class RevenueCatConfig {
 
   static const String appleKey = String.fromEnvironment(
     'REVENUECAT_APPLE_KEY',
-    defaultValue: '',
+    defaultValue: _defaultApplePublicKey,
   );
 
   static const String googleKey = String.fromEnvironment(
