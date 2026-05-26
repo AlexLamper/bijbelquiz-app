@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import '../../profile/present/profile_provider.dart';
@@ -99,17 +100,18 @@ class PremiumController extends Notifier<PremiumState> {
         'Purchase success. Active entitlements: ${info.entitlements.active.keys.join(', ')}',
       );
       ref.invalidate(profileProvider);
-    } on PurchasesErrorCode catch (e) {
-      if (e == PurchasesErrorCode.purchaseCancelledError) {
+    } on PlatformException catch (e) {
+      final code = PurchasesErrorHelper.getErrorCode(e);
+      if (code == PurchasesErrorCode.purchaseCancelledError) {
         state = state.copyWith(status: PurchaseStatus.idle);
         _log('Purchase cancelled by user.');
         return;
       }
       state = state.copyWith(
         status: PurchaseStatus.error,
-        errorMessage: _errorMessage(e),
+        errorMessage: _errorMessage(code),
       );
-      _log('Purchase failed with PurchasesErrorCode=$e');
+      _log('Purchase failed: code=$code message="${e.message}"');
     } on StateError catch (e) {
       final availableProducts = state.packages
           .map((p) => p.storeProduct.identifier)
@@ -149,10 +151,22 @@ class PremiumController extends Notifier<PremiumState> {
         'Restore success. Active entitlements: ${info.entitlements.active.keys.join(', ')}',
       );
       ref.invalidate(profileProvider);
+    } on PlatformException catch (e) {
+      final code = PurchasesErrorHelper.getErrorCode(e);
+      if (code == PurchasesErrorCode.purchaseCancelledError) {
+        state = state.copyWith(status: PurchaseStatus.idle);
+        _log('Restore cancelled by user.');
+        return;
+      }
+      state = state.copyWith(
+        status: PurchaseStatus.error,
+        errorMessage: _errorMessage(code),
+      );
+      _log('Restore failed: code=$code message="${e.message}"');
     } catch (e) {
       state = state.copyWith(
         status: PurchaseStatus.error,
-        errorMessage: 'Herstel mislukt: $e',
+        errorMessage: 'Herstel mislukt. Probeer het opnieuw.',
       );
       _log('Restore failed: $e');
     }
@@ -163,13 +177,22 @@ class PremiumController extends Notifier<PremiumState> {
   String _errorMessage(PurchasesErrorCode code) {
     switch (code) {
       case PurchasesErrorCode.networkError:
-        return 'Geen internetverbinding. Controleer je verbinding.';
+      case PurchasesErrorCode.offlineConnectionError:
+        return 'Geen internetverbinding. Controleer je verbinding en probeer opnieuw.';
       case PurchasesErrorCode.productAlreadyPurchasedError:
-        return 'Je hebt dit product al aangeschaft.';
+        return 'Je hebt dit product al aangeschaft. Gebruik "Aankopen herstellen".';
+      case PurchasesErrorCode.purchaseNotAllowedError:
+        return 'Aankopen zijn niet toegestaan op dit apparaat. Controleer je App Store-instellingen.';
+      case PurchasesErrorCode.paymentPendingError:
+        return 'Je betaling wordt nog verwerkt. Premium wordt geactiveerd zodra dit voltooid is.';
+      case PurchasesErrorCode.productNotAvailableForPurchaseError:
+        return 'Dit product is momenteel niet beschikbaar in de store. Probeer het later opnieuw.';
+      case PurchasesErrorCode.storeProblemError:
+        return 'Er is een probleem met de store. Probeer het later opnieuw.';
       case PurchasesErrorCode.insufficientPermissionsError:
         return 'Geen toestemming om aankopen te doen.';
       default:
-        return 'Aankoop mislukt (code: ${code.index}). Probeer opnieuw.';
+        return 'Aankoop mislukt. Probeer het opnieuw.';
     }
   }
 }

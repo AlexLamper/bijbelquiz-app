@@ -1,15 +1,19 @@
 name: iOS Build & Upload to TestFlight
 
 on:
-  push:
-    branches:
-      - main
+  # push:           # Uncomment these 3 lines to re-enable automatic TestFlight builds on push to main
+  #   branches:
+  #     - main
   workflow_dispatch:
     inputs:
       build_name:
         description: "Version name (e.g. 1.0.1)"
         required: false
-        default: "1.0.0"
+        default: "1.0.1"
+      build_number:
+        description: "Build number — MUST be higher than the last uploaded build (e.g. 36). Leave blank to use the run number."
+        required: false
+        default: ""
 
 jobs:
   build-and-upload-ios:
@@ -145,8 +149,8 @@ jobs:
           APPLE_SERVICE_ID: ${{ vars.APPLE_SERVICE_ID }}
           APPLE_REDIRECT_URI: ${{ vars.APPLE_REDIRECT_URI }}
         run: |
-          BUILD_NAME=${{ github.event.inputs.build_name || '1.0.0' }}
-          BUILD_NUMBER=${{ github.run_number }}
+          BUILD_NAME="${{ github.event.inputs.build_name || '1.0.1' }}"
+          BUILD_NUMBER="${{ github.event.inputs.build_number || github.run_number }}"
 
           if [ -z "${REVENUECAT_APPLE_KEY:-}" ]; then
             echo "Missing required secret: REVENUECAT_APPLE_KEY"
