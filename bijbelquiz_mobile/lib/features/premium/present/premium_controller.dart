@@ -99,7 +99,7 @@ class PremiumController extends Notifier<PremiumState> {
       _log(
         'Purchase success. Active entitlements: ${info.entitlements.active.keys.join(', ')}',
       );
-      ref.invalidate(profileProvider);
+      await _syncServerPremium();
     } on PlatformException catch (e) {
       final code = PurchasesErrorHelper.getErrorCode(e);
       if (code == PurchasesErrorCode.purchaseCancelledError) {
@@ -150,7 +150,7 @@ class PremiumController extends Notifier<PremiumState> {
       _log(
         'Restore success. Active entitlements: ${info.entitlements.active.keys.join(', ')}',
       );
-      ref.invalidate(profileProvider);
+      await _syncServerPremium();
     } on PlatformException catch (e) {
       final code = PurchasesErrorHelper.getErrorCode(e);
       if (code == PurchasesErrorCode.purchaseCancelledError) {
@@ -173,6 +173,21 @@ class PremiumController extends Notifier<PremiumState> {
   }
 
   void clearStatus() => state = state.copyWith(status: PurchaseStatus.idle);
+
+  /// The RevenueCat → server webhook updates the account asynchronously, so a
+  /// single immediate refresh races it. Poll the profile briefly so premium
+  /// unlocks without the user manually refreshing.
+  Future<void> _syncServerPremium() async {
+    ref.invalidate(profileProvider);
+    for (var attempt = 0; attempt < 5; attempt++) {
+      try {
+        final profile = await ref.read(profileProvider.future);
+        if (profile.isPremium) return;
+      } catch (_) {}
+      await Future.delayed(const Duration(seconds: 2));
+      ref.invalidate(profileProvider);
+    }
+  }
 
   String _errorMessage(PurchasesErrorCode code) {
     switch (code) {

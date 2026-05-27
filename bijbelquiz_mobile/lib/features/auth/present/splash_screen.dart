@@ -24,14 +24,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
     final storage = ref.read(authStorageProvider);
     final token = await storage.getToken();
+    final hasSession = token != null && token.isNotEmpty;
+
+    if (hasSession) {
+      // Links RevenueCat to the account so store purchases attach to this
+      // user instead of an anonymous RevenueCat id.
+      await ref.read(authControllerProvider.notifier).restoreSession();
+    }
 
     if (mounted) {
-      if (token != null && token.isNotEmpty) {
-        // Technically, fetch /api/user here in full implementation
-        context.go('/home');
-      } else {
-        context.go('/login');
-      }
+      context.go(hasSession ? '/home' : '/login');
     }
   }
 

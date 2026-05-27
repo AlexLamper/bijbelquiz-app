@@ -9,6 +9,7 @@ import '../data/auth_repository.dart';
 import '../../../core/api/api_client.dart';
 import '../data/auth_local_storage.dart';
 import '../domain/user.dart';
+import '../../profile/data/profile_repository.dart';
 
 // Provides shared access
 final authStorageProvider = Provider((ref) => AuthLocalStorage());
@@ -68,6 +69,35 @@ class AuthController extends AsyncNotifier<User?> {
       await Purchases.logIn(user.id);
     } catch (_) {
       // Non-fatal: RC linking failure shouldn't block auth.
+    }
+  }
+
+  /// Restore a persisted session on app launch.
+  ///
+  /// Without this, a returning user (token already stored) reaches the app
+  /// without RevenueCat being logged in, so a purchase is attributed to an
+  /// anonymous RevenueCat id and the store webhook can't attach premium to
+  /// their account.
+  Future<void> restoreSession() async {
+    final token = await ref.read(authStorageProvider).getToken();
+    if (token == null || token.isEmpty) {
+      state = const AsyncValue.data(null);
+      return;
+    }
+    try {
+      final profile = await ref.read(profileRepositoryProvider).getProfile();
+      final user = User(
+        id: profile.id,
+        name: profile.name,
+        email: profile.email,
+        xp: profile.xp,
+        isPremium: profile.isPremium,
+      );
+      await _linkRevenueCat(user);
+      state = AsyncValue.data(user);
+    } catch (_) {
+      // Best-effort: keep the token-based session even if profile fetch fails
+      // (e.g. offline). RevenueCat linking retries on the next launch.
     }
   }
 
