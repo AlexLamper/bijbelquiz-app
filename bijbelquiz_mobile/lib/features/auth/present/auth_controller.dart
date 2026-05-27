@@ -94,6 +94,11 @@ class AuthController extends AsyncNotifier<User?> {
         isPremium: profile.isPremium,
       );
       await _linkRevenueCat(user);
+      // Self-heal accounts whose purchase webhook never landed: ask the server
+      // to reconcile against RevenueCat once RC is linked. Best-effort.
+      try {
+        await ref.read(profileRepositoryProvider).syncPremium();
+      } catch (_) {}
       state = AsyncValue.data(user);
     } catch (_) {
       // Best-effort: keep the token-based session even if profile fetch fails

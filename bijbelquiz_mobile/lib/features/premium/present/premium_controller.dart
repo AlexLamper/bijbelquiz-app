@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import '../../profile/data/profile_repository.dart';
 import '../../profile/present/profile_provider.dart';
 import '../data/purchase_service.dart';
 
@@ -174,18 +175,25 @@ class PremiumController extends Notifier<PremiumState> {
 
   void clearStatus() => state = state.copyWith(status: PurchaseStatus.idle);
 
-  /// The RevenueCat → server webhook updates the account asynchronously, so a
-  /// single immediate refresh races it. Poll the profile briefly so premium
-  /// unlocks without the user manually refreshing.
+  /// Premium content is gated on the server profile, and RevenueCat only fires
+  /// a webhook for a NEW transaction — never for an already-owned purchase or a
+  /// restore. So we actively ask the server to reconcile against RevenueCat,
+  /// then refresh the profile. We retry briefly to ride out store propagation.
   Future<void> _syncServerPremium() async {
-    ref.invalidate(profileProvider);
+    final repo = ref.read(profileRepositoryProvider);
     for (var attempt = 0; attempt < 5; attempt++) {
-      try {
-        final profile = await ref.read(profileProvider.future);
-        if (profile.isPremium) return;
-      } catch (_) {}
-      await Future.delayed(const Duration(seconds: 2));
+      final synced = await repo.syncPremium();
       ref.invalidate(profileProvider);
+      if (synced == true) return;
+      if (synced == null) {
+        // Endpoint unreachable/undeployed: fall back to reading the profile in
+        // case a webhook already updated it.
+        try {
+          final profile = await ref.read(profileProvider.future);
+          if (profile.isPremium) return;
+        } catch (_) {}
+      }
+      await Future.delayed(const Duration(seconds: 2));
     }
   }
 

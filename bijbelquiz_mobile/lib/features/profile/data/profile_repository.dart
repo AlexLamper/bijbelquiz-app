@@ -17,7 +17,7 @@ class ProfileRepository {
   Future<ProfileModel> getProfile() async {
     try {
       final response = await _apiClient.dio.get('/profile');
-      
+
       if (response.statusCode == 200 && response.data != null) {
         // Assume API sends `{ data: { ... } }` or just `{ ... }`
         final data = response.data['data'] ?? response.data;
@@ -29,6 +29,21 @@ class ProfileRepository {
       throw Exception('Fout bij ophalen profiel: ${e.message}');
     } catch (_) {
       throw Exception('Onbekende fout bij ophalen profiel');
+    }
+  }
+
+  /// Forces the server to reconcile premium with RevenueCat and returns the
+  /// resulting premium flag. RevenueCat does not re-send a webhook for an
+  /// already-owned purchase or a restore, so without this call premium can
+  /// stay locked on the server forever. Returns null if the endpoint is
+  /// unreachable/undeployed so callers can fall back to polling /profile.
+  Future<bool?> syncPremium() async {
+    try {
+      final response = await _apiClient.dio.post('/sync-premium');
+      final data = response.data?['data'] ?? response.data;
+      return (data?['isPremium'] as bool?) ?? false;
+    } catch (_) {
+      return null;
     }
   }
 }
