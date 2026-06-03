@@ -115,15 +115,7 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
           children: [
-            const Text(
-              'Speel Samen',
-              style: TextStyle(
-                color: AppTheme.ink,
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                fontFamily: AppTheme.sansFontName,
-              ),
-            ),
+            const _MultiplayerHeader(),
             const SizedBox(height: 16),
             Row(
               children: [
@@ -220,6 +212,84 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
     return raw.startsWith('Exception: ')
         ? raw.replaceFirst('Exception: ', '')
         : raw;
+  }
+}
+
+class _MultiplayerHeader extends StatelessWidget {
+  const _MultiplayerHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: AppTheme.accentGradient,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.accent.withValues(alpha: 0.28),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.22),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.bolt_rounded, color: Colors.white, size: 14),
+                    SizedBox(width: 4),
+                    Text(
+                      'MULTIPLAYER',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Speel Samen',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+              fontFamily: AppTheme.sansFontName,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Speel live tegelijk met vrienden — iedereen krijgt dezelfde '
+            'vragen en timer. Tot 20 spelers in één kamer.',
+            style: TextStyle(
+              color: Color(0xFFEAF0FF),
+              fontSize: 13.5,
+              height: 1.45,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

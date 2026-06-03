@@ -15,6 +15,25 @@ class AppTheme {
   static const Color success = Color(0xFF22A06B);
   static const Color warning = Color(0xFFF6A64D);
 
+  // Brand navy used on bijbelquiz.com (logo / hero / app icon background).
+  static const Color brand = Color(0xFF1A2B5F);
+  static const Color brandDeep = Color(0xFF131D2B);
+  static const Color brandLight = Color(0xFF3A57A8);
+
+  /// Diagonal navy gradient for hero surfaces (splash, onboarding).
+  static const LinearGradient brandGradient = LinearGradient(
+    colors: [brandDeep, brand, brandLight],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  /// Accent gradient for multiplayer / call-to-action surfaces.
+  static const LinearGradient accentGradient = LinearGradient(
+    colors: [Color(0xFF6D86DB), Color(0xFF89A4FF)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
   static TextStyle monoTextStyle([TextStyle? baseStyle]) {
     return (baseStyle ?? const TextStyle()).copyWith(fontFamily: monoFontName);
   }

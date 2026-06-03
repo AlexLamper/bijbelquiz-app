@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/auth/present/splash_screen.dart';
+import '../../features/onboarding/present/onboarding_screen.dart';
 import '../../features/auth/present/login_screen.dart';
 import '../../features/auth/present/register_screen.dart';
 import '../../features/dashboard/present/home_screen.dart';
@@ -68,7 +69,7 @@ class MainScaffold extends StatelessWidget {
             BottomNavigationBarItem(
               icon: Icon(Icons.groups_2_outlined),
               activeIcon: Icon(Icons.groups_2),
-              label: 'Spelen',
+              label: 'Samen',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
@@ -119,6 +120,10 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/',
     routes: [
       GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
+      GoRoute(
+        path: '/onboarding',
+        builder: (context, state) => const OnboardingScreen(),
+      ),
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
         path: '/register',

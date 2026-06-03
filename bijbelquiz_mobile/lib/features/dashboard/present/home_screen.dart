@@ -135,9 +135,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     )
                   else
                     const _EmptyFeaturedCard(),
-                  const SizedBox(height: 14),
-                  _PlayTogetherEntryCard(
-                    onTap: () => context.go('/play-together'),
+                  const SizedBox(height: 18),
+                  const _SectionLabel('Kies je speelmodus'),
+                  const SizedBox(height: 10),
+                  _GameModeSelector(
+                    onSolo: () => context.go('/quizzes'),
+                    onTogether: () => context.go('/play-together'),
                   ),
                   const SizedBox(height: 24),
                   Row(
@@ -644,59 +647,163 @@ class _MetaInfo extends StatelessWidget {
   }
 }
 
-class _PlayTogetherEntryCard extends StatelessWidget {
-  const _PlayTogetherEntryCard({required this.onTap});
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text);
 
-  final VoidCallback onTap;
+  final String text;
 
   @override
   Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color: AppTheme.ink,
+        fontSize: 18,
+        fontWeight: FontWeight.w800,
+        fontFamily: AppTheme.sansFontName,
+      ),
+    );
+  }
+}
+
+/// Two clearly distinct entry points so it is obvious which is singleplayer
+/// (Solo) and which is multiplayer (Samen / live met vrienden).
+class _GameModeSelector extends StatelessWidget {
+  const _GameModeSelector({required this.onSolo, required this.onTogether});
+
+  final VoidCallback onSolo;
+  final VoidCallback onTogether;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: _ModeTile(
+            onTap: onSolo,
+            icon: Icons.person_rounded,
+            tag: 'SOLO',
+            title: 'Speel Alleen',
+            subtitle: 'Test je kennis in je eigen tempo.',
+            gradient: false,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _ModeTile(
+            onTap: onTogether,
+            icon: Icons.groups_2_rounded,
+            tag: 'MULTIPLAYER',
+            title: 'Speel Samen',
+            subtitle: 'Live tegen vrienden, tot 20 spelers.',
+            gradient: true,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ModeTile extends StatelessWidget {
+  const _ModeTile({
+    required this.onTap,
+    required this.icon,
+    required this.tag,
+    required this.title,
+    required this.subtitle,
+    required this.gradient,
+  });
+
+  final VoidCallback onTap;
+  final IconData icon;
+  final String tag;
+  final String title;
+  final String subtitle;
+  final bool gradient;
+
+  @override
+  Widget build(BuildContext context) {
+    final onColor = gradient ? Colors.white : AppTheme.ink;
+    final subColor = gradient ? const Color(0xFFEAF0FF) : AppTheme.muted;
+
     return InkWell(
       borderRadius: BorderRadius.circular(18),
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: gradient ? null : Colors.white,
+          gradient: gradient ? AppTheme.accentGradient : null,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppTheme.border),
+          border: gradient ? null : Border.all(color: AppTheme.border),
+          boxShadow: gradient
+              ? [
+                  BoxShadow(
+                    color: AppTheme.accent.withValues(alpha: 0.28),
+                    blurRadius: 18,
+                    offset: const Offset(0, 8),
+                  ),
+                ]
+              : null,
         ),
-        child: const Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(
-              width: 44,
-              height: 44,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: AppTheme.accentSoft,
-                  borderRadius: BorderRadius.all(Radius.circular(12)),
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: gradient
+                    ? Colors.white.withValues(alpha: 0.22)
+                    : AppTheme.accentSoft,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                color: gradient ? Colors.white : AppTheme.accent,
+                size: 22,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: gradient
+                    ? Colors.white.withValues(alpha: 0.22)
+                    : AppTheme.accentSoft,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                tag,
+                style: TextStyle(
+                  color: gradient ? Colors.white : AppTheme.accent,
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.8,
                 ),
-                child: Icon(Icons.groups_2_rounded, color: AppTheme.accent),
               ),
             ),
-            SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Speel Samen',
-                    style: TextStyle(
-                      color: AppTheme.ink,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      fontFamily: AppTheme.sansFontName,
-                    ),
-                  ),
-                  SizedBox(height: 3),
-                  Text(
-                    'Maak een kamer of doe mee met vrienden.',
-                    style: TextStyle(color: AppTheme.muted, fontSize: 12),
-                  ),
-                ],
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: TextStyle(
+                color: onColor,
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                fontFamily: AppTheme.sansFontName,
               ),
             ),
-            Icon(Icons.chevron_right_rounded, color: AppTheme.muted),
+            const SizedBox(height: 3),
+            Text(
+              subtitle,
+              style: TextStyle(
+                color: subColor,
+                fontSize: 12,
+                height: 1.3,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ],
         ),
       ),

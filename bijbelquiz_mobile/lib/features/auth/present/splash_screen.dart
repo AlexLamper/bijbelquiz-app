@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../onboarding/data/onboarding_storage.dart';
 import '../present/auth_controller.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -30,72 +31,88 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       // Links RevenueCat to the account so store purchases attach to this
       // user instead of an anonymous RevenueCat id.
       await ref.read(authControllerProvider.notifier).restoreSession();
+      if (mounted) context.go('/home');
+      return;
     }
 
+    // No session: show the intro flow once before the login screen.
+    final hasSeenOnboarding = await ref
+        .read(onboardingStorageProvider)
+        .hasSeen();
+
     if (mounted) {
-      context.go(hasSession ? '/home' : '/login');
+      context.go(hasSeenOnboarding ? '/login' : '/onboarding');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Matches the dark navy brand color used across the app
-    const Color brandDark = Color(0xFF131D2B);
-
     return Scaffold(
-      backgroundColor: Colors.white, // Clean white background
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Logo area
-            Image.asset(
-              'assets/images/logo-dark.png',
-              width: 120,
-              height: 120,
-              // If the image fails to load, show the exact CSS-styled logo from the Home screen
-              errorBuilder: (context, error, stackTrace) => Container(
-                width: 100,
-                height: 100,
+      body: DecoratedBox(
+        decoration: const BoxDecoration(gradient: AppTheme.brandGradient),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Logo tile on a soft glow
+              Container(
+                width: 116,
+                height: 116,
                 decoration: BoxDecoration(
-                  color: brandDark,
-                  borderRadius: BorderRadius.circular(24),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.25),
+                      blurRadius: 30,
+                      offset: const Offset(0, 14),
+                    ),
+                  ],
                 ),
-                child: const Center(
-                  child: Icon(
-                    Icons.menu_book_rounded,
-                    color: Colors.white,
-                    size: 50,
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Image.asset(
+                    'assets/images/logo-dark.png',
+                    errorBuilder: (context, error, stackTrace) => const Icon(
+                      Icons.menu_book_rounded,
+                      color: AppTheme.brand,
+                      size: 50,
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 32),
-
-            // Title matching the app's headers
-            const Text(
-              'Bijbelquiz',
-              style: TextStyle(
-                fontFamily: AppTheme.sansFontName,
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 2.0,
-                color: brandDark,
+              const SizedBox(height: 30),
+              const Text(
+                'Bijbelquiz',
+                style: TextStyle(
+                  fontFamily: AppTheme.sansFontName,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.5,
+                  color: Colors.white,
+                ),
               ),
-            ),
-
-            const SizedBox(height: 48),
-
-            // Optional: A subtle loading indicator
-            const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.5,
-                valueColor: AlwaysStoppedAnimation<Color>(brandDark),
+              const SizedBox(height: 8),
+              const Text(
+                'Test jouw kennis van de Bijbel',
+                style: TextStyle(
+                  fontFamily: AppTheme.sansFontName,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFFC7D2F2),
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 44),
+              const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
