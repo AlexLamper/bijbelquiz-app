@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/app_widgets.dart';
 import '../../../core/ui/server_image.dart';
 import '../data/leaderboard_repository.dart';
 import '../domain/leaderboard_entry.dart';
@@ -39,14 +40,10 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
                 children: [
-                  const Text(
-                    'Ranglijst',
-                    style: TextStyle(
-                      color: AppTheme.ink,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      fontFamily: AppTheme.sansFontName,
-                    ),
+                  const GradientHeader(
+                    title: 'Ranglijst',
+                    subtitle: 'Verdien punten en klim naar de top.',
+                    icon: Icons.emoji_events_rounded,
                   ),
                   const SizedBox(height: 16),
                   _RangeSelector(
@@ -134,9 +131,9 @@ class _RangeSelector extends StatelessWidget {
   final ValueChanged<LeaderboardPeriod> onSelect;
 
   static const Map<LeaderboardPeriod, String> _labels = {
-    LeaderboardPeriod.week: 'Weekly',
-    LeaderboardPeriod.month: 'Monthly',
-    LeaderboardPeriod.all: 'All-time',
+    LeaderboardPeriod.week: 'Deze week',
+    LeaderboardPeriod.month: 'Deze maand',
+    LeaderboardPeriod.all: 'Aller tijden',
   };
 
   @override
@@ -343,11 +340,11 @@ extension on LeaderboardPeriod {
   String get displayName {
     switch (this) {
       case LeaderboardPeriod.week:
-        return 'Weekly';
+        return 'Deze week';
       case LeaderboardPeriod.month:
-        return 'Monthly';
+        return 'Deze maand';
       case LeaderboardPeriod.all:
-        return 'All-time';
+        return 'Aller tijden';
     }
   }
 }

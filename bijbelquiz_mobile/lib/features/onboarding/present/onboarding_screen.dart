@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
-import '../data/onboarding_storage.dart';
+import '../../auth/present/auth_controller.dart';
 
 class _OnboardingPageData {
   const _OnboardingPageData({
@@ -80,8 +80,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _finish() async {
-    await ref.read(onboardingStorageProvider).markSeen();
-    if (mounted) context.go('/login');
+    // TEMP (testing): onboarding is shown on every launch and the seen-flag is
+    // not persisted. Re-enable `onboardingStorageProvider.markSeen()` before
+    // release. Route to home if already logged in, otherwise to login.
+    final token = await ref.read(authStorageProvider).getToken();
+    final hasSession = token != null && token.isNotEmpty;
+    if (mounted) context.go(hasSession ? '/home' : '/login');
   }
 
   void _next() {

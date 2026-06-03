@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../onboarding/data/onboarding_storage.dart';
 import '../present/auth_controller.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -31,17 +30,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       // Links RevenueCat to the account so store purchases attach to this
       // user instead of an anonymous RevenueCat id.
       await ref.read(authControllerProvider.notifier).restoreSession();
-      if (mounted) context.go('/home');
-      return;
     }
 
-    // No session: show the intro flow once before the login screen.
-    final hasSeenOnboarding = await ref
-        .read(onboardingStorageProvider)
-        .hasSeen();
-
+    // TEMP (testing): always show the onboarding on every launch so it is easy
+    // to review. Restore the `hasSeen()` check below before release.
+    // final hasSeenOnboarding = await ref.read(onboardingStorageProvider).hasSeen();
     if (mounted) {
-      context.go(hasSeenOnboarding ? '/login' : '/onboarding');
+      context.go('/onboarding');
     }
   }
 

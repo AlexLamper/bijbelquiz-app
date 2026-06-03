@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/app_widgets.dart';
 import '../../../core/ui/server_image.dart';
 import '../data/quiz_repository.dart';
 import '../domain/category.dart';
@@ -95,16 +96,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
                 children: [
-                  const Text(
-                    'Alle Quizzen',
-                    style: TextStyle(
-                      color: AppTheme.ink,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      fontFamily: AppTheme.sansFontName,
-                    ),
+                  const GradientHeader(
+                    title: 'Alle Quizzen',
+                    subtitle: 'Speel solo en test je kennis op je eigen tempo.',
+                    icon: Icons.menu_book_rounded,
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 16),
                   TextField(
                     controller: _searchController,
                     decoration: InputDecoration(

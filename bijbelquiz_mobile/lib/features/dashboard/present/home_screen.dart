@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/app_widgets.dart';
 import '../../../core/ui/server_image.dart';
 import '../../profile/present/profile_provider.dart';
 import '../../quiz/data/quiz_repository.dart';
@@ -105,8 +106,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
                 children: [
-                  _WelcomeHeader(name: userName, streak: streak),
-                  const SizedBox(height: 18),
+                  GradientHeader(
+                    title: 'Hallo, $userName',
+                    subtitle: 'Klaar voor een nieuwe uitdaging vandaag?',
+                    trailing: _StreakPill(streak: streak),
+                  ),
+                  const SizedBox(height: 16),
                   _HomeSearchField(controller: _searchController),
                   const SizedBox(height: 14),
                   _CategoryStrip(
@@ -118,7 +123,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       });
                     },
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 22),
+                  const SectionHeader(title: 'Uitgelicht'),
+                  const SizedBox(height: 10),
                   if (featuredQuiz != null)
                     _FeaturedChallengeCard(
                       quiz: featuredQuiz,
@@ -135,38 +142,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     )
                   else
                     const _EmptyFeaturedCard(),
-                  const SizedBox(height: 18),
-                  const _SectionLabel('Kies je speelmodus'),
+                  const SizedBox(height: 22),
+                  const SectionHeader(title: 'Kies je speelmodus'),
                   const SizedBox(height: 10),
                   _GameModeSelector(
                     onSolo: () => context.go('/quizzes'),
                     onTogether: () => context.go('/play-together'),
                   ),
                   const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const Text(
-                        'Populaire Quizzen',
-                        style: TextStyle(
-                          color: AppTheme.ink,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          fontFamily: AppTheme.sansFontName,
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () => context.go('/quizzes'),
-                        child: const Text(
-                          'Bekijk alles',
-                          style: TextStyle(
-                            color: AppTheme.accent,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ],
+                  SectionHeader(
+                    title: 'Populaire Quizzen',
+                    actionLabel: 'Bekijk alles',
+                    onAction: () => context.go('/quizzes'),
                   ),
                   const SizedBox(height: 10),
                   if (filteredQuizzes.isEmpty)
@@ -228,68 +215,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 }
 
-class _WelcomeHeader extends StatelessWidget {
-  const _WelcomeHeader({required this.name, required this.streak});
+class _StreakPill extends StatelessWidget {
+  const _StreakPill({required this.streak});
 
-  final String name;
   final int streak;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Welkom terug,',
-                style: TextStyle(
-                  color: AppTheme.muted,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: AppTheme.ink,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.local_fire_department_rounded,
+            color: Color(0xFFFFC773),
+            size: 22,
           ),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppTheme.border),
+          const SizedBox(height: 2),
+          Text(
+            '$streak',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              height: 1,
+            ),
           ),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.local_fire_department,
-                color: AppTheme.warning,
-                size: 18,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                streak == 1 ? '1 dag' : '$streak dagen',
-                style: const TextStyle(
-                  color: AppTheme.ink,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
+          Text(
+            streak == 1 ? 'dag' : 'dagen',
+            style: const TextStyle(
+              color: Color(0xFFC7D2F2),
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -643,25 +609,6 @@ class _MetaInfo extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: const TextStyle(
-        color: AppTheme.ink,
-        fontSize: 18,
-        fontWeight: FontWeight.w800,
-        fontFamily: AppTheme.sansFontName,
-      ),
     );
   }
 }

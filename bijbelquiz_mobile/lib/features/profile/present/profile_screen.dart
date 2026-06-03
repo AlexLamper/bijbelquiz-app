@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/app_widgets.dart';
 import '../../leaderboard/data/leaderboard_repository.dart';
 import '../../leaderboard/domain/leaderboard_entry.dart';
 import '../../auth/present/auth_controller.dart';
@@ -18,7 +19,7 @@ class ProfileScreen extends ConsumerWidget {
     final leaderboardAsync = ref.watch(leaderboardProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFE9EDF4),
+      backgroundColor: AppTheme.canvas,
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(profileProvider);
@@ -189,39 +190,28 @@ class _ProfileContent extends StatelessWidget {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
         children: [
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'Profiel',
-                  style: TextStyle(
-                    color: AppTheme.ink,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    fontFamily: AppTheme.sansFontName,
-                  ),
-                ),
-              ),
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFDCE3EF),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: IconButton(
-                  onPressed: onOpenSettings,
-                  icon: const Icon(
+          GradientHeader(
+            title: 'Profiel',
+            subtitle: 'Jouw voortgang, statistieken en prestaties.',
+            trailing: Material(
+              color: Colors.white.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(12),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: onOpenSettings,
+                child: const SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: Icon(
                     Icons.settings_rounded,
-                    color: AppTheme.ink,
-                    size: 20,
+                    color: Colors.white,
+                    size: 22,
                   ),
-                  padding: EdgeInsets.zero,
                 ),
               ),
-            ],
+            ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           _ProfileHeaderCard(profile: profile, rank: rank),
           const SizedBox(height: 12),
           _ProgressCard(
