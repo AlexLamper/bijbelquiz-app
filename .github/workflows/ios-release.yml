@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       build_name:
-        description: "Version name (e.g. 1.0.1)"
+        description: "Version name (e.g. 1.0.3). Leave blank to read it from pubspec.yaml."
         required: false
-        default: "1.0.1"
+        default: ""
       build_number:
         description: "Build number — MUST be higher than the last uploaded build (e.g. 36). Leave blank to use the run number."
         required: false
@@ -149,8 +149,13 @@ jobs:
           APPLE_SERVICE_ID: ${{ vars.APPLE_SERVICE_ID }}
           APPLE_REDIRECT_URI: ${{ vars.APPLE_REDIRECT_URI }}
         run: |
-          BUILD_NAME="${{ github.event.inputs.build_name || '1.0.1' }}"
+          # Version name: use the manual input, else the version from pubspec.yaml.
+          BUILD_NAME="${{ github.event.inputs.build_name }}"
+          if [ -z "$BUILD_NAME" ]; then
+            BUILD_NAME="$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//' | cut -d'+' -f1)"
+          fi
           BUILD_NUMBER="${{ github.event.inputs.build_number || github.run_number }}"
+          echo "Building $BUILD_NAME ($BUILD_NUMBER)"
 
           if [ -z "${REVENUECAT_APPLE_KEY:-}" ]; then
             echo "Missing required secret: REVENUECAT_APPLE_KEY"
@@ -245,12 +250,24 @@ jobs:
           IPA_PATH=$(find bijbelquiz_mobile/build/ios/ipa -name "*.ipa" | head -1)
           echo "Uploading: $IPA_PATH"
 
+          # altool can exit 0 even when Apple rejects the build, so capture the
+          # output and fail explicitly on any reported upload error.
+          UPLOAD_LOG="$RUNNER_TEMP/altool-upload.log"
+          set +e
           xcrun altool --upload-app \
             --type ios \
             --file "$IPA_PATH" \
             --apiKey "$APP_STORE_CONNECT_KEY_ID" \
             --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID" \
-            --verbose
+            --verbose 2>&1 | tee "$UPLOAD_LOG"
+          ALTOOL_EXIT=${PIPESTATUS[0]}
+          set -e
+
+          if [ "$ALTOOL_EXIT" -ne 0 ] || grep -qiE "UPLOAD FAILED|Failed to upload package|ERROR:" "$UPLOAD_LOG"; then
+            echo "::error::TestFlight upload failed. Common cause: the version string is already approved/closed — bump the version (e.g. 1.0.2 → 1.0.3)."
+            exit 1
+          fi
+          echo "Upload accepted by App Store Connect."
 
       # ── 7. Cleanup ───────────────────────────────────────────────────────────
       - name: Clean up keychain and provisioning profile
