@@ -105,19 +105,19 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20.0),
                   child: Container(
-                    height: 4,
+                    height: 6,
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE5E5EA),
-                      borderRadius: BorderRadius.circular(2),
+                      color: AppTheme.border,
+                      borderRadius: BorderRadius.circular(999),
                     ),
                     child: FractionallySizedBox(
                       alignment: Alignment.centerLeft,
                       widthFactor: progress.clamp(0.0, 1.0),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: const Color(0xFF131D2B),
-                          borderRadius: BorderRadius.circular(2),
+                          gradient: AppTheme.accentGradient,
+                          borderRadius: BorderRadius.circular(999),
                         ),
                       ),
                     ),
@@ -178,8 +178,8 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
   Widget _buildAnswerButton(Answer answer) {
     final bool isSelected = _selectedAnswer == answer;
 
-    Color backgroundColor = const Color(0xFFF4F4F6);
-    Color textColor = Colors.black;
+    Color backgroundColor = AppTheme.canvas;
+    Color textColor = AppTheme.ink;
     Border? border;
 
     if (_isAnswered) {
@@ -246,8 +246,8 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: gotItRight
-                  ? const Color(0xFF4CAF50).withOpacity(0.35)
-                  : const Color(0xFFE53935).withOpacity(0.35),
+                  ? const Color(0xFF4CAF50).withValues(alpha: 0.35)
+                  : const Color(0xFFE53935).withValues(alpha: 0.35),
               width: 1,
             ),
           ),
@@ -285,7 +285,7 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
                 ),
                 if (hasExplanation || hasReference) ...[
                   const SizedBox(height: 10),
-                  Container(height: 1, color: Colors.black.withOpacity(0.08)),
+                  Container(height: 1, color: Colors.black.withValues(alpha: 0.08)),
                   const SizedBox(height: 10),
                 ],
                 if (hasExplanation) ...[

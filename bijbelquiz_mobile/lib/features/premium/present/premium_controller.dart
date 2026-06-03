@@ -176,7 +176,7 @@ class PremiumController extends Notifier<PremiumState> {
   void clearStatus() => state = state.copyWith(status: PurchaseStatus.idle);
 
   /// Premium content is gated on the server profile, and RevenueCat only fires
-  /// a webhook for a NEW transaction — never for an already-owned purchase or a
+  /// a webhook for a NEW transaction - never for an already-owned purchase or a
   /// restore. So we actively ask the server to reconcile against RevenueCat,
   /// then refresh the profile. We retry briefly to ride out store propagation.
   Future<void> _syncServerPremium() async {

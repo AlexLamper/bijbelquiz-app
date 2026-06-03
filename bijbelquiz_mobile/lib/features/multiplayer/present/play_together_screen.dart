@@ -278,7 +278,7 @@ class _MultiplayerHeader extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           const Text(
-            'Speel live tegelijk met vrienden — iedereen krijgt dezelfde '
+            'Speel live tegelijk met vrienden - iedereen krijgt dezelfde '
             'vragen en timer. Tot 20 spelers in één kamer.',
             style: TextStyle(
               color: Color(0xFFEAF0FF),

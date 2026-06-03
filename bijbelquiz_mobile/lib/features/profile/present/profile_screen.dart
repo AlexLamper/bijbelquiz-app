@@ -432,7 +432,7 @@ class _InfoPill extends StatelessWidget {
       decoration: BoxDecoration(
         color: tint.withValues(alpha: 0.72),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFD2DAEB)),
+        border: Border.all(color: AppTheme.border),
       ),
       child: Text(
         label,
@@ -466,9 +466,9 @@ class _ProgressCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF6F8FC),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFD2DAEB)),
+        border: Border.all(color: AppTheme.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -541,9 +541,9 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: const Color(0xFFF6F8FC),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFD2DAEB)),
+        border: Border.all(color: AppTheme.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -729,9 +729,9 @@ class _RecentActivityList extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFFF6F8FC),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFD2DAEB)),
+          border: Border.all(color: AppTheme.border),
         ),
         child: const Text(
           'Nog geen recente activiteit gevonden.',
@@ -748,9 +748,9 @@ class _RecentActivityList extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 10),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFFF6F8FC),
+            color: Colors.white,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFD2DAEB)),
+            border: Border.all(color: AppTheme.border),
           ),
           child: Row(
             children: [

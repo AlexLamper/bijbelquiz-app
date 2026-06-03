@@ -23,7 +23,7 @@ class _OnboardingPageData {
 
 const List<_OnboardingPageData> _pages = [
   _OnboardingPageData(
-    icon: Icons.menu_book_rounded,
+    icon: Icons.psychology_rounded,
     badge: 'Welkom',
     title: 'Hoe goed ken jij\nde Bijbel?',
     body:
@@ -51,7 +51,7 @@ const List<_OnboardingPageData> _pages = [
     badge: 'Samen',
     title: 'Speel samen\nmet vrienden',
     body:
-        'Speciaal ontworpen voor groepen — van gezin tot jeugdvereniging. '
+        'Speciaal ontworpen voor groepen - van gezin tot jeugdvereniging. '
         'Host een room en speel live tegelijk met tot 20 spelers.',
     highlights: [
       'Live multiplayer met één kamercode',
@@ -113,14 +113,46 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Bijbelquiz',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.5,
-                      ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          padding: const EdgeInsets.all(5),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.15),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Image.asset(
+                            'assets/images/logo-dark.png',
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Icon(
+                                  Icons.menu_book_rounded,
+                                  color: AppTheme.brand,
+                                  size: 18,
+                                ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        const Text(
+                          'BijbelQuiz',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                      ],
                     ),
                     AnimatedOpacity(
                       duration: const Duration(milliseconds: 200),
