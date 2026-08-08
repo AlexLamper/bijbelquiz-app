@@ -30,13 +30,11 @@ final leaderboardProvider = FutureProvider.autoDispose<List<LeaderboardEntry>>((
   return repository.getLeaderboard(period: LeaderboardPeriod.all);
 });
 
-final leaderboardByPeriodProvider =
-    FutureProvider.autoDispose.family<List<LeaderboardEntry>, LeaderboardPeriod>(
-      (ref, period) async {
-        final repository = ref.watch(leaderboardRepositoryProvider);
-        return repository.getLeaderboard(period: period);
-      },
-    );
+final leaderboardByPeriodProvider = FutureProvider.autoDispose
+    .family<List<LeaderboardEntry>, LeaderboardPeriod>((ref, period) async {
+      final repository = ref.watch(leaderboardRepositoryProvider);
+      return repository.getLeaderboard(period: period);
+    });
 
 class LeaderboardRepository {
   final ApiClient _apiClient;

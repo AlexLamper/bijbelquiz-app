@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/app_widgets.dart';
 import '../../../core/ui/primary_button.dart';
 import '../../../core/ui/custom_text_field.dart';
 import 'auth_controller.dart';
+import 'splash_screen.dart' show BijbelQuizWordmark;
 import 'widgets/google_sign_in_button.dart';
 import 'widgets/user_data_info_link.dart';
 
@@ -46,93 +49,96 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final isIOSApp = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
     final showGoogleSignIn = !isIOSApp;
     final hasSocialLoginOption = showGoogleSignIn;
-    final isGoogleInit =
-        showGoogleSignIn ? ref.watch(googleSignInInitProvider).hasValue : true;
+    final isGoogleInit = showGoogleSignIn
+        ? ref.watch(googleSignInInitProvider).hasValue
+        : true;
     final isLoading = state.isLoading || !isGoogleInit;
 
     return Scaffold(
+      backgroundColor: AppTheme.paper,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Image.asset(
-                'assets/images/logo-dark.png',
-                width: 80,
-                height: 80,
-                errorBuilder: (c, o, s) =>
-                    const Icon(Icons.book, size: 64, color: Colors.blueAccent),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(24, 40, 24, 32),
+          children: [
+            const BijbelQuizWordmark(fontSize: 22),
+            const SizedBox(height: 44),
+            const Eyebrow('Inloggen'),
+            const SizedBox(height: 18),
+            const Text('Welkom terug', style: AppTheme.displayLarge),
+            const SizedBox(height: 14),
+            const Text(
+              'Log in om je voortgang bij te houden en mee te doen op de '
+              'ranglijst.',
+              style: AppTheme.bodyLead,
+            ),
+            const SizedBox(height: 36),
+            CustomTextField(
+              label: 'E-mail',
+              hintText: 'jij@voorbeeld.nl',
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
+            ),
+            const SizedBox(height: 18),
+            CustomTextField(
+              label: 'Wachtwoord',
+              hintText: '••••••••',
+              controller: _passwordController,
+              obscureText: true,
+              textInputAction: TextInputAction.done,
+            ),
+            const SizedBox(height: 32),
+            PrimaryButton(
+              text: 'Inloggen',
+              isLoading: isLoading,
+              onPressed: isLoading ? null : _login,
+            ),
+            if (hasSocialLoginOption) ...[
+              const SizedBox(height: 28),
+              // `border-t border-rule` with the label sitting on the rule.
+              Row(
+                children: [
+                  const Expanded(child: RuleLine()),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: Text('OF LOG IN MET', style: AppTheme.overline),
+                  ),
+                  const Expanded(child: RuleLine()),
+                ],
               ),
-              const SizedBox(height: 24),
-              Text(
-                'Welkom terug',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Log in om je voortgang bij te houden.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFF131D2B), // AppTheme.ink, dark gray
-                ),
-              ),
-              const SizedBox(height: 32),
-              CustomTextField(
-                label: 'E-mail',
-                controller: _emailController,
-                prefixIcon: Icons.email,
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 16),
-              CustomTextField(
-                label: 'Wachtwoord',
-                controller: _passwordController,
-                obscureText: true,
-                prefixIcon: Icons.lock,
-              ),
-              const SizedBox(height: 32),
-              PrimaryButton(
-                text: 'Inloggen',
+              const SizedBox(height: 20),
+              buildGoogleSignInButton(
+                context: context,
                 isLoading: isLoading,
-                onPressed: isLoading ? null : _login,
+                onPressed: isLoading ? null : _loginWithGoogle,
               ),
-              if (hasSocialLoginOption) ...[
-                const SizedBox(height: 10),
-                Text(
-                  'of log in met',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF8A8F98),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                buildGoogleSignInButton(
-                  context: context,
-                  isLoading: isLoading,
-                  onPressed: isLoading ? null : _loginWithGoogle,
-                ),
-                const SizedBox(height: 12),
-              ],
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: () {
-                  context.push('/register');
-                },
-                child: Text(
-                  'Nog geen account? Registreren',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 2),
-              buildUserDataInfoLink(context),
             ],
-          ),
+            const SizedBox(height: 32),
+            const RuleLine(),
+            const SizedBox(height: 20),
+            Center(
+              child: TextButton(
+                onPressed: () => context.push('/register'),
+                child: Text.rich(
+                  TextSpan(
+                    style: AppTheme.bodyMuted,
+                    children: const [
+                      TextSpan(text: 'Nog geen account?  '),
+                      TextSpan(
+                        text: 'Registreren',
+                        style: TextStyle(
+                          color: AppTheme.lapis,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Center(child: buildUserDataInfoLink(context)),
+          ],
         ),
       ),
     );

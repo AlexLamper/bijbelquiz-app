@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../config/preview_config.dart';
+import '../theme/app_theme.dart';
+
 import '../../features/auth/present/splash_screen.dart';
 import '../../features/onboarding/present/onboarding_screen.dart';
 import '../../features/auth/present/login_screen.dart';
@@ -28,60 +31,44 @@ class MainScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     final currentIndex = _calculateSelectedIndex(context);
 
+    // `border-t border-rule bg-paper-raised` — the site's mobile tab bar.
     return Scaffold(
+      backgroundColor: AppTheme.paper,
       body: child,
       bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: const Border(top: BorderSide(color: Color(0xFFE2E7F1), width: 1)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 18,
-              offset: const Offset(0, -6),
-            ),
-          ],
+        decoration: const BoxDecoration(
+          color: AppTheme.paperRaised,
+          border: Border(top: BorderSide(color: AppTheme.rule, width: 1)),
         ),
-        child: BottomNavigationBar(
-          currentIndex: currentIndex,
-          showUnselectedLabels: true,
-          selectedItemColor: const Color(0xFF6D86DB),
-          unselectedItemColor: const Color(0xFF7B8494),
-          selectedFontSize: 11,
-          unselectedFontSize: 11,
-          elevation: 0,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: 'Home',
+        child: SafeArea(
+          top: false,
+          child: SizedBox(
+            height: 62,
+            child: Row(
+              children: [
+                for (var i = 0; i < _items.length; i++)
+                  Expanded(
+                    child: _NavItem(
+                      item: _items[i],
+                      active: currentIndex == i,
+                      onTap: () => _onItemTapped(i, context),
+                    ),
+                  ),
+              ],
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.quiz_outlined),
-              activeIcon: Icon(Icons.quiz),
-              label: 'Quizzen',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.emoji_events_outlined),
-              activeIcon: Icon(Icons.emoji_events),
-              label: 'Ranglijst',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.groups_2_outlined),
-              activeIcon: Icon(Icons.groups_2),
-              label: 'Samen',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: 'Profiel',
-            ),
-          ],
-          onTap: (index) => _onItemTapped(index, context),
+          ),
         ),
       ),
     );
   }
+
+  static const List<_NavItemData> _items = [
+    _NavItemData(Icons.home_outlined, Icons.home, 'Home'),
+    _NavItemData(Icons.menu_book_outlined, Icons.menu_book, 'Quizzen'),
+    _NavItemData(Icons.leaderboard_outlined, Icons.leaderboard, 'Ranglijst'),
+    _NavItemData(Icons.groups_outlined, Icons.groups, 'Samen'),
+    _NavItemData(Icons.person_outline, Icons.person, 'Profiel'),
+  ];
 
   static int _calculateSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).uri.path;
@@ -114,10 +101,68 @@ class MainScaffold extends StatelessWidget {
   }
 }
 
+class _NavItemData {
+  const _NavItemData(this.icon, this.activeIcon, this.label);
+
+  final IconData icon;
+  final IconData activeIcon;
+  final String label;
+}
+
+/// Tab item — active is solid ink with a `bg-lapis` marker rule above it,
+/// matching the underline the site draws under the active desktop nav link
+/// (`after:absolute after:bottom-0 after:h-px after:bg-lapis`).
+class _NavItem extends StatelessWidget {
+  const _NavItem({
+    required this.item,
+    required this.active,
+    required this.onTap,
+  });
+
+  final _NavItemData item;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = active ? AppTheme.ink : AppTheme.inkMuted;
+    return InkWell(
+      onTap: onTap,
+      splashColor: AppTheme.paperSunken,
+      highlightColor: AppTheme.paperSunken,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            height: 1,
+            width: 22,
+            color: active ? AppTheme.lapis : Colors.transparent,
+          ),
+          const SizedBox(height: 11),
+          Icon(active ? item.activeIcon : item.icon, size: 20, color: color),
+          const SizedBox(height: 6),
+          Text(
+            item.label,
+            style: TextStyle(
+              fontFamily: AppTheme.sansFontName,
+              fontSize: 10,
+              height: 1,
+              fontWeight: active ? FontWeight.w500 : FontWeight.w400,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // Router Provider
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
-    initialLocation: '/',
+    // Design-preview mode skips splash/onboarding/login and lands on the
+    // dashboard so the styling can be reviewed straight away.
+    initialLocation: PreviewConfig.enabled ? '/home' : '/',
     routes: [
       GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
       GoRoute(
@@ -164,15 +209,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/play-together/room/:roomCode',
-        builder: (context, state) => MultiplayerLobbyScreen(
-          roomCode: state.pathParameters['roomCode']!,
-        ),
+        builder: (context, state) =>
+            MultiplayerLobbyScreen(roomCode: state.pathParameters['roomCode']!),
       ),
       GoRoute(
         path: '/play-together/room/:roomCode/play',
-        builder: (context, state) => MultiplayerGameScreen(
-          roomCode: state.pathParameters['roomCode']!,
-        ),
+        builder: (context, state) =>
+            MultiplayerGameScreen(roomCode: state.pathParameters['roomCode']!),
       ),
       GoRoute(
         path: '/play-together/room/:roomCode/results',

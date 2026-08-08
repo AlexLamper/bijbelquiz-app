@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/app_widgets.dart';
 import '../../profile/present/profile_provider.dart';
 import '../data/quiz_repository.dart';
 import '../domain/answer.dart';
@@ -52,7 +53,7 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
     );
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.paper,
       body: SafeArea(
         child: quizAsync.when(
           data: (quiz) {
@@ -61,7 +62,7 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
             }
 
             if (_currentIndex >= quiz.questions.length) {
-              return _buildFinishedScreen(quiz.xpReward);
+              return _buildFinishedScreen(quiz.xpReward, quiz.questions.length);
             }
 
             final question = quiz.questions[_currentIndex];
@@ -70,83 +71,72 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
 
             return Column(
               children: [
+                // Header rail — close button + `text-[10px] uppercase
+                // tracking-[0.16em]` counter.
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16.0,
-                    vertical: 4.0,
-                  ),
+                  padding: const EdgeInsets.fromLTRB(8, 4, 20, 4),
                   child: Row(
                     children: [
                       IconButton(
                         icon: const Icon(
                           Icons.close,
-                          color: Colors.black,
-                          size: 28,
+                          color: AppTheme.inkSoft,
+                          size: 20,
                         ),
                         onPressed: () => context.pop(),
                       ),
                       Expanded(
-                        child: Center(
-                          child: Text(
-                            'Vraag ${_currentIndex + 1}/$totalQuestions',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: AppTheme.sansFontName,
-                              color: AppTheme.accent,
-                            ),
+                        child: Text(
+                          'VRAAG ${_currentIndex + 1} / $totalQuestions',
+                          style: AppTheme.overline.copyWith(
+                            fontFeatures: const [FontFeature.tabularFigures()],
                           ),
                         ),
                       ),
-                      const SizedBox(width: 48),
                     ],
                   ),
                 ),
+                // Hairline progress track — the site keeps bars at 2px.
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Container(
-                    height: 6,
+                    height: 2,
                     width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: AppTheme.border,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
+                    color: AppTheme.rule,
                     child: FractionallySizedBox(
                       alignment: Alignment.centerLeft,
                       widthFactor: progress.clamp(0.0, 1.0),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: AppTheme.accentGradient,
-                          borderRadius: BorderRadius.circular(999),
-                        ),
+                      child: Container(color: AppTheme.ink),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 28),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      question.text,
+                      style: const TextStyle(
+                        fontFamily: AppTheme.displayFontName,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w400,
+                        height: 1.22,
+                        letterSpacing: -0.36,
+                        color: AppTheme.ink,
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 24),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                  child: Text(
-                    question.text,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontFamily: AppTheme.sansFontName,
-                      fontSize: 19,
-                      height: 1.3,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.15,
-                      color: Colors.black,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: SingleChildScrollView(
                       child: Column(
                         children: [
-                          ...question.answers.map(_buildAnswerButton),
+                          for (var i = 0; i < question.answers.length; i++)
+                            _buildAnswerButton(question.answers[i], i),
                           if (_isAnswered)
                             _buildExplanationCard(question, isPremium),
                           const SizedBox(height: 20),
@@ -156,8 +146,13 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
                   ),
                 ),
                 if (_isAnswered)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                  Container(
+                    width: double.infinity,
+                    decoration: const BoxDecoration(
+                      color: AppTheme.paperRaised,
+                      border: Border(top: BorderSide(color: AppTheme.rule)),
+                    ),
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
                     child: SafeArea(
                       top: false,
                       child: _buildNextQuestionButton(totalQuestions),
@@ -166,60 +161,107 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
               ],
             );
           },
-          loading: () => const Center(
-            child: CircularProgressIndicator(color: Color(0xFF131D2B)),
-          ),
+          loading: () => const AppLoader(),
           error: (e, st) => _buildErrorState(e.toString()),
         ),
       ),
     );
   }
 
-  Widget _buildAnswerButton(Answer answer) {
+  /// Answer option.
+  ///
+  /// Idle     : `rounded-md border border-rule bg-paper-raised text-ink`
+  /// Correct  : `border-positive/35 bg-positive-tint text-positive`
+  /// Incorrect: `border-destructive/35 bg-vermilion-tint text-destructive`
+  Widget _buildAnswerButton(Answer answer, int index) {
     final bool isSelected = _selectedAnswer == answer;
 
-    Color backgroundColor = AppTheme.canvas;
+    Color background = AppTheme.paperRaised;
+    Color borderColor = AppTheme.rule;
     Color textColor = AppTheme.ink;
-    Border? border;
+    Color markerColor = AppTheme.inkMuted;
 
     if (_isAnswered) {
       if (answer.isCorrect) {
-        backgroundColor = const Color(0xFFE8F5E9);
-        border = Border.all(color: const Color(0xFF4CAF50), width: 2);
-      } else if (isSelected && !answer.isCorrect) {
-        backgroundColor = const Color(0xFFFFEBEE);
-        border = Border.all(color: const Color(0xFFE53935), width: 2);
+        background = AppTheme.positiveTint;
+        borderColor = AppTheme.positive.withValues(alpha: 0.35);
+        textColor = AppTheme.positive;
+        markerColor = AppTheme.positive;
+      } else if (isSelected) {
+        background = AppTheme.vermilionTint;
+        borderColor = AppTheme.destructive.withValues(alpha: 0.35);
+        textColor = AppTheme.destructive;
+        markerColor = AppTheme.destructive;
       } else {
-        textColor = const Color(0xFFAAAAAA);
+        background = AppTheme.paperRaised;
+        textColor = AppTheme.inkMuted;
+        markerColor = AppTheme.ruleStrong;
       }
     }
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10.0),
-      child: InkWell(
-        onTap: () => _handleOptionSelected(answer),
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
-          decoration: BoxDecoration(
-            color: backgroundColor,
-            borderRadius: BorderRadius.circular(14),
-            border: border,
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  answer.text,
-                  style: TextStyle(fontSize: 15, color: textColor, height: 1.3),
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Material(
+        color: background,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        child: InkWell(
+          onTap: () => _handleOptionSelected(answer),
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          splashColor: AppTheme.paperSunken,
+          highlightColor: AppTheme.paperSunken,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+              border: Border.all(color: borderColor),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Serif letter marker, like the site's `01`/`02` list markers.
+                SizedBox(
+                  width: 22,
+                  child: Text(
+                    String.fromCharCode(65 + index),
+                    style: TextStyle(
+                      fontFamily: AppTheme.displayFontName,
+                      fontSize: 15,
+                      color: markerColor,
+                    ),
+                  ),
                 ),
-              ),
-              if (_isAnswered && answer.isCorrect)
-                const Icon(Icons.check_circle, color: Color(0xFF4CAF50)),
-              if (_isAnswered && isSelected && !answer.isCorrect)
-                const Icon(Icons.cancel, color: Color(0xFFE53935)),
-            ],
+                Expanded(
+                  child: Text(
+                    answer.text,
+                    style: TextStyle(
+                      fontFamily: AppTheme.sansFontName,
+                      fontSize: 15,
+                      height: 1.45,
+                      color: textColor,
+                    ),
+                  ),
+                ),
+                if (_isAnswered && answer.isCorrect)
+                  const Padding(
+                    padding: EdgeInsets.only(left: 10),
+                    child: Icon(
+                      Icons.check,
+                      size: 16,
+                      color: AppTheme.positive,
+                    ),
+                  ),
+                if (_isAnswered && isSelected && !answer.isCorrect)
+                  const Padding(
+                    padding: EdgeInsets.only(left: 10),
+                    child: Icon(
+                      Icons.close,
+                      size: 16,
+                      color: AppTheme.destructive,
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -234,153 +276,74 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
     final teasedExplanation = _teaseExplanation(question.explanation);
     final teasedReference = _teaseReference(question.bibleReference);
 
+    final accent = gotItRight ? AppTheme.positive : AppTheme.destructive;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: 14),
-        Container(
-          decoration: BoxDecoration(
-            color: gotItRight
-                ? const Color(0xFFE8F5E9)
-                : const Color(0xFFFFEBEE),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: gotItRight
-                  ? const Color(0xFF4CAF50).withValues(alpha: 0.35)
-                  : const Color(0xFFE53935).withValues(alpha: 0.35),
-              width: 1,
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      gotItRight
-                          ? Icons.check_circle_rounded
-                          : Icons.cancel_rounded,
-                      color: gotItRight
-                          ? const Color(0xFF4CAF50)
-                          : const Color(0xFFE53935),
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        gotItRight ? 'Goed gedaan!' : 'Onjuist.',
-                        style: TextStyle(
-                          fontFamily: AppTheme.sansFontName,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: gotItRight
-                              ? const Color(0xFF2E7D32)
-                              : const Color(0xFFC62828),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                if (hasExplanation || hasReference) ...[
-                  const SizedBox(height: 10),
-                  Container(height: 1, color: Colors.black.withValues(alpha: 0.08)),
-                  const SizedBox(height: 10),
-                ],
-                if (hasExplanation) ...[
-                  const Text(
-                    'Uitleg',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF131D2B),
-                    ),
+        const SizedBox(height: 18),
+        AppCard(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Eyebrow(
+                gotItRight ? 'Goed gedaan' : 'Onjuist',
+                color: accent,
+                ruleColor: accent,
+              ),
+              if (hasExplanation) ...[
+                const SizedBox(height: 18),
+                const RuleLine(),
+                const SizedBox(height: 18),
+                const Text('UITLEG', style: AppTheme.overline),
+                const SizedBox(height: 8),
+                if (isPremium)
+                  Text(question.explanation, style: AppTheme.bodyMuted)
+                else
+                  _buildFadedPreviewText(
+                    teasedExplanation,
+                    maxLines: 3,
+                    style: AppTheme.bodyMuted,
                   ),
-                  const SizedBox(height: 4),
-                  if (isPremium)
-                    Text(
-                      question.explanation,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Colors.black87,
-                        height: 1.35,
-                      ),
-                    )
-                  else
-                    _buildFadedPreviewText(
-                      teasedExplanation,
-                      maxLines: 3,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Colors.black87,
-                        height: 1.35,
-                      ),
-                    ),
-                ],
-                if (hasReference) ...[
-                  if (hasExplanation) const SizedBox(height: 10),
-                  const Text(
-                    'Referentie',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF131D2B),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  if (isPremium)
-                    Text(
-                      question.bibleReference,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF131D2B),
-                        fontWeight: FontWeight.w600,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    )
-                  else
-                    _buildFadedPreviewText(
-                      teasedReference,
-                      maxLines: 1,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF131D2B),
-                        fontWeight: FontWeight.w600,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                ],
-                if (!isPremium && (hasExplanation || hasReference)) ...[
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 38,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        context.push('/premium');
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.accent,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      child: const Text(
-                        'Ontgrendel premium voor uitleg',
-                        style: TextStyle(
-                          fontFamily: AppTheme.sansFontName,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
               ],
-            ),
+              if (hasReference) ...[
+                const SizedBox(height: 18),
+                const RuleLine(),
+                const SizedBox(height: 18),
+                const Text('REFERENTIE', style: AppTheme.overline),
+                const SizedBox(height: 8),
+                if (isPremium)
+                  Text(
+                    question.bibleReference,
+                    style: const TextStyle(
+                      fontFamily: AppTheme.displayFontName,
+                      fontSize: 16,
+                      fontStyle: FontStyle.italic,
+                      color: AppTheme.ink,
+                    ),
+                  )
+                else
+                  _buildFadedPreviewText(
+                    teasedReference,
+                    maxLines: 1,
+                    style: const TextStyle(
+                      fontFamily: AppTheme.displayFontName,
+                      fontSize: 16,
+                      fontStyle: FontStyle.italic,
+                      color: AppTheme.ink,
+                    ),
+                  ),
+              ],
+              if (!isPremium && (hasExplanation || hasReference)) ...[
+                const SizedBox(height: 18),
+                SiteOutlineButton(
+                  label: 'Ontgrendel Premium voor uitleg',
+                  height: 40,
+                  onPressed: () => context.push('/premium'),
+                ),
+              ],
+            ],
           ),
         ),
       ],
@@ -390,29 +353,10 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
   Widget _buildNextQuestionButton(int totalQuestions) {
     final bool isLastQuestion = _currentIndex == totalQuestions - 1;
 
-    return SizedBox(
-      height: 50,
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: () => _nextQuestion(totalQuestions),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppTheme.accent,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
-        child: Text(
-          isLastQuestion ? 'Rond quiz af' : 'Volgende vraag',
-          style: const TextStyle(
-            fontFamily: AppTheme.sansFontName,
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.2,
-          ),
-        ),
-      ),
+    return SiteButton(
+      label: isLastQuestion ? 'Rond quiz af' : 'Volgende vraag',
+      trailingIcon: Icons.arrow_forward,
+      onPressed: () => _nextQuestion(totalQuestions),
     );
   }
 
@@ -461,8 +405,10 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
         return '${normalized.substring(0, 1)}...';
       }
 
-      final cutIndex =
-          (normalized.length * 0.4).round().clamp(10, normalized.length - 1);
+      final cutIndex = (normalized.length * 0.4).round().clamp(
+        10,
+        normalized.length - 1,
+      );
       return '${normalized.substring(0, cutIndex).trimRight()}...';
     }
 
@@ -481,8 +427,10 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
         return '${normalized.substring(0, 1)}...';
       }
 
-      final cutIndex =
-          (normalized.length * 0.6).round().clamp(6, normalized.length - 1);
+      final cutIndex = (normalized.length * 0.6).round().clamp(
+        6,
+        normalized.length - 1,
+      );
       return '${normalized.substring(0, cutIndex).trimRight()}...';
     }
 
@@ -490,115 +438,78 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.assignment_late, size: 64, color: Colors.grey),
-          const SizedBox(height: 16),
-          const Text(
-            'Deze quiz heeft nog geen vragen.',
-            style: TextStyle(fontSize: 18, color: Colors.black54),
-          ),
-          const SizedBox(height: 32),
-          TextButton(
-            onPressed: () => context.pop(),
-            child: const Text(
-              'Ga terug',
-              style: TextStyle(color: Color(0xFF131D2B), fontSize: 16),
-            ),
-          ),
-        ],
+    return AppEmptyState(
+      icon: Icons.menu_book_outlined,
+      title: 'Nog geen vragen',
+      description: 'Deze quiz heeft nog geen vragen.',
+      action: SiteOutlineButton(
+        label: 'Ga terug',
+        expand: false,
+        height: 44,
+        onPressed: () => context.pop(),
       ),
     );
   }
 
   Widget _buildErrorState(String error) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.red),
-            const SizedBox(height: 16),
-            const Text(
-              'Er ging iets mis.',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              error,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.black54),
-            ),
-            const SizedBox(height: 32),
-            TextButton(
-              onPressed: () => context.pop(),
-              child: const Text(
-                'Ga terug',
-                style: TextStyle(color: Color(0xFF131D2B)),
-              ),
-            ),
-          ],
-        ),
+    return AppEmptyState(
+      icon: Icons.error_outline,
+      title: 'Er ging iets mis',
+      description: error,
+      action: SiteOutlineButton(
+        label: 'Ga terug',
+        expand: false,
+        height: 44,
+        onPressed: () => context.pop(),
       ),
     );
   }
 
-  Widget _buildFinishedScreen(int xpReward) {
+  /// Result page, in the site's centred CTA-section layout:
+  /// eyebrow -> `font-display text-[26px]` -> lead -> rule-divided stats.
+  Widget _buildFinishedScreen(int xpReward, int totalQuestions) {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32.0),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: const BoxDecoration(
-                color: Color(0xFFFFF8E1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.emoji_events,
-                size: 80,
-                color: Color(0xFFFFC107),
-              ),
+            const Center(child: Eyebrow('Afgerond')),
+            const SizedBox(height: 20),
+            const Text(
+              'Quiz voltooid',
+              textAlign: TextAlign.center,
+              style: AppTheme.displayMedium,
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'Je hebt $xpReward XP verdiend. Ga door om je reeks in stand te '
+              'houden en verder te stijgen op de ranglijst.',
+              textAlign: TextAlign.center,
+              style: AppTheme.bodyLead,
             ),
             const SizedBox(height: 32),
-            const Text(
-              'Quiz Voltooid!',
-              style: TextStyle(
-                fontFamily: AppTheme.sansFontName,
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF131D2B),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Je hebt $xpReward XP verdiend!',
-              style: const TextStyle(fontSize: 18, color: Colors.black87),
-            ),
-            const SizedBox(height: 48),
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: () => context.go('/'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.accent,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+            StatStrip(
+              stacked: true,
+              items: [
+                StatItem(value: '$totalQuestions', label: 'Vragen'),
+                StatItem(
+                  value: '$xpReward',
+                  label: 'XP',
+                  ruleColor: AppTheme.positive,
                 ),
-                child: const Text(
-                  'Terug naar Home',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
+              ],
+            ),
+            const SizedBox(height: 32),
+            SiteButton(
+              label: 'Terug naar home',
+              onPressed: () => context.go('/home'),
+            ),
+            const SizedBox(height: 12),
+            SiteOutlineButton(
+              label: 'Bekijk ranglijst',
+              onPressed: () => context.go('/leaderboard'),
             ),
           ],
         ),

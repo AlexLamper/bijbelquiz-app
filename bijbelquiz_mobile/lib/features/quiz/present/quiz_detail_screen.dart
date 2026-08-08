@@ -17,17 +17,19 @@ class QuizDetailScreen extends ConsumerWidget {
     final quizAsync = ref.watch(quizDetailProvider(idOrSlug));
 
     return Scaffold(
-      backgroundColor: AppTheme.canvas,
+      backgroundColor: AppTheme.paper,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppTheme.paper,
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppTheme.ink),
+        scrolledUnderElevation: 0,
+        iconTheme: const IconThemeData(color: AppTheme.inkSoft),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back, size: 20),
           onPressed: () => context.pop(),
         ),
       ),
       body: SafeArea(
+        top: false,
         child: quizAsync.when(
           data: (quiz) {
             final questionCount = quiz.questions.isNotEmpty
@@ -39,14 +41,21 @@ class QuizDetailScreen extends ConsumerWidget {
               children: [
                 Expanded(
                   child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
                     children: [
-                      // Hero banner
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(22),
-                        child: SizedBox(
-                          height: 190,
-                          width: double.infinity,
+                      // `aspect-16/9 rounded-md bg-paper-sunken ring-1
+                      //  ring-rule ring-inset`
+                      AspectRatio(
+                        aspectRatio: 16 / 9,
+                        child: Container(
+                          clipBehavior: Clip.antiAlias,
+                          decoration: BoxDecoration(
+                            color: AppTheme.paperSunken,
+                            borderRadius: BorderRadius.circular(
+                              AppTheme.radiusMd,
+                            ),
+                            border: Border.all(color: AppTheme.rule),
+                          ),
                           child: Stack(
                             fit: StackFit.expand,
                             children: [
@@ -56,42 +65,34 @@ class QuizDetailScreen extends ConsumerWidget {
                                   fit: BoxFit.cover,
                                 )
                               else
-                                const DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    gradient: AppTheme.accentGradient,
+                                const Center(
+                                  child: Icon(
+                                    Icons.menu_book_outlined,
+                                    size: 28,
+                                    color: AppTheme.inkMuted,
                                   ),
                                 ),
-                              DecoratedBox(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      Colors.black.withValues(alpha: 0.0),
-                                      Colors.black.withValues(alpha: 0.4),
-                                    ],
-                                  ),
-                                ),
-                              ),
                               if (quiz.isPremium)
                                 Positioned(
                                   top: 12,
                                   left: 12,
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 5,
+                                      horizontal: 8,
+                                      vertical: 4,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFFFF4D6),
-                                      borderRadius: BorderRadius.circular(999),
+                                      color: AppTheme.paperRaised.withValues(
+                                        alpha: 0.95,
+                                      ),
+                                      borderRadius: BorderRadius.circular(
+                                        AppTheme.radiusSm,
+                                      ),
                                     ),
-                                    child: const Text(
+                                    child: Text(
                                       'PREMIUM',
-                                      style: TextStyle(
-                                        color: Color(0xFF8C6500),
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w800,
+                                      style: AppTheme.overline.copyWith(
+                                        color: AppTheme.vermilion,
                                       ),
                                     ),
                                   ),
@@ -100,148 +101,85 @@ class QuizDetailScreen extends ConsumerWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 18),
-                      Text(
-                        quiz.title,
-                        style: const TextStyle(
-                          fontFamily: AppTheme.sansFontName,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w800,
-                          height: 1.15,
-                          color: AppTheme.ink,
+                      const SizedBox(height: 24),
+                      Text.rich(
+                        TextSpan(
+                          style: AppTheme.metaLabel,
+                          children: [
+                            TextSpan(
+                              text: (quiz.category?.name ?? 'Algemeen')
+                                  .toUpperCase(),
+                            ),
+                            const TextSpan(
+                              text: '   /   ',
+                              style: TextStyle(color: AppTheme.ruleStrong),
+                            ),
+                            TextSpan(
+                              text: quiz.difficultyLabelNl.toUpperCase(),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        quiz.category?.name ?? 'Algemeen',
-                        style: const TextStyle(
-                          color: AppTheme.accent,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 12),
+                      // `font-display text-[32px] leading-[1.08]
+                      //  tracking-[-0.025em]`
+                      Text(quiz.title, style: AppTheme.displayLarge),
+                      const SizedBox(height: 16),
                       Text(
                         quiz.description.isNotEmpty
                             ? quiz.description
-                            : 'Test je kennis over dit onderwerp!',
-                        style: const TextStyle(
-                          fontSize: 15,
-                          height: 1.5,
-                          color: AppTheme.muted,
-                          fontWeight: FontWeight.w500,
-                        ),
+                            : 'Test je kennis over dit onderwerp.',
+                        style: AppTheme.bodyLead,
                       ),
-                      const SizedBox(height: 18),
-                      AppCard(
-                        child: IntrinsicHeight(
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              _StatColumn(
-                                value: '$questionCount',
-                                label: 'Vragen',
-                              ),
-                              _divider,
-                              _StatColumn(
-                                value: '$minutes min',
-                                label: 'Duur',
-                              ),
-                              _divider,
-                              _StatColumn(
-                                value: '${quiz.xpReward}',
-                                label: 'XP beloning',
-                              ),
-                              _divider,
-                              _StatColumn(
-                                value: quiz.difficultyLabelNl,
-                                label: 'Niveau',
-                              ),
-                            ],
+                      const SizedBox(height: 28),
+                      StatStrip(
+                        stacked: true,
+                        items: [
+                          StatItem(value: '$questionCount', label: 'Vragen'),
+                          StatItem(value: '$minutes min', label: 'Duur'),
+                          StatItem(
+                            value: '${quiz.xpReward}',
+                            label: 'XP',
+                            ruleColor: AppTheme.positive,
                           ),
-                        ),
+                        ],
                       ),
                     ],
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        final pathId = quiz.slug.isNotEmpty
-                            ? quiz.slug
-                            : quiz.id;
-                        context.push('/quiz/$pathId/play');
-                      },
-                      icon: const Icon(Icons.play_arrow_rounded),
-                      label: const Text('Start Quiz'),
-                    ),
+                // Sticky CTA bar — `border-t border-rule bg-paper-raised`.
+                Container(
+                  decoration: const BoxDecoration(
+                    color: AppTheme.paperRaised,
+                    border: Border(top: BorderSide(color: AppTheme.rule)),
+                  ),
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                  child: SiteButton(
+                    label: 'Start quiz',
+                    trailingIcon: Icons.arrow_forward,
+                    onPressed: () {
+                      final pathId = quiz.slug.isNotEmpty ? quiz.slug : quiz.id;
+                      context.push('/quiz/$pathId/play');
+                    },
                   ),
                 ),
               ],
             );
           },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, stack) => Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
-                const SizedBox(height: 16),
-                Text('Fout: $err', textAlign: TextAlign.center),
-                TextButton(
-                  onPressed: () => ref.invalidate(quizDetailProvider(idOrSlug)),
-                  child: const Text('Opnieuw proberen'),
-                ),
-              ],
+          loading: () => const AppLoader(),
+          error: (err, stack) => AppEmptyState(
+            icon: Icons.error_outline,
+            title: 'Quiz kon niet laden',
+            description: '$err',
+            action: SiteOutlineButton(
+              label: 'Opnieuw proberen',
+              expand: false,
+              height: 44,
+              onPressed: () => ref.invalidate(quizDetailProvider(idOrSlug)),
             ),
           ),
         ),
       ),
-    );
-  }
-
-  static final Widget _divider = const VerticalDivider(
-    color: AppTheme.border,
-    thickness: 1,
-    width: 20,
-  );
-}
-
-class _StatColumn extends StatelessWidget {
-  const _StatColumn({required this.value, required this.label});
-
-  final String value;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(
-          value,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w800,
-            color: AppTheme.ink,
-          ),
-        ),
-        const SizedBox(height: 5),
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 12,
-            color: AppTheme.muted,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
     );
   }
 }

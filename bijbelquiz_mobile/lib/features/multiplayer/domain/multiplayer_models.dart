@@ -112,11 +112,7 @@ class MultiplayerAnswerOption {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'text': text,
-      'isCorrect': isCorrect,
-    };
+    return {'id': id, 'text': text, 'isCorrect': isCorrect};
   }
 }
 
@@ -145,12 +141,9 @@ class MultiplayerQuestionState {
 
   factory MultiplayerQuestionState.fromJson(Map<String, dynamic> json) {
     final rawAnswers = json['answers'] as List<dynamic>? ?? const [];
-    final answers = rawAnswers
-        .whereType<Map<dynamic, dynamic>>()
-        .map((entry) {
-          return MultiplayerAnswerOption.fromJson(Map<String, dynamic>.from(entry));
-        })
-        .toList();
+    final answers = rawAnswers.whereType<Map<dynamic, dynamic>>().map((entry) {
+      return MultiplayerAnswerOption.fromJson(Map<String, dynamic>.from(entry));
+    }).toList();
 
     final correctAnswerData =
         _asMap(json['correctAnswer']) ??
@@ -168,7 +161,9 @@ class MultiplayerQuestionState {
     );
 
     if (correctAnswerId.isEmpty) {
-      final explicitlyCorrect = answers.where((answer) => answer.isCorrect == true);
+      final explicitlyCorrect = answers.where(
+        (answer) => answer.isCorrect == true,
+      );
       if (explicitlyCorrect.isNotEmpty) {
         correctAnswerId = explicitlyCorrect.first.id;
       }
@@ -191,7 +186,9 @@ class MultiplayerQuestionState {
       bibleReference: _asString(json['bibleReference']),
       questionNumber: _asInt(json['questionNumber']),
       totalQuestions: _asInt(json['totalQuestions']),
-      remainingSeconds: _asInt(json['remainingSeconds'] ?? json['timeLeftSeconds']),
+      remainingSeconds: _asInt(
+        json['remainingSeconds'] ?? json['timeLeftSeconds'],
+      ),
       correctAnswerId: correctAnswerId,
       selectedAnswerId: selectedAnswerId,
       answers: answers,
@@ -278,12 +275,9 @@ class MultiplayerRoom {
       currentQuestionIndex: _asInt(json['currentQuestionIndex']),
       totalQuestions: _asInt(json['totalQuestions']),
       status: MultiplayerRoomStatusX.fromRaw(_asString(json['status'])),
-      players: rawPlayers
-          .whereType<Map<dynamic, dynamic>>()
-          .map((entry) {
-            return MultiplayerPlayer.fromJson(Map<String, dynamic>.from(entry));
-          })
-          .toList(),
+      players: rawPlayers.whereType<Map<dynamic, dynamic>>().map((entry) {
+        return MultiplayerPlayer.fromJson(Map<String, dynamic>.from(entry));
+      }).toList(),
       currentQuestion: questionData == null
           ? null
           : MultiplayerQuestionState.fromJson(questionData),

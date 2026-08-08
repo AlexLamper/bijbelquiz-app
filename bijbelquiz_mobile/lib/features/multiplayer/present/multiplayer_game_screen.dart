@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/app_widgets.dart';
 import '../../profile/present/profile_provider.dart';
 import '../domain/multiplayer_models.dart';
 import 'multiplayer_session_controller.dart';
@@ -13,7 +14,8 @@ class MultiplayerGameScreen extends ConsumerStatefulWidget {
   const MultiplayerGameScreen({super.key, required this.roomCode});
 
   @override
-  ConsumerState<MultiplayerGameScreen> createState() => _MultiplayerGameScreenState();
+  ConsumerState<MultiplayerGameScreen> createState() =>
+      _MultiplayerGameScreenState();
 }
 
 class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
@@ -25,7 +27,9 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
       multiplayerSessionControllerProvider(widget.roomCode),
     );
     final room = sessionAsync.asData?.value.room;
-    final roomMissing = _isRoomMissingError(sessionAsync.asData?.value.lastError);
+    final roomMissing = _isRoomMissingError(
+      sessionAsync.asData?.value.lastError,
+    );
     final profileAsync = ref.watch(profileProvider);
     final currentUserId = profileAsync.maybeWhen(
       data: (profile) => profile.id,
@@ -36,49 +40,54 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
         currentUserId.isNotEmpty &&
         currentUserId == room.hostUserId;
 
-    ref.listen<AsyncValue<MultiplayerSessionState>>(
-      multiplayerSessionControllerProvider(widget.roomCode),
-      (previous, next) {
-        final session = next.asData?.value;
-        final room = session?.room;
-        if (session == null || room == null || !mounted) return;
+    ref.listen<
+      AsyncValue<MultiplayerSessionState>
+    >(multiplayerSessionControllerProvider(widget.roomCode), (previous, next) {
+      final session = next.asData?.value;
+      final room = session?.room;
+      if (session == null || room == null || !mounted) return;
 
-        if (_isRoomMissingError(session.lastError)) {
-          if (_handledRoomMissing) return;
-          _handledRoomMissing = true;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Deze kamer lijkt niet meer beschikbaar. Controleer de status of ga terug.',
-              ),
+      if (_isRoomMissingError(session.lastError)) {
+        if (_handledRoomMissing) return;
+        _handledRoomMissing = true;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Deze kamer lijkt niet meer beschikbaar. Controleer de status of ga terug.',
             ),
-          );
-          return;
-        }
+          ),
+        );
+        return;
+      }
 
-        _handledRoomMissing = false;
+      _handledRoomMissing = false;
 
-        if (room.status == MultiplayerRoomStatus.finished) {
-          context.go('/play-together/room/${room.code}/results');
-        }
-      },
-    );
+      if (room.status == MultiplayerRoomStatus.finished) {
+        context.go('/play-together/room/${room.code}/results');
+      }
+    });
 
     return Scaffold(
-      backgroundColor: AppTheme.canvas,
+      backgroundColor: AppTheme.paper,
       appBar: AppBar(
         title: _buildAppBarTitle(room),
-        backgroundColor: AppTheme.canvas,
+        backgroundColor: AppTheme.paper,
         foregroundColor: AppTheme.ink,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        automaticallyImplyLeading: false,
+        titleSpacing: 20,
         actions: [
-          if (isHost && !roomMissing && room.status != MultiplayerRoomStatus.finished)
+          if (isHost &&
+              !roomMissing &&
+              room.status != MultiplayerRoomStatus.finished)
             IconButton(
               tooltip: 'Stop quiz',
               onPressed: _confirmAndStopMatch,
               icon: const Icon(
                 Icons.stop_circle_outlined,
-                color: Color(0xFFB42318),
+                size: 20,
+                color: AppTheme.destructive,
               ),
             ),
           IconButton(
@@ -86,18 +95,22 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
             onPressed: () {
               ref
                   .read(
-                    multiplayerSessionControllerProvider(widget.roomCode).notifier,
+                    multiplayerSessionControllerProvider(
+                      widget.roomCode,
+                    ).notifier,
                   )
                   .refreshRoom();
             },
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, size: 20, color: AppTheme.inkSoft),
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: SafeArea(
+        top: false,
         child: sessionAsync.when(
           data: (session) => _buildContent(context, session),
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const AppLoader(),
           error: (error, _) => _buildError(context, _toMessage(error)),
         ),
       ),
@@ -117,45 +130,35 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
         allPlayersAnswered;
     final correctAnswerId = question?.resolvedCorrectAnswerId ?? '';
     final selectedAnswerId =
-      (session.selectedAnswerId != null && session.selectedAnswerId!.isNotEmpty)
-      ? session.selectedAnswerId
-      : ((question?.selectedAnswerId.isNotEmpty ?? false)
-          ? question?.selectedAnswerId
-          : null);
+        (session.selectedAnswerId != null &&
+            session.selectedAnswerId!.isNotEmpty)
+        ? session.selectedAnswerId
+        : ((question?.selectedAnswerId.isNotEmpty ?? false)
+              ? question?.selectedAnswerId
+              : null);
 
     if (question == null) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppTheme.border),
-            ),
+          child: AppCard(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const CircularProgressIndicator(),
-                const SizedBox(height: 16),
+                const AppLoader(size: 22),
+                const SizedBox(height: 20),
                 const Text(
-                  'Wachten op de volgende vraag...',
+                  'Wachten op de volgende vraag…',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: AppTheme.muted,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: AppTheme.bodyMuted,
                 ),
                 if (session.lastError != null) ...[
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
                   Text(
                     session.lastError!,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Color(0xFFB42318),
-                      fontWeight: FontWeight.w600,
+                    style: AppTheme.caption.copyWith(
+                      color: AppTheme.destructive,
                     ),
                   ),
                 ],
@@ -171,108 +174,39 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
     );
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildQuestionHeader(question),
-          const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppTheme.border),
-            ),
-            child: Text(
-              question.text,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: AppTheme.ink,
-                height: 1.3,
-              ),
+          const SizedBox(height: 28),
+          Text(
+            question.text,
+            style: const TextStyle(
+              fontFamily: AppTheme.displayFontName,
+              fontSize: 24,
+              fontWeight: FontWeight.w400,
+              height: 1.22,
+              letterSpacing: -0.36,
+              color: AppTheme.ink,
             ),
           ),
-          const SizedBox(height: 20),
-          ...question.answers.map((answer) {
-            final isSelected = selectedAnswerId == answer.id;
-            final isCorrect =
-                correctAnswerId.isNotEmpty && correctAnswerId == answer.id;
-            final canAnswer =
-                !roomMissing &&
-                !session.hasSubmittedCurrentAnswer &&
-                !showAnswerReveal;
-
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: ElevatedButton(
-                onPressed: canAnswer
-                    ? () {
-                        controller.submitAnswer(
-                          questionId: question.id,
-                          answerId: answer.id,
-                        );
-                      }
-                    : null,
-                style: ElevatedButton.styleFrom(
-                  foregroundColor: _answerTextColor(
-                    reveal: showAnswerReveal,
-                    isCorrect: isCorrect,
-                    isSelected: isSelected,
-                  ),
-                  disabledForegroundColor: _answerTextColor(
-                    reveal: showAnswerReveal,
-                    isCorrect: isCorrect,
-                    isSelected: isSelected,
-                  ),
-                  backgroundColor: _answerBackgroundColor(
-                    reveal: showAnswerReveal,
-                    isCorrect: isCorrect,
-                    isSelected: isSelected,
-                  ),
-                  disabledBackgroundColor: _answerBackgroundColor(
-                    reveal: showAnswerReveal,
-                    isCorrect: isCorrect,
-                    isSelected: isSelected,
-                  ),
-                  side: BorderSide(
-                    color: _answerBorderColor(
-                      reveal: showAnswerReveal,
-                      isCorrect: isCorrect,
-                      isSelected: isSelected,
-                    ),
-                    width: 1.4,
-                  ),
-                  elevation: 0,
-                  alignment: Alignment.centerLeft,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  padding: const EdgeInsets.all(16),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        answer.text,
-                        style: const TextStyle(fontSize: 16, height: 1.3),
-                      ),
-                    ),
-                    if (showAnswerReveal)
-                      _buildAnswerBadge(
-                        isCorrect: isCorrect,
-                        isSelected: isSelected,
-                      ),
-                  ],
-                ),
-              ),
-            );
-          }),
+          const SizedBox(height: 24),
+          for (var i = 0; i < question.answers.length; i++)
+            _buildAnswerOption(
+              answer: question.answers[i],
+              index: i,
+              question: question,
+              controller: controller,
+              session: session,
+              roomMissing: roomMissing,
+              showAnswerReveal: showAnswerReveal,
+              correctAnswerId: correctAnswerId,
+              selectedAnswerId: selectedAnswerId,
+            ),
           if (showAnswerReveal)
             Padding(
-              padding: const EdgeInsets.only(top: 4),
+              padding: const EdgeInsets.only(top: 8),
               child: _buildAnswerOutcomeCard(
                 hasCorrectAnswer: correctAnswerId.isNotEmpty,
                 selectedAnswerId: selectedAnswerId,
@@ -281,173 +215,241 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
             )
           else if (session.hasSubmittedCurrentAnswer)
             Padding(
-              padding: EdgeInsets.only(top: 4),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEAF8F1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFBFE7D0)),
-                ),
-                child: const Text(
-                  'Antwoord ingestuurd. Wachten op andere spelers...',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Color(0xFF166534),
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+              padding: const EdgeInsets.only(top: 8),
+              child: _NoticeBlock(
+                accent: AppTheme.positive,
+                label: 'Ingestuurd',
+                message: 'Wachten op de andere spelers…',
               ),
             ),
           if (session.lastError != null)
             Padding(
-              padding: const EdgeInsets.only(top: 10),
-              child: Text(
-                session.lastError!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Color(0xFFB42318)),
+              padding: const EdgeInsets.only(top: 12),
+              child: _NoticeBlock(
+                accent: AppTheme.destructive,
+                label: 'Foutmelding',
+                message: session.lastError!,
               ),
             ),
           if (roomMissing)
             Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  context.go('/play-together');
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF131D2B),
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-                icon: const Icon(Icons.arrow_back_rounded),
-                label: const Text('Terug naar Play Together'),
+              padding: const EdgeInsets.only(top: 16),
+              child: SiteButton(
+                label: 'Terug naar Samen spelen',
+                icon: Icons.arrow_back,
+                onPressed: () => context.go('/play-together'),
               ),
             ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 40),
+          const SectionHeader(eyebrow: 'Live', title: 'Voortgang'),
+          const SizedBox(height: 24),
           _buildProgress(sortedPlayers),
         ],
       ),
     );
   }
 
-  Widget _buildQuestionHeader(MultiplayerQuestionState question) {
-    final seconds = question.remainingSeconds.clamp(0, 600);
+  /// Answer option — identical treatment to the single-player quiz:
+  /// `rounded-md border border-rule bg-paper-raised`, revealed states use
+  /// `bg-positive-tint / border-positive/35` and the vermilion equivalents.
+  Widget _buildAnswerOption({
+    required MultiplayerAnswerOption answer,
+    required int index,
+    required MultiplayerQuestionState question,
+    required MultiplayerSessionController controller,
+    required MultiplayerSessionState session,
+    required bool roomMissing,
+    required bool showAnswerReveal,
+    required String correctAnswerId,
+    required String? selectedAnswerId,
+  }) {
+    final isSelected = selectedAnswerId == answer.id;
+    final isCorrect =
+        correctAnswerId.isNotEmpty && correctAnswerId == answer.id;
+    final canAnswer =
+        !roomMissing && !session.hasSubmittedCurrentAnswer && !showAnswerReveal;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.border),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+    Color background = AppTheme.paperRaised;
+    Color borderColor = AppTheme.rule;
+    Color textColor = AppTheme.ink;
+    Color markerColor = AppTheme.inkMuted;
+
+    if (showAnswerReveal) {
+      if (isCorrect) {
+        background = AppTheme.positiveTint;
+        borderColor = AppTheme.positive.withValues(alpha: 0.35);
+        textColor = AppTheme.positive;
+        markerColor = AppTheme.positive;
+      } else if (isSelected) {
+        background = AppTheme.vermilionTint;
+        borderColor = AppTheme.destructive.withValues(alpha: 0.35);
+        textColor = AppTheme.destructive;
+        markerColor = AppTheme.destructive;
+      } else {
+        textColor = AppTheme.inkMuted;
+        markerColor = AppTheme.ruleStrong;
+      }
+    } else if (isSelected) {
+      background = AppTheme.lapisTint;
+      borderColor = AppTheme.lapis.withValues(alpha: 0.35);
+      markerColor = AppTheme.lapis;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Material(
+        color: background,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        child: InkWell(
+          onTap: canAnswer
+              ? () => controller.submitAnswer(
+                  questionId: question.id,
+                  answerId: answer.id,
+                )
+              : null,
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          splashColor: AppTheme.paperSunken,
+          highlightColor: AppTheme.paperSunken,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
             decoration: BoxDecoration(
-              color: AppTheme.accentSoft,
-              borderRadius: BorderRadius.circular(999),
+              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+              border: Border.all(color: borderColor),
             ),
-            child: Text(
-              'Vraag ${question.questionNumber}/${question.totalQuestions}',
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-                color: AppTheme.accent,
-              ),
-            ),
-          ),
-          const Spacer(),
-          TweenAnimationBuilder<double>(
-            key: ValueKey('${question.id}-${question.remainingSeconds}'),
-            tween: Tween<double>(begin: seconds.toDouble(), end: 0),
-            duration: Duration(seconds: seconds),
-            builder: (context, value, child) {
-              return Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFEEF0),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  '${value.ceil()}s',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFFB42318),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 22,
+                  child: Text(
+                    String.fromCharCode(65 + index),
+                    style: TextStyle(
+                      fontFamily: AppTheme.displayFontName,
+                      fontSize: 15,
+                      color: markerColor,
+                    ),
                   ),
                 ),
-              );
-            },
+                Expanded(
+                  child: Text(
+                    answer.text,
+                    style: TextStyle(
+                      fontFamily: AppTheme.sansFontName,
+                      fontSize: 15,
+                      height: 1.45,
+                      color: textColor,
+                    ),
+                  ),
+                ),
+                if (showAnswerReveal && isCorrect)
+                  const Padding(
+                    padding: EdgeInsets.only(left: 10),
+                    child: Icon(
+                      Icons.check,
+                      size: 16,
+                      color: AppTheme.positive,
+                    ),
+                  )
+                else if (showAnswerReveal && isSelected)
+                  const Padding(
+                    padding: EdgeInsets.only(left: 10),
+                    child: Icon(
+                      Icons.close,
+                      size: 16,
+                      color: AppTheme.destructive,
+                    ),
+                  ),
+              ],
+            ),
           ),
-        ],
+        ),
       ),
     );
   }
 
+  /// `border-y border-rule` rail: question counter left, countdown right.
+  Widget _buildQuestionHeader(MultiplayerQuestionState question) {
+    final seconds = question.remainingSeconds.clamp(0, 600);
+    final progress = question.totalQuestions == 0
+        ? 0.0
+        : question.questionNumber / question.totalQuestions;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'VRAAG ${question.questionNumber} / ${question.totalQuestions}',
+                style: AppTheme.overline.copyWith(
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ),
+            TweenAnimationBuilder<double>(
+              key: ValueKey('${question.id}-${question.remainingSeconds}'),
+              tween: Tween<double>(begin: seconds.toDouble(), end: 0),
+              duration: Duration(seconds: seconds),
+              builder: (context, value, child) {
+                return Text(
+                  '${value.ceil()}s',
+                  style: AppTheme.overline.copyWith(
+                    color: AppTheme.vermilion,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Container(
+          height: 2,
+          color: AppTheme.rule,
+          child: FractionallySizedBox(
+            alignment: Alignment.centerLeft,
+            widthFactor: progress.clamp(0.0, 1.0),
+            child: Container(color: AppTheme.ink),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildProgress(List<MultiplayerPlayer> players) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: AppTheme.border),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Live voortgang',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: AppTheme.ink,
+    return RuleGrid(
+      children: [
+        for (final player in players)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: Row(
+              children: [
+                Icon(
+                  player.hasAnswered
+                      ? Icons.check_circle_outline
+                      : Icons.radio_button_unchecked,
+                  size: 16,
+                  color: player.hasAnswered
+                      ? AppTheme.positive
+                      : AppTheme.ruleStrong,
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    player.name.isEmpty ? 'Speler' : player.name,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTheme.bodyStrong,
+                  ),
+                ),
+                Text(
+                  '${player.score}',
+                  style: AppTheme.statNumber.copyWith(fontSize: 18),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 10),
-          ...players.map((player) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      player.name.isEmpty ? 'Speler' : player.name,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppTheme.ink,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  Icon(
-                    player.hasAnswered
-                        ? Icons.check_circle
-                        : Icons.radio_button_unchecked,
-                    size: 18,
-                    color: player.hasAnswered
-                        ? const Color(0xFF1E7A4E)
-                        : const Color(0xFFA3AAB7),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${player.score} pt',
-                    style: const TextStyle(
-                      color: AppTheme.ink,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }),
-        ],
-      ),
+      ],
     );
   }
 
@@ -465,263 +467,54 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
     return sorted;
   }
 
-  Color _answerBackgroundColor({
-    required bool reveal,
-    required bool isCorrect,
-    required bool isSelected,
-  }) {
-    if (reveal) {
-      if (isCorrect) return const Color(0xFFEAF8F1);
-      if (isSelected) return const Color(0xFFFFEEF0);
-      return Colors.white;
-    }
-
-    if (isSelected) {
-      return AppTheme.accentSoft;
-    }
-
-    return Colors.white;
-  }
-
-  Color _answerBorderColor({
-    required bool reveal,
-    required bool isCorrect,
-    required bool isSelected,
-  }) {
-    if (reveal) {
-      if (isCorrect) return const Color(0xFF1E7A4E);
-      if (isSelected) return const Color(0xFFD14B63);
-      return AppTheme.border;
-    }
-
-    if (isSelected) return AppTheme.accent;
-    return AppTheme.border;
-  }
-
-  Color _answerTextColor({
-    required bool reveal,
-    required bool isCorrect,
-    required bool isSelected,
-  }) {
-    if (reveal) {
-      if (isCorrect) return const Color(0xFF14532D);
-      if (isSelected) return const Color(0xFF7F1D1D);
-      return AppTheme.ink;
-    }
-
-    if (isSelected) return AppTheme.accent;
-    return AppTheme.ink;
-  }
-
-  Widget _buildAnswerBadge({
-    required bool isCorrect,
-    required bool isSelected,
-  }) {
-    if (!isCorrect && !isSelected) {
-      return const SizedBox.shrink();
-    }
-
-    late final String label;
-    late final Color background;
-    late final Color foreground;
-    late final IconData icon;
-
-    if (isCorrect) {
-      label = isSelected ? 'Juiste keuze' : 'Correct';
-      background = const Color(0xFF1E7A4E);
-      foreground = Colors.white;
-      icon = Icons.check_circle_rounded;
-    } else {
-      label = 'Jouw keuze';
-      background = const Color(0xFFB42318);
-      foreground = Colors.white;
-      icon = Icons.cancel_rounded;
-    }
-
-    return Container(
-      margin: const EdgeInsets.only(left: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: foreground),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              color: foreground,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildAnswerOutcomeCard({
     required bool hasCorrectAnswer,
     required String? selectedAnswerId,
     required String correctAnswerId,
   }) {
     if (!hasCorrectAnswer) {
-      return Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppTheme.border),
-        ),
-        child: const Row(
-          children: [
-            Icon(Icons.hourglass_top_rounded, color: AppTheme.muted),
-            SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Alle antwoorden zijn binnen. Correct antwoord wordt verwerkt...',
-                style: TextStyle(
-                  color: AppTheme.muted,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ],
-        ),
+      return const _NoticeBlock(
+        accent: AppTheme.inkMuted,
+        label: 'Verwerken',
+        message: 'Alle antwoorden zijn binnen. Correct antwoord volgt…',
       );
     }
 
     if (selectedAnswerId == null || selectedAnswerId.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: const Color(0xFFEAF8F1),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFBFE7D0)),
-        ),
-        child: const Row(
-          children: [
-            Icon(Icons.visibility_rounded, color: Color(0xFF166534)),
-            SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Correct antwoord is groen gemarkeerd.',
-                style: TextStyle(
-                  color: Color(0xFF166534),
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-          ],
-        ),
+      return const _NoticeBlock(
+        accent: AppTheme.positive,
+        label: 'Antwoord',
+        message: 'Het juiste antwoord is gemarkeerd.',
       );
     }
 
     final isCorrect = selectedAnswerId == correctAnswerId;
-    final background = isCorrect
-        ? const Color(0xFFEAF8F1)
-        : const Color(0xFFFFEEF0);
-    final border = isCorrect
-        ? const Color(0xFFBFE7D0)
-        : const Color(0xFFF2C7CE);
-    final textColor = isCorrect
-        ? const Color(0xFF166534)
-        : const Color(0xFFB42318);
-    final icon = isCorrect
-        ? Icons.verified_rounded
-        : Icons.warning_amber_rounded;
-    final title = isCorrect ? 'Goed gedaan' : 'Bijna';
-    final subtitle = isCorrect
-        ? 'Je antwoord is correct. Mooie score!'
-        : 'Jouw keuze is rood en het juiste antwoord is groen.';
 
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: border),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: textColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Icon(icon, color: textColor, size: 20),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    color: textColor,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    color: textColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return _NoticeBlock(
+      accent: isCorrect ? AppTheme.positive : AppTheme.destructive,
+      label: isCorrect ? 'Goed gedaan' : 'Bijna',
+      message: isCorrect
+          ? 'Je antwoord is correct.'
+          : 'Jouw keuze staat gemarkeerd naast het juiste antwoord.',
     );
   }
 
   Widget _buildError(BuildContext context, String message) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFF2C7CE)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                message,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Color(0xFFB42318),
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton(
-                onPressed: () {
-                  ref
-                      .read(
-                        multiplayerSessionControllerProvider(widget.roomCode)
-                            .notifier,
-                      )
-                      .refreshRoom(showLoading: true);
-                },
-                child: const Text('Opnieuw proberen'),
-              ),
-            ],
-          ),
-        ),
+    return AppEmptyState(
+      icon: Icons.error_outline,
+      title: 'Kamer niet beschikbaar',
+      description: message,
+      action: SiteOutlineButton(
+        label: 'Opnieuw proberen',
+        expand: false,
+        height: 44,
+        onPressed: () {
+          ref
+              .read(
+                multiplayerSessionControllerProvider(widget.roomCode).notifier,
+              )
+              .refreshRoom(showLoading: true);
+        },
       ),
     );
   }
@@ -742,7 +535,7 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
 
   Widget _buildAppBarTitle(MultiplayerRoom? room) {
     if (room == null) {
-      return const Text('Play Together');
+      return const Text('SAMEN SPELEN', style: AppTheme.overline);
     }
 
     final quizTitle = room.quizTitle.trim().isEmpty
@@ -753,22 +546,12 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          'Kamer ${room.code}',
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
-            color: AppTheme.ink,
-          ),
-        ),
+        Text('KAMER ${room.code}', style: AppTheme.overline),
+        const SizedBox(height: 3),
         Text(
           quizTitle,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            fontSize: 12,
-            color: AppTheme.muted,
-            fontWeight: FontWeight.w600,
-          ),
+          style: AppTheme.displayBase.copyWith(fontSize: 15),
         ),
       ],
     );
@@ -791,8 +574,9 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
               style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFFB42318),
-                foregroundColor: Colors.white,
+                backgroundColor: AppTheme.destructive,
+                foregroundColor: AppTheme.inkInverted,
+                minimumSize: const Size(0, 40),
               ),
               child: const Text('Stop quiz'),
             ),
@@ -806,5 +590,48 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
     await ref
         .read(multiplayerSessionControllerProvider(widget.roomCode).notifier)
         .stopMatch();
+  }
+}
+
+/// Tinted notice block — `bg-<accent>-tint border-<accent>/35 rounded-lg`.
+class _NoticeBlock extends StatelessWidget {
+  const _NoticeBlock({
+    required this.accent,
+    required this.label,
+    required this.message,
+  });
+
+  final Color accent;
+  final String label;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final tint = accent == AppTheme.positive
+        ? AppTheme.positiveTint
+        : accent == AppTheme.destructive
+        ? AppTheme.vermilionTint
+        : AppTheme.paperSunken;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: tint,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: accent.withValues(alpha: 0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label.toUpperCase(),
+            style: AppTheme.overline.copyWith(color: accent),
+          ),
+          const SizedBox(height: 8),
+          Text(message, style: AppTheme.bodyMuted),
+        ],
+      ),
+    );
   }
 }

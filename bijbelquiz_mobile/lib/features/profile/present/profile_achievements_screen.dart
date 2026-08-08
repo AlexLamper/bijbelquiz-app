@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/app_widgets.dart';
 import '../data/profile_model.dart';
 import 'profile_provider.dart';
 
@@ -13,9 +15,19 @@ class ProfileAchievementsScreen extends ConsumerWidget {
     final profileAsync = ref.watch(profileProvider);
 
     return Scaffold(
-      backgroundColor: AppTheme.canvas,
-      appBar: AppBar(title: const Text('Prestaties')),
+      backgroundColor: AppTheme.paper,
+      appBar: AppBar(
+        backgroundColor: AppTheme.paper,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, size: 20),
+          onPressed: () => context.pop(),
+        ),
+      ),
       body: RefreshIndicator(
+        color: AppTheme.ink,
+        backgroundColor: AppTheme.paperRaised,
         onRefresh: () async {
           ref.invalidate(profileProvider);
           await ref.read(profileProvider.future);
@@ -24,22 +36,17 @@ class ProfileAchievementsScreen extends ConsumerWidget {
           data: (profile) => _AchievementsContent(profile: profile),
           loading: () => ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            children: const [
-              SizedBox(height: 280),
-              Center(child: CircularProgressIndicator()),
-            ],
+            children: const [SizedBox(height: 280), AppLoader()],
           ),
           error: (err, _) => ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(24),
             children: [
-              const SizedBox(height: 120),
-              const Icon(Icons.error_outline, size: 52, color: Colors.redAccent),
-              const SizedBox(height: 12),
-              Text(
-                'Fout bij laden van prestaties: $err',
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: AppTheme.ink),
+              const SizedBox(height: 100),
+              AppEmptyState(
+                icon: Icons.error_outline,
+                title: 'Prestaties konden niet laden',
+                description: '$err',
               ),
             ],
           ),
@@ -67,79 +74,36 @@ class _AchievementsContent extends StatelessWidget {
 
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 40),
       children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppTheme.border),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: AppTheme.accentSoft,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.emoji_events_outlined,
-                  color: AppTheme.accent,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Jouw voortgang',
-                      style: TextStyle(
-                        color: AppTheme.muted,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '$unlockedCount van ${_definitions.length} prestaties ontgrendeld',
-                      style: const TextStyle(
-                        color: AppTheme.ink,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+        const GradientHeader(
+          eyebrow: 'Prestaties',
+          title: 'Jouw badges',
+          subtitle:
+              'Speel quizzen, houd je reeks vast en ontgrendel elke prestatie.',
         ),
-        const SizedBox(height: 16),
-        const Text(
-          'Badges uit je account',
-          style: TextStyle(
-            color: AppTheme.ink,
-            fontSize: 17,
-            fontWeight: FontWeight.w800,
-            fontFamily: AppTheme.sansFontName,
-          ),
-        ),
-        const SizedBox(height: 8),
-        if (profile.badges.isEmpty)
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppTheme.border),
+        const SizedBox(height: 28),
+        StatStrip(
+          stacked: true,
+          items: [
+            StatItem(value: '$unlockedCount', label: 'Ontgrendeld'),
+            StatItem(value: '${_definitions.length}', label: 'Totaal'),
+            StatItem(
+              value: '${profile.badges.length}',
+              label: 'Badges',
+              ruleColor: AppTheme.positive,
             ),
-            child: const Text(
-              'Nog geen badges behaald. Speel quizzen om je eerste badge vrij te spelen.',
-              style: TextStyle(color: AppTheme.muted),
+          ],
+        ),
+        const SizedBox(height: 40),
+        const SectionHeader(eyebrow: 'Account', title: 'Badges uit je account'),
+        const SizedBox(height: 24),
+        if (profile.badges.isEmpty)
+          const AppCard(
+            child: Text(
+              'Nog geen badges behaald. Speel quizzen om je eerste badge vrij '
+              'te spelen.',
+              style: AppTheme.bodyMuted,
             ),
           )
         else
@@ -147,45 +111,20 @@ class _AchievementsContent extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: profile.badges
-                .map(
-                  (badge) => Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 7,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: AppTheme.border),
-                    ),
-                    child: Text(
-                      badge,
-                      style: const TextStyle(
-                        color: AppTheme.ink,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                )
+                .map((badge) => SiteBadge.lapis(badge))
                 .toList(),
           ),
-        const SizedBox(height: 18),
-        const Text(
-          'Achievement overzicht',
-          style: TextStyle(
-            color: AppTheme.ink,
-            fontSize: 17,
-            fontWeight: FontWeight.w800,
-            fontFamily: AppTheme.sansFontName,
-          ),
-        ),
-        const SizedBox(height: 8),
-        ..._definitions.map(
-          (definition) => _AchievementTile(
-            definition: definition,
-            unlocked: definition.isUnlocked(normalizedBadges),
-          ),
+        const SizedBox(height: 40),
+        const SectionHeader(eyebrow: 'Overzicht', title: 'Alle prestaties'),
+        const SizedBox(height: 24),
+        RuleGrid(
+          children: [
+            for (final definition in _definitions)
+              _AchievementTile(
+                definition: definition,
+                unlocked: definition.isUnlocked(normalizedBadges),
+              ),
+          ],
         ),
       ],
     );
@@ -200,58 +139,40 @@ class _AchievementTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.border),
-      ),
+    final accent = unlocked ? AppTheme.positive : AppTheme.inkMuted;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
         children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: unlocked ? definition.tint : const Color(0xFFEBEEF4),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              definition.icon,
-              color: unlocked ? definition.color : const Color(0xFF9AA6BC),
-              size: 22,
-            ),
+          Icon(
+            definition.icon,
+            size: 20,
+            color: unlocked ? AppTheme.ink : AppTheme.ruleStrong,
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   definition.label,
-                  style: const TextStyle(
-                    color: AppTheme.ink,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
+                  style: AppTheme.displayBase.copyWith(
+                    color: unlocked ? AppTheme.ink : AppTheme.inkMuted,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 5),
                 Text(
-                  unlocked ? 'Ontgrendeld' : 'Nog niet behaald',
-                  style: TextStyle(
-                    color: unlocked ? AppTheme.success : AppTheme.muted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  unlocked ? 'ONTGRENDELD' : 'NOG NIET BEHAALD',
+                  style: AppTheme.overline.copyWith(color: accent),
                 ),
               ],
             ),
           ),
           Icon(
-            unlocked ? Icons.check_circle_rounded : Icons.lock_outline_rounded,
-            color: unlocked ? AppTheme.success : AppTheme.muted,
-            size: 18,
+            unlocked ? Icons.check : Icons.lock_outline,
+            color: accent,
+            size: 16,
           ),
         ],
       ),
@@ -263,15 +184,11 @@ class _AchievementDefinition {
   const _AchievementDefinition(
     this.label,
     this.icon, {
-    required this.color,
-    required this.tint,
     this.aliases = const [],
   });
 
   final String label;
   final IconData icon;
-  final Color color;
-  final Color tint;
   final List<String> aliases;
 
   bool isUnlocked(Set<String> normalizedBadges) {
@@ -291,38 +208,28 @@ class _AchievementDefinition {
 
 const List<_AchievementDefinition> _definitions = [
   _AchievementDefinition(
-    'Eerste Quiz',
-    Icons.star_border_rounded,
-    color: Color(0xFFE3A623),
-    tint: Color(0xFFFFF2D5),
+    'Eerste quiz',
+    Icons.star_border,
     aliases: ['eerste quiz'],
   ),
   _AchievementDefinition(
-    '7-Dagen Reeks',
+    '7-dagen reeks',
     Icons.local_fire_department_outlined,
-    color: Color(0xFFE87E2F),
-    tint: Color(0xFFFFE8D6),
     aliases: ['7 dagen', 'streak'],
   ),
   _AchievementDefinition(
-    'Quiz Meester',
+    'Quiz meester',
     Icons.emoji_events_outlined,
-    color: Color(0xFF8A6CE0),
-    tint: Color(0xFFEDE7FF),
     aliases: ['meester'],
   ),
   _AchievementDefinition(
-    'Perfecte Score',
-    Icons.gps_fixed_rounded,
-    color: Color(0xFF2EAA7F),
-    tint: Color(0xFFDFF5EC),
+    'Perfecte score',
+    Icons.gps_fixed,
     aliases: ['perfect', '100%'],
   ),
   _AchievementDefinition(
-    '100 Quizzen',
-    Icons.auto_awesome_rounded,
-    color: Color(0xFF4C8BF3),
-    tint: Color(0xFFE4EEFF),
+    '100 quizzen',
+    Icons.auto_awesome_outlined,
     aliases: ['100 quiz'],
   ),
 ];

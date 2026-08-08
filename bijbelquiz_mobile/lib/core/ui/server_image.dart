@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config/app_config.dart';
+import '../theme/app_theme.dart';
 
 class ServerImage extends StatelessWidget {
   final String imagePath;
@@ -95,8 +96,12 @@ class ServerImage extends StatelessWidget {
       gaplessPlayback: true,
       errorBuilder: (context, error, stackTrace) {
         return Container(
-          color: Colors.grey[200],
-          child: const Icon(Icons.image_not_supported, color: Colors.grey),
+          color: AppTheme.paperSunken,
+          child: const Icon(
+            Icons.image_not_supported_outlined,
+            color: AppTheme.inkMuted,
+            size: 20,
+          ),
         );
       },
     );

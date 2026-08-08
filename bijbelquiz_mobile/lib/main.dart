@@ -1,11 +1,14 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
 import 'core/config/app_config.dart';
+import 'core/config/preview_config.dart';
 import 'core/config/revenuecat_config.dart';
+import 'core/preview/preview_data.dart';
 
 Future<void> _initRevenueCat() async {
   if (kIsWeb) return;
@@ -45,6 +48,18 @@ Future<void> _initRevenueCat() async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Paper-coloured system chrome, matching --paper on www.bijbelquiz.com.
+  SystemChrome.setSystemUIOverlayStyle(AppTheme.overlayStyle);
+
+  if (PreviewConfig.enabled) {
+    // Point image URLs at the live site so quiz artwork resolves without a
+    // local backend, then run with canned data and no auth.
+    AppConfig.setCustomApiBaseUrl('https://www.bijbelquiz.com/api/mobile');
+    debugPrint('[Preview] Design-preview mode active — using canned data.');
+    runApp(PreviewData.scope(const BijbelquizApp()));
+    return;
+  }
+
   try {
     await _initRevenueCat();
   } catch (e, st) {

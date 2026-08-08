@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/app_widgets.dart';
 import '../../profile/present/profile_provider.dart';
 import '../../quiz/data/quiz_repository.dart';
 import '../../quiz/domain/quiz.dart';
@@ -110,49 +111,37 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
     final hostingLocked = hasPremiumAccess == false;
 
     return Scaffold(
-      backgroundColor: AppTheme.canvas,
+      backgroundColor: AppTheme.paper,
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
           children: [
-            const _MultiplayerHeader(),
-            const SizedBox(height: 16),
+            const GradientHeader(
+              eyebrow: 'Samen spelen',
+              title: 'Speciaal ontworpen voor groepen',
+              subtitle:
+                  'Van gezin tot jeugdvereniging — iedereen speelt mee. Geen '
+                  'installatie, gewoon een code delen en direct beginnen.',
+            ),
+            const SizedBox(height: 28),
+            // Mode toggle — same button pair as the site's filter row.
             Row(
               children: [
-                Expanded(
-                  child: _ModeCard(
-                    active: _mode == _PlayMode.create,
-                    title: 'Kamer Maken',
-                    subtitle: hostingLocked
-                        ? 'Alleen voor premium'
-                        : 'Host een match',
-                    icon: Icons.add_rounded,
-                    locked: hostingLocked,
-                    badgeLabel: hostingLocked ? 'Premium' : null,
-                    onTap: () {
-                      setState(() {
-                        _mode = _PlayMode.create;
-                      });
-                    },
-                  ),
+                _ModeButton(
+                  label: 'Kamer maken',
+                  active: _mode == _PlayMode.create,
+                  locked: hostingLocked,
+                  onTap: () => setState(() => _mode = _PlayMode.create),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _ModeCard(
-                    active: _mode == _PlayMode.join,
-                    title: 'Deelnemen',
-                    subtitle: 'Gebruik code',
-                    icon: Icons.group_add_rounded,
-                    onTap: () {
-                      setState(() {
-                        _mode = _PlayMode.join;
-                      });
-                    },
-                  ),
+                const SizedBox(width: 8),
+                _ModeButton(
+                  label: 'Deelnemen',
+                  active: _mode == _PlayMode.join,
+                  onTap: () => setState(() => _mode = _PlayMode.join),
                 ),
               ],
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 20),
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 180),
               child: _mode == _PlayMode.create
@@ -179,10 +168,22 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
                       onJoin: _joinRoom,
                     ),
             ),
-            const SizedBox(height: 14),
-            const _HowItWorksCard(),
-            const SizedBox(height: 14),
-            _QuickStartQuizzesCard(
+            const SizedBox(height: 44),
+            const SectionHeader(
+              eyebrow: 'Zo werkt het',
+              title: 'In drie stappen',
+            ),
+            const SizedBox(height: 24),
+            const _HowItWorksGrid(),
+            const SizedBox(height: 44),
+            SectionHeader(
+              eyebrow: 'Snelstart',
+              title: 'Start direct een kamer',
+              description:
+                  'Kies een quiz en open meteen een nieuwe kamer voor je groep.',
+            ),
+            const SizedBox(height: 24),
+            _QuickStartQuizzes(
               quizzesAsync: quizzesAsync,
               isBusy: actionState.isLoading,
               hasPremiumAccess: !hostingLocked,
@@ -215,189 +216,58 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
   }
 }
 
-class _MultiplayerHeader extends StatelessWidget {
-  const _MultiplayerHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        gradient: AppTheme.accentGradient,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.accent.withValues(alpha: 0.28),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 5,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.22),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.bolt_rounded, color: Colors.white, size: 14),
-                    SizedBox(width: 4),
-                    Text(
-                      'MULTIPLAYER',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.8,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'Speel Samen',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              fontFamily: AppTheme.sansFontName,
-            ),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Speel live tegelijk met vrienden - iedereen krijgt dezelfde '
-            'vragen en timer. Tot 20 spelers in één kamer.',
-            style: TextStyle(
-              color: Color(0xFFEAF0FF),
-              fontSize: 13.5,
-              height: 1.45,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ModeCard extends StatelessWidget {
-  const _ModeCard({
+/// `h-9 rounded-md border-rule bg-paper-raised px-4` / active `bg-ink`.
+class _ModeButton extends StatelessWidget {
+  const _ModeButton({
+    required this.label,
     required this.active,
-    required this.title,
-    required this.subtitle,
-    required this.icon,
     required this.onTap,
-    this.badgeLabel,
     this.locked = false,
   });
 
+  final String label;
   final bool active;
-  final String title;
-  final String subtitle;
-  final IconData icon;
   final VoidCallback onTap;
-  final String? badgeLabel;
   final bool locked;
 
   @override
   Widget build(BuildContext context) {
-    final cardColor = active ? AppTheme.accent : Colors.white;
-    final titleColor = active ? Colors.white : AppTheme.ink;
-    final subtitleColor = active ? const Color(0xFFE9EFFF) : AppTheme.muted;
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        height: 132,
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: active ? AppTheme.accent : AppTheme.border),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(
-                color: active
-                    ? Colors.white.withValues(alpha: 0.24)
-                    : AppTheme.accentSoft,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                locked ? Icons.lock_rounded : icon,
-                size: 18,
-                color: active ? Colors.white : AppTheme.accent,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: titleColor,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 15,
-                    ),
-                  ),
+    return Material(
+      color: active ? AppTheme.ink : AppTheme.paperRaised,
+      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        onTap: onTap,
+        child: Container(
+          height: 38,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+            border: Border.all(color: active ? AppTheme.ink : AppTheme.rule),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (locked) ...[
+                Icon(
+                  Icons.lock_outline,
+                  size: 13,
+                  color: active ? AppTheme.inkInverted : AppTheme.inkMuted,
                 ),
-                if (badgeLabel != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 7,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: active
-                          ? Colors.white.withValues(alpha: 0.24)
-                          : const Color(0xFFE8EEFF),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      badgeLabel!,
-                      style: TextStyle(
-                        color: active ? Colors.white : AppTheme.accent,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
+                const SizedBox(width: 7),
               ],
-            ),
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: subtitleColor,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
+              Text(
+                label,
+                style: TextStyle(
+                  fontFamily: AppTheme.sansFontName,
+                  color: active ? AppTheme.inkInverted : AppTheme.ink,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -427,85 +297,50 @@ class _CreateRoomForm extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!hasPremiumAccess) {
+      // `dark:bg-lapis/10 border-lapis/35` — the site's accent notice block.
       return Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: const Color(0xFFF2F6FF),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFCDD9F6)),
+          color: AppTheme.lapisTint,
+          borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+          border: Border.all(color: AppTheme.lapis.withValues(alpha: 0.35)),
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Row(
-              children: [
-                Icon(Icons.workspace_premium_rounded, color: AppTheme.accent),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Hosten is Premium',
-                    style: TextStyle(
-                      color: AppTheme.ink,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            const Eyebrow('Premium vereist'),
+            const SizedBox(height: 16),
+            const Text('Hosten is Premium', style: AppTheme.displaySmall),
             const SizedBox(height: 10),
             const Text(
-              'Upgrade om je eigen kamer te starten, quiz te kiezen en vrienden live uit te dagen.',
-              style: TextStyle(
-                color: AppTheme.muted,
-                height: 1.4,
-                fontWeight: FontWeight.w500,
-              ),
+              'Upgrade om je eigen kamer te starten, een quiz te kiezen en '
+              'vrienden live uit te dagen. Deelnemen met een kamercode blijft '
+              'gratis.',
+              style: AppTheme.bodyMuted,
             ),
-            const SizedBox(height: 12),
-            const Text(
-              'Je kunt nog steeds gratis deelnemen met een kamercode.',
-              style: TextStyle(color: AppTheme.muted, fontSize: 13),
-            ),
-            const SizedBox(height: 14),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: onUpgrade,
-                icon: const Icon(Icons.lock_open_rounded),
-                label: const Text('Bekijk Premium'),
-              ),
+            const SizedBox(height: 20),
+            SiteButton(
+              label: 'Bekijk Premium',
+              trailingIcon: Icons.arrow_forward,
+              onPressed: onUpgrade,
             ),
           ],
         ),
       );
     }
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.border),
-      ),
+    return AppCard(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-            'Nieuwe kamer',
-            style: TextStyle(
-              color: AppTheme.ink,
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 10),
+          const Text('NIEUWE KAMER', style: AppTheme.overline),
+          const SizedBox(height: 16),
           quizzesAsync.when(
             data: (quizzes) {
               if (quizzes.isEmpty) {
                 return const Text(
                   'Geen quizzen gevonden om een kamer te starten.',
-                  style: TextStyle(color: AppTheme.muted),
+                  style: AppTheme.bodyMuted,
                 );
               }
 
@@ -522,12 +357,31 @@ class _CreateRoomForm extends StatelessWidget {
               }
 
               return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  const Text('KIES EEN QUIZ', style: AppTheme.overline),
+                  const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
                     value: effectiveValue,
                     isExpanded: true,
+                    icon: const Icon(
+                      Icons.keyboard_arrow_down,
+                      size: 18,
+                      color: AppTheme.inkMuted,
+                    ),
+                    dropdownColor: AppTheme.paperRaised,
+                    borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+                    style: const TextStyle(
+                      fontFamily: AppTheme.sansFontName,
+                      fontSize: 15,
+                      color: AppTheme.ink,
+                    ),
                     decoration: const InputDecoration(
-                      labelText: 'Kies een quiz',
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 15,
+                      ),
                     ),
                     items: quizzes
                         .map(
@@ -556,34 +410,23 @@ class _CreateRoomForm extends StatelessWidget {
                     },
                     onChanged: isBusy ? null : onSelectQuiz,
                   ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: isBusy ? null : onCreateRoom,
-                      icon: isBusy
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Icon(Icons.rocket_launch_rounded),
-                      label: const Text('Start kamer'),
-                    ),
+                  const SizedBox(height: 20),
+                  SiteButton(
+                    label: 'Start kamer',
+                    trailingIcon: Icons.arrow_forward,
+                    loading: isBusy,
+                    onPressed: isBusy ? null : onCreateRoom,
                   ),
                 ],
               );
             },
             loading: () => const Padding(
-              padding: EdgeInsets.symmetric(vertical: 10),
-              child: Center(child: CircularProgressIndicator()),
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: AppLoader(size: 20),
             ),
             error: (err, _) => Text(
               'Fout bij laden quizzen: $err',
-              style: const TextStyle(color: Colors.redAccent),
+              style: AppTheme.bodyMuted.copyWith(color: AppTheme.destructive),
             ),
           ),
         ],
@@ -606,89 +449,44 @@ class _JoinRoomForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.border),
-      ),
+    return AppCard(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-            'Deelnemen met code',
-            style: TextStyle(
-              color: AppTheme.ink,
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 10),
+          const Text('DEELNEMEN MET CODE', style: AppTheme.overline),
+          const SizedBox(height: 16),
           TextField(
             controller: controller,
             enabled: !isBusy,
             textCapitalization: TextCapitalization.characters,
-            decoration: const InputDecoration(
-              hintText: 'Bijv. AB12CD',
-              prefixIcon: Icon(Icons.vpn_key_rounded),
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: isBusy ? null : onJoin,
-              icon: const Icon(Icons.meeting_room_rounded),
-              label: const Text('Deelnemen'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HowItWorksCard extends StatelessWidget {
-  const _HowItWorksCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.border),
-      ),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Hoe Het Werkt',
-            style: TextStyle(
+            cursorColor: AppTheme.ink,
+            cursorWidth: 1.4,
+            textAlign: TextAlign.center,
+            // Room codes read as data — serif, tabular, wide tracking.
+            style: const TextStyle(
+              fontFamily: AppTheme.displayFontName,
+              fontSize: 26,
+              letterSpacing: 6,
               color: AppTheme.ink,
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
+              fontFeatures: [FontFeature.tabularFigures()],
+            ),
+            decoration: const InputDecoration(
+              hintText: 'AB12CD',
+              hintStyle: TextStyle(
+                fontFamily: AppTheme.displayFontName,
+                fontSize: 26,
+                letterSpacing: 6,
+                color: AppTheme.ruleStrong,
+              ),
+              contentPadding: EdgeInsets.symmetric(vertical: 18),
             ),
           ),
-          SizedBox(height: 12),
-          _StepTile(
-            icon: Icons.add_circle_outline_rounded,
-            title: '1. Maak of join een kamer',
-            subtitle: 'De host kiest een quiz en deelt de code.',
-          ),
-          SizedBox(height: 10),
-          _StepTile(
-            icon: Icons.timer_outlined,
-            title: '2. Speel live tegelijk',
-            subtitle: 'Iedereen krijgt dezelfde vragen en timer.',
-          ),
-          SizedBox(height: 10),
-          _StepTile(
-            icon: Icons.emoji_events_outlined,
-            title: '3. Bekijk de eindranglijst',
-            subtitle: 'Vergelijk scores en daag elkaar opnieuw uit.',
+          const SizedBox(height: 20),
+          SiteButton(
+            label: 'Deelnemen',
+            trailingIcon: Icons.arrow_forward,
+            loading: isBusy,
+            onPressed: isBusy ? null : onJoin,
           ),
         ],
       ),
@@ -696,58 +494,80 @@ class _HowItWorksCard extends StatelessWidget {
   }
 }
 
-class _StepTile extends StatelessWidget {
-  const _StepTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
+/// The site's numbered `01 / 02 / 03` process grid.
+class _HowItWorksGrid extends StatelessWidget {
+  const _HowItWorksGrid();
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return const RuleGrid(
       children: [
-        Container(
-          width: 30,
-          height: 30,
-          decoration: const BoxDecoration(
-            color: AppTheme.accentSoft,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, size: 18, color: AppTheme.accent),
+        _StepTile(
+          index: '01',
+          title: 'Maak of join een kamer',
+          subtitle: 'De host kiest een quiz en deelt de code',
         ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  color: AppTheme.ink,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: const TextStyle(color: AppTheme.muted, fontSize: 13),
-              ),
-            ],
-          ),
+        _StepTile(
+          index: '02',
+          title: 'Speel live tegelijk',
+          subtitle: 'Iedereen krijgt dezelfde vragen en timer',
+        ),
+        _StepTile(
+          index: '03',
+          title: 'Bekijk de eindranglijst',
+          subtitle: 'Vergelijk scores en daag elkaar opnieuw uit',
         ),
       ],
     );
   }
 }
 
-class _QuickStartQuizzesCard extends StatelessWidget {
-  const _QuickStartQuizzesCard({
+class _StepTile extends StatelessWidget {
+  const _StepTile({
+    required this.index,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final String index;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            index,
+            style: const TextStyle(
+              fontFamily: AppTheme.displayFontName,
+              fontSize: 14,
+              color: AppTheme.lapis,
+              fontFeatures: [FontFeature.tabularFigures()],
+            ),
+          ),
+          const SizedBox(width: 18),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppTheme.displayBase),
+                const SizedBox(height: 5),
+                Text(subtitle.toUpperCase(), style: AppTheme.overline),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuickStartQuizzes extends StatelessWidget {
+  const _QuickStartQuizzes({
     required this.quizzesAsync,
     required this.isBusy,
     required this.hasPremiumAccess,
@@ -763,132 +583,71 @@ class _QuickStartQuizzesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.border),
+    return quizzesAsync.when(
+      data: (quizzes) {
+        if (quizzes.isEmpty) {
+          return const AppCard(
+            child: Text(
+              'Geen quizzen beschikbaar om een kamer te starten.',
+              style: AppTheme.bodyMuted,
+            ),
+          );
+        }
+
+        final visible = quizzes.take(4).toList();
+
+        return RuleGrid(
+          children: [
+            for (final quiz in visible)
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            quiz.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTheme.displayBase,
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            '${quiz.questionCount} VRAGEN',
+                            style: AppTheme.overline,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    SiteOutlineButton(
+                      label: hasPremiumAccess ? 'Start' : 'Premium',
+                      icon: hasPremiumAccess ? null : Icons.lock_outline,
+                      expand: false,
+                      height: 36,
+                      onPressed: isBusy
+                          ? null
+                          : hasPremiumAccess
+                          ? () => onStartRoom(quiz.id)
+                          : onUpgrade,
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        );
+      },
+      loading: () => const Padding(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        child: AppLoader(size: 20),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Start een kamer',
-            style: TextStyle(
-              color: AppTheme.ink,
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Kies direct een quiz en open meteen een nieuwe kamer.',
-            style: TextStyle(
-              color: AppTheme.muted,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 10),
-          quizzesAsync.when(
-            data: (quizzes) {
-              if (quizzes.isEmpty) {
-                return const Text(
-                  'Geen quizzen beschikbaar om een kamer te starten.',
-                  style: TextStyle(color: AppTheme.muted),
-                );
-              }
-
-              final visible = quizzes.take(4).toList();
-
-              return Column(
-                children: visible.map((quiz) {
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFF),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.border),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 36,
-                          height: 36,
-                          decoration: const BoxDecoration(
-                            color: AppTheme.accentSoft,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.rocket_launch_rounded,
-                            color: AppTheme.accent,
-                            size: 20,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                quiz.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: AppTheme.ink,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                '${quiz.questionCount} vragen',
-                                style: const TextStyle(
-                                  color: AppTheme.muted,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        ElevatedButton.icon(
-                          onPressed: isBusy
-                              ? null
-                              : hasPremiumAccess
-                              ? () => onStartRoom(quiz.id)
-                              : onUpgrade,
-                          icon: Icon(
-                            hasPremiumAccess
-                                ? Icons.play_arrow_rounded
-                                : Icons.lock_rounded,
-                            size: 16,
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            minimumSize: const Size(112, 38),
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                          ),
-                          label: Text(
-                            hasPremiumAccess ? 'Start kamer' : 'Premium',
-                            style: const TextStyle(fontWeight: FontWeight.w700),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              );
-            },
-            loading: () => const Padding(
-              padding: EdgeInsets.symmetric(vertical: 10),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-            error: (err, _) => Text(
-              'Kan kamers niet laden: $err',
-              style: const TextStyle(color: Colors.redAccent),
-            ),
-          ),
-        ],
+      error: (err, _) => AppCard(
+        child: Text(
+          'Kan quizzen niet laden: $err',
+          style: AppTheme.bodyMuted.copyWith(color: AppTheme.destructive),
+        ),
       ),
     );
   }

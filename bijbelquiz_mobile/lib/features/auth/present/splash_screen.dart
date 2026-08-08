@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/app_widgets.dart';
+import '../../onboarding/data/onboarding_storage.dart';
 import '../present/auth_controller.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -30,85 +32,68 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       // Links RevenueCat to the account so store purchases attach to this
       // user instead of an anonymous RevenueCat id.
       await ref.read(authControllerProvider.notifier).restoreSession();
+
+      // A signed-in user never sees the onboarding again — it is a
+      // first-run intro for visitors who still have to create an account.
+      // Mark it seen so signing out later also skips it.
+      await ref.read(onboardingStorageProvider).markSeen();
+      if (mounted) context.go('/home');
+      return;
     }
 
-    // TEMP (testing): always show the onboarding on every launch so it is easy
-    // to review. Restore the `hasSeen()` check below before release.
-    // final hasSeenOnboarding = await ref.read(onboardingStorageProvider).hasSeen();
-    if (mounted) {
-      context.go('/onboarding');
-    }
+    final hasSeenOnboarding = await ref
+        .read(onboardingStorageProvider)
+        .hasSeen();
+    if (!mounted) return;
+    context.go(hasSeenOnboarding ? '/login' : '/onboarding');
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: DecoratedBox(
-        decoration: const BoxDecoration(gradient: AppTheme.brandGradient),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Logo tile on a soft glow
-              Container(
-                width: 116,
-                height: 116,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(28),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.25),
-                      blurRadius: 30,
-                      offset: const Offset(0, 14),
-                    ),
-                  ],
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(18),
-                  child: Image.asset(
-                    'assets/images/logo-dark.png',
-                    errorBuilder: (context, error, stackTrace) => const Icon(
-                      Icons.menu_book_rounded,
-                      color: AppTheme.brand,
-                      size: 50,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 30),
-              const Text(
-                'Bijbelquiz',
-                style: TextStyle(
-                  fontFamily: AppTheme.sansFontName,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.5,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Test jouw kennis van de Bijbel',
-                style: TextStyle(
-                  fontFamily: AppTheme.sansFontName,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFFC7D2F2),
-                ),
-              ),
-              const SizedBox(height: 44),
-              const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              ),
-            ],
-          ),
+    // Paper background with the site wordmark — the site has no dark hero.
+    return const Scaffold(
+      backgroundColor: AppTheme.paper,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            BijbelQuizWordmark(fontSize: 34),
+            SizedBox(height: 18),
+            Text('TEST JOUW KENNIS VAN DE BIJBEL', style: AppTheme.overline),
+            SizedBox(height: 44),
+            AppLoader(size: 20),
+          ],
         ),
+      ),
+    );
+  }
+}
+
+/// `<span class="font-display text-xl font-semibold tracking-[-0.02em]
+///   text-ink">Bijbel<span class="text-lapis">Quiz</span></span>`
+class BijbelQuizWordmark extends StatelessWidget {
+  const BijbelQuizWordmark({super.key, this.fontSize = 20});
+
+  final double fontSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text.rich(
+      TextSpan(
+        style: TextStyle(
+          fontFamily: AppTheme.displayFontName,
+          fontSize: fontSize,
+          fontWeight: FontWeight.w600,
+          letterSpacing: fontSize * -0.02,
+          color: AppTheme.ink,
+        ),
+        children: const [
+          TextSpan(text: 'Bijbel'),
+          TextSpan(
+            text: 'Quiz',
+            style: TextStyle(color: AppTheme.lapis),
+          ),
+        ],
       ),
     );
   }

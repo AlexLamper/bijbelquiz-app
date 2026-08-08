@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.4+43
+version: 1.0.5+44
 
 environment:
   sdk: ^3.8.0
@@ -64,6 +64,27 @@ flutter:
   assets:
     - assets/images/
   fonts:
+    # Body / UI face used on www.bijbelquiz.com (--font-sans).
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Inter-Bold.ttf
+          weight: 700
+    # Display / serif face used on www.bijbelquiz.com (--font-serif,
+    # applied through the .font-display utility).
+    - family: Newsreader
+      fonts:
+        - asset: assets/fonts/Newsreader-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Newsreader-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Newsreader-SemiBold.ttf
+          weight: 600
     - family: Geist
       fonts:
         - asset: assets/fonts/Geist-Variable.ttf
@@ -106,7 +127,8 @@ flutter_launcher_icons:
   android: true
   ios: true
   image_path: "assets/images/app_icon.png"
-  adaptive_icon_background: "#1A2B5F"
+  # --paper from www.bijbelquiz.com
+  adaptive_icon_background: "#FAF9F6"
   adaptive_icon_foreground: "assets/images/app_icon.png"
   min_sdk_android: 21
   web:

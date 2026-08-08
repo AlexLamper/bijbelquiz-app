@@ -72,12 +72,16 @@ class ProfileModel {
       isPremium: json['isPremium'] as bool? ?? false,
       streak: json['streak'] as int? ?? 0,
       bestStreak: json['bestStreak'] as int? ?? 0,
-      badges: (json['badges'] as List<dynamic>?)
+      badges:
+          (json['badges'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           [],
-      recentProgress: (json['recentProgress'] as List<dynamic>?)
-              ?.map((e) => RecentProgressModel.fromJson(e as Map<String, dynamic>))
+      recentProgress:
+          (json['recentProgress'] as List<dynamic>?)
+              ?.map(
+                (e) => RecentProgressModel.fromJson(e as Map<String, dynamic>),
+              )
               .toList() ??
           [],
     );

@@ -7,6 +7,10 @@ import '../../../core/ui/server_image.dart';
 import '../data/leaderboard_repository.dart';
 import '../domain/leaderboard_entry.dart';
 
+/// Mirrors https://www.bijbelquiz.com/ranglijst
+///
+/// eyebrow -> `font-display text-[32px]` heading -> lead -> period buttons ->
+/// `border-y border-rule` stat band -> `rounded-lg border border-rule` table.
 class LeaderboardScreen extends ConsumerStatefulWidget {
   const LeaderboardScreen({super.key});
 
@@ -24,28 +28,35 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final leaderboardAsync = ref.watch(leaderboardByPeriodProvider(_selectedRange));
+    final leaderboardAsync = ref.watch(
+      leaderboardByPeriodProvider(_selectedRange),
+    );
 
     return Scaffold(
-      backgroundColor: AppTheme.canvas,
+      backgroundColor: AppTheme.paper,
       body: SafeArea(
         child: RefreshIndicator(
+          color: AppTheme.ink,
+          backgroundColor: AppTheme.paperRaised,
           onRefresh: _refreshData,
           child: leaderboardAsync.when(
             data: (entries) {
               final sortedEntries = [...entries]
                 ..sort((a, b) => b.xp.compareTo(a.xp));
+              final topXp = sortedEntries.isEmpty ? 0 : sortedEntries.first.xp;
 
               return ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
                 children: [
                   const GradientHeader(
-                    title: 'Ranglijst',
-                    subtitle: 'Verdien punten en klim naar de top.',
-                    icon: Icons.emoji_events_rounded,
+                    eyebrow: 'Ranglijst',
+                    title: 'Top spelers',
+                    subtitle:
+                        'Verdien XP door quizzen te spelen en stijg in de '
+                        'ranglijst.',
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 28),
                   _RangeSelector(
                     selectedRange: _selectedRange,
                     onSelect: (value) {
@@ -54,66 +65,43 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                       });
                     },
                   ),
-                  const SizedBox(height: 16),
-                  if (sortedEntries.isNotEmpty)
-                    _TopPlayerCard(
-                      entry: sortedEntries.first,
-                      periodLabel: _selectedRange.displayName.toLowerCase(),
-                    )
-                  else
-                    const _EmptyLeaderboardState(),
-                  const SizedBox(height: 12),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: AppTheme.border),
-                    ),
-                    child: sortedEntries.isEmpty
-                        ? const Padding(
-                            padding: EdgeInsets.all(18),
-                            child: Text(
-                              'Nog geen ranglijstdata beschikbaar.',
-                              style: TextStyle(color: AppTheme.muted),
-                            ),
-                          )
-                        : Column(
-                            children: List.generate(sortedEntries.length, (
-                              index,
-                            ) {
-                              final entry = sortedEntries[index];
-                              return _LeaderboardRow(
-                                entry: entry,
-                                rank: index + 1,
-                                isLast: index == sortedEntries.length - 1,
-                              );
-                            }),
-                          ),
+                  const SizedBox(height: 24),
+                  StatStrip(
+                    stacked: true,
+                    items: [
+                      StatItem(
+                        value: '${sortedEntries.length}',
+                        label: 'Deelnemers',
+                      ),
+                      StatItem(value: '$topXp', label: 'Top XP'),
+                      StatItem(
+                        value: _selectedRange.shortLabel,
+                        label: 'Periode',
+                        ruleColor: AppTheme.positive,
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 28),
+                  if (sortedEntries.isEmpty)
+                    const _EmptyLeaderboardState()
+                  else
+                    _LeaderboardTable(entries: sortedEntries),
                 ],
               );
             },
             loading: () => ListView(
               physics: const AlwaysScrollableScrollPhysics(),
-              children: const [
-                SizedBox(height: 260),
-                Center(child: CircularProgressIndicator()),
-              ],
+              children: const [SizedBox(height: 260), AppLoader()],
             ),
             error: (err, _) => ListView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(24),
               children: [
-                const SizedBox(height: 120),
-                const Icon(
-                  Icons.error_outline,
-                  size: 52,
-                  color: Colors.redAccent,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Fout bij laden van ranglijst: $err',
-                  textAlign: TextAlign.center,
+                const SizedBox(height: 100),
+                AppEmptyState(
+                  icon: Icons.error_outline,
+                  title: 'Ranglijst kon niet laden',
+                  description: '$err',
                 ),
               ],
             ),
@@ -124,6 +112,8 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
   }
 }
 
+/// `h-9 rounded-md border-rule bg-paper-raised px-4 text-ink` /
+/// active `h-9 rounded-md bg-ink px-4 text-ink-inverted`
 class _RangeSelector extends StatelessWidget {
   const _RangeSelector({required this.selectedRange, required this.onSelect});
 
@@ -131,42 +121,46 @@ class _RangeSelector extends StatelessWidget {
   final ValueChanged<LeaderboardPeriod> onSelect;
 
   static const Map<LeaderboardPeriod, String> _labels = {
-    LeaderboardPeriod.week: 'Deze week',
-    LeaderboardPeriod.month: 'Deze maand',
-    LeaderboardPeriod.all: 'Aller tijden',
+    LeaderboardPeriod.week: 'Wekelijks',
+    LeaderboardPeriod.month: 'Maandelijks',
+    LeaderboardPeriod.all: 'All-time',
   };
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.border),
-      ),
-      child: Row(
+    // Scrollable so the three labels never overflow on narrow phones.
+    return SizedBox(
+      height: 36,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
         children: _labels.entries.map((entry) {
           final active = selectedRange == entry.key;
-
-          return Expanded(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(10),
-              onTap: () => onSelect(entry.key),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: active ? AppTheme.filterActive : Colors.transparent,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  entry.value,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: active ? Colors.white : AppTheme.muted,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Material(
+              color: active ? AppTheme.ink : AppTheme.paperRaised,
+              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                onTap: () => onSelect(entry.key),
+                child: Container(
+                  height: 36,
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                    border: Border.all(
+                      color: active ? AppTheme.ink : AppTheme.rule,
+                    ),
+                  ),
+                  child: Text(
+                    entry.value,
+                    style: TextStyle(
+                      fontFamily: AppTheme.sansFontName,
+                      color: active ? AppTheme.inkInverted : AppTheme.ink,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
               ),
@@ -178,77 +172,48 @@ class _RangeSelector extends StatelessWidget {
   }
 }
 
-class _TopPlayerCard extends StatelessWidget {
-  const _TopPlayerCard({required this.entry, required this.periodLabel});
+class _LeaderboardTable extends StatelessWidget {
+  const _LeaderboardTable({required this.entries});
 
-  final LeaderboardEntry entry;
-  final String periodLabel;
+  final List<LeaderboardEntry> entries;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF6D86DB), Color(0xFF8EA5F2)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(18),
+        color: AppTheme.paperRaised,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: AppTheme.rule),
       ),
-      child: Row(
+      child: Column(
         children: [
-          _Avatar(imageUrl: entry.image, name: entry.name, radius: 24),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Nummer 1',
-                  style: TextStyle(
-                    color: Color(0xFFEAF0FF),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
+          // `border-b border-rule px-5 py-3 text-[10px] uppercase
+          //  tracking-[0.16em] text-ink-muted`
+          Container(
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              border: Border(bottom: BorderSide(color: AppTheme.rule)),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: const [
+                SizedBox(
+                  width: 44,
+                  child: Text('POS', style: AppTheme.overline),
                 ),
-                const SizedBox(height: 1),
-                Text(
-                  periodLabel,
-                  style: const TextStyle(
-                    color: Color(0xFFDDE7FF),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  entry.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
+                SizedBox(width: 12),
+                Expanded(child: Text('SPELER', style: AppTheme.overline)),
+                Text('XP', style: AppTheme.overline),
               ],
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              const Icon(Icons.emoji_events_rounded, color: Colors.white),
-              const SizedBox(height: 4),
-              Text(
-                '${entry.xp} XP',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
+          for (var i = 0; i < entries.length; i++)
+            _LeaderboardRow(
+              entry: entries[i],
+              rank: i + 1,
+              isLast: i == entries.length - 1,
+            ),
         ],
       ),
     );
@@ -268,66 +233,60 @@ class _LeaderboardRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // `inline-flex h-8 min-w-8 items-center justify-center border px-1
+    //  text-xs font-semibold` — deliberately square, no radius.
+    final isLeader = rank == 1;
+    final badgeBg = isLeader ? AppTheme.lapisTint : AppTheme.paperSunken;
+    final badgeBorder = isLeader
+        ? AppTheme.lapis.withValues(alpha: 0.35)
+        : AppTheme.rule;
+    final badgeFg = isLeader ? AppTheme.lapis : AppTheme.inkSoft;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         border: isLast
             ? null
-            : const Border(bottom: BorderSide(color: AppTheme.border)),
+            : const Border(bottom: BorderSide(color: AppTheme.rule)),
       ),
       child: Row(
         children: [
-          SizedBox(
-            width: 24,
-            child: Text(
-              '$rank',
-              style: const TextStyle(
-                color: AppTheme.muted,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          _Avatar(imageUrl: entry.image, name: entry.name, radius: 19),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  entry.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: AppTheme.ink,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '${entry.xp} punten',
-                  style: const TextStyle(
-                    color: AppTheme.muted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+            height: 32,
+            constraints: const BoxConstraints(minWidth: 32),
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
             decoration: BoxDecoration(
-              color: const Color(0xFFF0F4FF),
-              borderRadius: BorderRadius.circular(999),
+              color: badgeBg,
+              border: Border.all(color: badgeBorder),
             ),
             child: Text(
-              '${entry.xp} XP',
-              style: const TextStyle(
-                color: AppTheme.ink,
-                fontWeight: FontWeight.w700,
-                fontSize: 11,
+              '#$rank',
+              style: TextStyle(
+                fontFamily: AppTheme.sansFontName,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: badgeFg,
+                fontFeatures: const [FontFeature.tabularFigures()],
               ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          _Avatar(imageUrl: entry.image, name: entry.name, radius: 16),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              entry.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTheme.bodyStrong,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            '${entry.xp}',
+            style: AppTheme.bodyStrong.copyWith(
+              fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
         ],
@@ -337,18 +296,20 @@ class _LeaderboardRow extends StatelessWidget {
 }
 
 extension on LeaderboardPeriod {
-  String get displayName {
+  String get shortLabel {
     switch (this) {
       case LeaderboardPeriod.week:
-        return 'Deze week';
+        return 'Week';
       case LeaderboardPeriod.month:
-        return 'Deze maand';
+        return 'Maand';
       case LeaderboardPeriod.all:
-        return 'Aller tijden';
+        return 'Altijd';
     }
   }
 }
 
+/// Square-ish avatar with a hairline border — the site never uses drop shadows
+/// and keeps photos inside a `ring-1 ring-rule` frame.
 class _Avatar extends StatelessWidget {
   const _Avatar({
     required this.imageUrl,
@@ -362,15 +323,23 @@ class _Avatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fallback = CircleAvatar(
-      radius: radius,
-      backgroundColor: const Color(0xFFE9EDF8),
+    final size = radius * 2;
+
+    final fallback = Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: AppTheme.paperSunken,
+        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+        border: Border.all(color: AppTheme.rule),
+      ),
       child: Text(
         name.isEmpty ? '?' : name.characters.first.toUpperCase(),
         style: TextStyle(
-          color: AppTheme.ink,
-          fontWeight: FontWeight.w700,
-          fontSize: radius * 0.8,
+          fontFamily: AppTheme.displayFontName,
+          color: AppTheme.inkSoft,
+          fontSize: radius * 0.85,
         ),
       ),
     );
@@ -379,11 +348,19 @@ class _Avatar extends StatelessWidget {
       return fallback;
     }
 
-    return ClipOval(
+    return Container(
+      width: size,
+      height: size,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: AppTheme.paperSunken,
+        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+        border: Border.all(color: AppTheme.rule),
+      ),
       child: Image.network(
         ServerImage.getFullUrl(imageUrl!),
-        width: radius * 2,
-        height: radius * 2,
+        width: size,
+        height: size,
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) => fallback,
       ),
@@ -396,16 +373,10 @@ class _EmptyLeaderboardState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.border),
-      ),
-      child: const Text(
-        'Nog geen spelers gevonden.',
-        style: TextStyle(color: AppTheme.muted),
+    return const AppCard(
+      child: Text(
+        'Nog geen ranglijstdata beschikbaar.',
+        style: AppTheme.bodyMuted,
       ),
     );
   }

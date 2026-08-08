@@ -248,12 +248,9 @@ class MultiplayerRepository {
     final responseMap = _toMap(error.response?.data);
     final errorMap = _toMap(responseMap?['error']);
 
-    final code = _valueAsString(errorMap?['code']) ??
-        _fallbackCode(
-          error,
-          responseMap: responseMap,
-          errorMap: errorMap,
-        );
+    final code =
+        _valueAsString(errorMap?['code']) ??
+        _fallbackCode(error, responseMap: responseMap, errorMap: errorMap);
     final message =
         _valueAsString(errorMap?['message']) ??
         _valueAsString(responseMap?['message']) ??
@@ -336,5 +333,4 @@ class MultiplayerRepository {
     }
     return text;
   }
-
 }

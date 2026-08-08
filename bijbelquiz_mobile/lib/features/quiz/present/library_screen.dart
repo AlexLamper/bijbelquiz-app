@@ -84,9 +84,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     final quizzesAsync = ref.watch(quizzesProvider(const QuizQuery()));
 
     return Scaffold(
-      backgroundColor: AppTheme.canvas,
+      backgroundColor: AppTheme.paper,
       body: SafeArea(
         child: RefreshIndicator(
+          color: AppTheme.ink,
+          backgroundColor: AppTheme.paperRaised,
           onRefresh: _refreshData,
           child: quizzesAsync.when(
             data: (quizzes) {
@@ -94,30 +96,54 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
 
               return ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
                 children: [
                   const GradientHeader(
-                    title: 'Alle Quizzen',
-                    subtitle: 'Speel solo en test je kennis op je eigen tempo.',
-                    icon: Icons.menu_book_rounded,
+                    eyebrow: 'Quizzen',
+                    title: 'Alle quizzen',
+                    subtitle:
+                        'Speel solo en test je kennis op je eigen tempo. Kies '
+                        'een categorie of zoek op titel.',
                   ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: 'Zoek quizen...',
-                      filled: true,
-                      fillColor: Colors.white,
-                      prefixIcon: const Icon(
-                        Icons.search_rounded,
-                        color: AppTheme.muted,
+                  const SizedBox(height: 28),
+                  SizedBox(
+                    height: 44,
+                    child: TextField(
+                      controller: _searchController,
+                      cursorColor: AppTheme.ink,
+                      cursorWidth: 1.4,
+                      style: const TextStyle(
+                        fontFamily: AppTheme.sansFontName,
+                        fontSize: 14,
+                        color: AppTheme.ink,
                       ),
-                      suffixIcon: _searchQuery.isEmpty
-                          ? null
-                          : IconButton(
-                              onPressed: _searchController.clear,
-                              icon: const Icon(Icons.close_rounded),
-                            ),
+                      decoration: InputDecoration(
+                        hintText: 'Zoek quizzen…',
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.search,
+                          size: 17,
+                          color: AppTheme.inkMuted,
+                        ),
+                        prefixIconConstraints: const BoxConstraints(
+                          minWidth: 40,
+                          minHeight: 40,
+                        ),
+                        suffixIcon: _searchQuery.isEmpty
+                            ? null
+                            : IconButton(
+                                onPressed: _searchController.clear,
+                                splashRadius: 18,
+                                icon: const Icon(
+                                  Icons.close,
+                                  size: 16,
+                                  color: AppTheme.inkMuted,
+                                ),
+                              ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -130,67 +156,64 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                       });
                     },
                   ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          '${visibleQuizzes.length} quizzen gevonden',
-                          style: const TextStyle(
-                            color: AppTheme.muted,
-                            fontWeight: FontWeight.w700,
+                  const SizedBox(height: 24),
+                  // `border-y border-rule` result bar with the sort control.
+                  Container(
+                    decoration: const BoxDecoration(
+                      border: Border(
+                        top: BorderSide(color: AppTheme.rule),
+                        bottom: BorderSide(color: AppTheme.rule),
+                      ),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '${visibleQuizzes.length} quizzen'.toUpperCase(),
+                            style: AppTheme.overline,
                           ),
                         ),
-                      ),
-                      _SortSelector(
-                        selectedSort: _selectedSort,
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedSort = value;
-                          });
-                        },
-                      ),
-                    ],
+                        _SortSelector(
+                          selectedSort: _selectedSort,
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedSort = value;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 28),
                   if (visibleQuizzes.isEmpty)
                     const _NoQuizCard()
                   else
-                    ...visibleQuizzes.map(
-                      (quiz) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _QuizListCard(
-                          quiz: quiz,
-                          onTap: () => context.push(
-                            '/quiz/${quiz.slug.isNotEmpty ? quiz.slug : quiz.id}',
-                          ),
+                    for (var i = 0; i < visibleQuizzes.length; i++) ...[
+                      if (i > 0) const SizedBox(height: 36),
+                      _QuizListCard(
+                        quiz: visibleQuizzes[i],
+                        onTap: () => context.push(
+                          '/quiz/${visibleQuizzes[i].slug.isNotEmpty ? visibleQuizzes[i].slug : visibleQuizzes[i].id}',
                         ),
                       ),
-                    ),
+                    ],
                 ],
               );
             },
             loading: () => ListView(
               physics: const AlwaysScrollableScrollPhysics(),
-              children: const [
-                SizedBox(height: 260),
-                Center(child: CircularProgressIndicator()),
-              ],
+              children: const [SizedBox(height: 260), AppLoader()],
             ),
             error: (err, _) => ListView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(24),
               children: [
-                const SizedBox(height: 120),
-                const Icon(
-                  Icons.error_outline,
-                  size: 52,
-                  color: Colors.redAccent,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Fout bij laden quizzen: $err',
-                  textAlign: TextAlign.center,
+                const SizedBox(height: 100),
+                AppEmptyState(
+                  icon: Icons.error_outline,
+                  title: 'Quizzen konden niet laden',
+                  description: '$err',
                 ),
               ],
             ),
@@ -221,33 +244,28 @@ class _CategoryChips extends StatelessWidget {
           ...categories.map((category) => MapEntry(category.id, category.name)),
         ];
 
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: chipItems
-                .map(
-                  (item) => Padding(
-                    padding: const EdgeInsets.only(right: 10),
-                    child: _CategoryChip(
-                      label: item.value,
-                      active: item.key == selectedCategory,
-                      onTap: () => onSelect(item.key),
-                    ),
-                  ),
-                )
-                .toList(),
+        return SizedBox(
+          height: 36,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: chipItems.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (context, i) => _CategoryChip(
+              label: chipItems[i].value,
+              active: chipItems[i].key == selectedCategory,
+              onTap: () => onSelect(chipItems[i].key),
+            ),
           ),
         );
       },
-      loading: () => const SizedBox(
-        height: 36,
-        child: Center(child: CircularProgressIndicator(strokeWidth: 2.4)),
-      ),
+      loading: () => const SizedBox(height: 36, child: AppLoader(size: 18)),
       error: (_, __) => const SizedBox.shrink(),
     );
   }
 }
 
+/// Inactive: `h-9 rounded-md border-rule bg-paper-raised px-4 text-ink`
+/// Active  : `h-9 rounded-md bg-ink px-4 text-ink-inverted`
 class _CategoryChip extends StatelessWidget {
   const _CategoryChip({
     required this.label,
@@ -261,24 +279,28 @@ class _CategoryChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(999),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: active ? AppTheme.filterActive : Colors.white,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: active ? Colors.transparent : AppTheme.border,
+    return Material(
+      color: active ? AppTheme.ink : AppTheme.paperRaised,
+      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        onTap: onTap,
+        child: Container(
+          height: 36,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+            border: Border.all(color: active ? AppTheme.ink : AppTheme.rule),
           ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: active ? Colors.white : AppTheme.muted,
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontFamily: AppTheme.sansFontName,
+              color: active ? AppTheme.inkInverted : AppTheme.ink,
+              fontWeight: FontWeight.w500,
+              fontSize: 14,
+            ),
           ),
         ),
       ),
@@ -286,6 +308,7 @@ class _CategoryChip extends StatelessWidget {
   }
 }
 
+/// Dropdown trigger — `h-9 w-full justify-start rounded-md border-rule px-3`.
 class _SortSelector extends StatelessWidget {
   const _SortSelector({required this.selectedSort, required this.onChanged});
 
@@ -293,7 +316,7 @@ class _SortSelector extends StatelessWidget {
   final ValueChanged<String> onChanged;
 
   static const Map<String, String> _labels = {
-    'popular': 'Meest Populair',
+    'popular': 'Meest populair',
     'short': 'Kortste',
     'reward': 'Hoogste XP',
   };
@@ -302,37 +325,55 @@ class _SortSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
       onSelected: onChanged,
+      color: AppTheme.paperRaised,
+      elevation: 0,
+      position: PopupMenuPosition.under,
       itemBuilder: (context) {
         return _labels.entries
             .map(
               (entry) => PopupMenuItem<String>(
                 value: entry.key,
-                child: Text(entry.value),
+                height: 40,
+                child: Text(
+                  entry.value,
+                  style: AppTheme.bodyStrong.copyWith(
+                    color: entry.key == selectedSort
+                        ? AppTheme.ink
+                        : AppTheme.inkSoft,
+                  ),
+                ),
               ),
             )
             .toList();
       },
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        side: const BorderSide(color: AppTheme.rule),
+      ),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        height: 32,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppTheme.border),
+          color: AppTheme.paperRaised,
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          border: Border.all(color: AppTheme.rule),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               _labels[selectedSort] ?? _labels['popular']!,
-              style: const TextStyle(
+              style: AppTheme.caption.copyWith(
                 color: AppTheme.ink,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w500,
               ),
             ),
             const SizedBox(width: 6),
-            const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
+            const Icon(
+              Icons.keyboard_arrow_down,
+              size: 15,
+              color: AppTheme.inkMuted,
+            ),
           ],
         ),
       ),
@@ -340,6 +381,7 @@ class _SortSelector extends StatelessWidget {
   }
 }
 
+/// The site's quiz card, one per row on mobile.
 class _QuizListCard extends StatelessWidget {
   const _QuizListCard({required this.quiz, required this.onTap});
 
@@ -349,138 +391,136 @@ class _QuizListCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final minutes = (quiz.questionCount / 2).ceil().clamp(3, 25);
-    final difficulty = quiz.difficultyLabelNl;
 
     return InkWell(
-      borderRadius: BorderRadius.circular(18),
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppTheme.border),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: Container(
-                width: 72,
-                height: 72,
-                color: const Color(0xFFEEF2FA),
-                child: quiz.image.isEmpty
-                    ? const Icon(Icons.menu_book_rounded, color: AppTheme.muted)
-                    : ServerImage(imagePath: quiz.image, fit: BoxFit.cover),
+      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+      splashColor: AppTheme.paperSunken,
+      highlightColor: AppTheme.paperSunken,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: Container(
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color: AppTheme.paperSunken,
+                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                border: Border.all(color: AppTheme.rule),
               ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          quiz.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: AppTheme.ink,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800,
-                            fontFamily: AppTheme.sansFontName,
-                          ),
-                        ),
+                  if (quiz.image.isEmpty)
+                    const Center(
+                      child: Icon(
+                        Icons.menu_book_outlined,
+                        color: AppTheme.inkMuted,
+                        size: 24,
                       ),
-                      const SizedBox(width: 8),
-                      Container(
+                    )
+                  else
+                    ServerImage(imagePath: quiz.image, fit: BoxFit.cover),
+                  if (quiz.isPremium)
+                    Positioned(
+                      left: 12,
+                      top: 12,
+                      child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 8,
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF1F4FA),
-                          borderRadius: BorderRadius.circular(8),
+                          color: AppTheme.paperRaised.withValues(alpha: 0.95),
+                          borderRadius: BorderRadius.circular(
+                            AppTheme.radiusSm,
+                          ),
                         ),
                         child: Text(
-                          difficulty,
-                          style: const TextStyle(
-                            color: AppTheme.ink,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
+                          'PREMIUM',
+                          style: AppTheme.overline.copyWith(
+                            color: AppTheme.vermilion,
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    quiz.description.isEmpty
-                        ? 'Bekijk quizdetails op de volgende pagina.'
-                        : quiz.description,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppTheme.muted,
-                      fontSize: 12,
-                      height: 1.35,
                     ),
-                  ),
-                  const SizedBox(height: 7),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.help_outline_rounded,
-                        size: 14,
-                        color: AppTheme.muted,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${quiz.questionCount} vragen',
-                        style: const TextStyle(
-                          color: AppTheme.muted,
-                          fontSize: 11,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      const Icon(
-                        Icons.schedule_rounded,
-                        size: 14,
-                        color: AppTheme.muted,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '$minutes min',
-                        style: const TextStyle(
-                          color: AppTheme.muted,
-                          fontSize: 11,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      const Icon(
-                        Icons.bolt_rounded,
-                        size: 14,
-                        color: AppTheme.muted,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${quiz.xpReward} XP',
-                        style: const TextStyle(
-                          color: AppTheme.muted,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 16),
+          Text.rich(
+            TextSpan(
+              style: AppTheme.metaLabel,
+              children: [
+                TextSpan(
+                  text: (quiz.category?.name ?? 'Algemeen').toUpperCase(),
+                ),
+                const TextSpan(
+                  text: '   /   ',
+                  style: TextStyle(color: AppTheme.ruleStrong),
+                ),
+                TextSpan(text: quiz.difficultyLabelNl.toUpperCase()),
+              ],
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            quiz.title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: AppTheme.displayTitle,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            quiz.description.isEmpty
+                ? 'Bekijk quizdetails op de volgende pagina.'
+                : quiz.description,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: AppTheme.bodyMuted,
+          ),
+          const SizedBox(height: 16),
+          Container(
+            decoration: const BoxDecoration(
+              border: Border(top: BorderSide(color: AppTheme.rule)),
+            ),
+            padding: const EdgeInsets.only(top: 14),
+            child: Row(
+              children: [
+                // Single flexible run so narrow phones ellipsize the meta line
+                // instead of overflowing the row.
+                Expanded(
+                  child: Text(
+                    '${quiz.questionCount} vragen  ·  $minutes min  ·  ${quiz.xpReward} XP',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTheme.caption.copyWith(
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Start',
+                  style: AppTheme.caption.copyWith(
+                    color: AppTheme.inkSoft,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                const Icon(
+                  Icons.arrow_forward,
+                  size: 12,
+                  color: AppTheme.inkSoft,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -491,16 +531,10 @@ class _NoQuizCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.border),
-      ),
-      child: const Text(
+    return const AppCard(
+      child: Text(
         'Geen quizzen gevonden met de huidige filters.',
-        style: TextStyle(color: AppTheme.muted),
+        style: AppTheme.bodyMuted,
       ),
     );
   }

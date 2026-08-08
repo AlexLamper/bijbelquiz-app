@@ -29,7 +29,9 @@ final authControllerProvider = AsyncNotifierProvider<AuthController, User?>(() {
 });
 
 final googleSignInInitProvider = FutureProvider<void>((ref) async {
-  return ref.read(authControllerProvider.notifier).ensureGoogleSignInInitialized();
+  return ref
+      .read(authControllerProvider.notifier)
+      .ensureGoogleSignInInitialized();
 });
 
 class AuthController extends AsyncNotifier<User?> {
@@ -42,9 +44,7 @@ class AuthController extends AsyncNotifier<User?> {
       await gAuth.GoogleSignIn.instance.initialize(
         // Web requires explicit clientId. Native iOS/Android should rely on
         // platform OAuth setup (Info.plist / google-services).
-        clientId: kIsWeb
-            ? _googleWebClientId
-            : null,
+        clientId: kIsWeb ? _googleWebClientId : null,
         // Android requires a serverClientId with google_sign_in v7 for token
         // based auth. Keep iOS null to avoid invalid_request issues there.
         serverClientId:
@@ -133,10 +133,10 @@ class AuthController extends AsyncNotifier<User?> {
   Future<void> signInWithGoogle() async {
     try {
       await ensureGoogleSignInInitialized();
-      final gAuth.GoogleSignInAccount account =
-          await gAuth.GoogleSignIn.instance.authenticate(
-        scopeHint: ['email', 'profile'],
-      );
+      final gAuth.GoogleSignInAccount account = await gAuth
+          .GoogleSignIn
+          .instance
+          .authenticate(scopeHint: ['email', 'profile']);
       await _completeGoogleSignIn(account);
     } on gAuth.GoogleSignInException catch (e, st) {
       if (e.code == gAuth.GoogleSignInExceptionCode.canceled) {
@@ -144,8 +144,8 @@ class AuthController extends AsyncNotifier<User?> {
       }
       if (e.code == gAuth.GoogleSignInExceptionCode.interrupted) {
         // Android can report interrupted when UI flow closed unexpectedly.
-        final current =
-            await gAuth.GoogleSignIn.instance.attemptLightweightAuthentication();
+        final current = await gAuth.GoogleSignIn.instance
+            .attemptLightweightAuthentication();
         if (current != null) {
           try {
             await _completeGoogleSignIn(current);
@@ -201,9 +201,7 @@ class AuthController extends AsyncNotifier<User?> {
 
       final identityToken = credential.identityToken;
       if (identityToken == null || identityToken.isEmpty) {
-        throw Exception(
-          'Apple gaf geen identityToken terug. Probeer opnieuw.',
-        );
+        throw Exception('Apple gaf geen identityToken terug. Probeer opnieuw.');
       }
 
       state = const AsyncValue.loading();

@@ -1,11 +1,11 @@
 {
-    "name": "bijbelquiz_mobile",
-    "short_name": "bijbelquiz_mobile",
+    "name": "BijbelQuiz",
+    "short_name": "BijbelQuiz",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#FAF9F6",
+    "theme_color": "#FAF9F6",
+    "description": "Test jouw kennis van de Bijbel met leuke quizzen en multiplayer.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

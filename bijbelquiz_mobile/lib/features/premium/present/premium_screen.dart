@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/app_widgets.dart';
 import '../data/purchase_service.dart';
 import 'premium_controller.dart';
 
@@ -26,7 +27,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
       showDialog(
         context: context,
         builder: (_) => AlertDialog(
-          title: const Text('Welkom bij Premium! 🎉'),
+          title: const Text('Welkom bij Premium'),
           content: const Text(
             'Je hebt nu volledige toegang tot alle premium functies. Veel plezier!',
           ),
@@ -36,7 +37,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                 Navigator.of(context).pop();
                 context.pop();
               },
-              child: const Text('Super!'),
+              child: const Text('Sluiten'),
             ),
           ],
         ),
@@ -83,7 +84,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(next.errorMessage!),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.destructive,
           ),
         );
         ref.read(premiumControllerProvider.notifier).clearStatus();
@@ -108,141 +109,132 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
         : 'Levenslang is een eenmalige aankoop via je App Store-account en verlengt niet automatisch.';
 
     return Scaffold(
-      backgroundColor: AppTheme.canvas,
+      backgroundColor: AppTheme.paper,
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          padding: EdgeInsets.zero,
           children: [
-            Row(
-              children: [
-                IconButton(
-                  onPressed: () => context.pop(),
-                  icon: const Icon(Icons.close_rounded),
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  'Premium',
-                  style: TextStyle(
-                    color: AppTheme.ink,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    fontFamily: AppTheme.sansFontName,
+            // Header rail — `border-b border-rule`.
+            Container(
+              height: 56,
+              decoration: const BoxDecoration(
+                border: Border(bottom: BorderSide(color: AppTheme.rule)),
+              ),
+              padding: const EdgeInsets.only(left: 8, right: 20),
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: () => context.pop(),
+                    icon: const Icon(
+                      Icons.close,
+                      size: 20,
+                      color: AppTheme.inkSoft,
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            const _PremiumHeroCard(),
-            const SizedBox(height: 16),
-            const _BenefitsCard(),
-            const SizedBox(height: 18),
-            const Text(
-              'Kies je plan',
-              style: TextStyle(
-                color: AppTheme.ink,
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
-                fontFamily: AppTheme.sansFontName,
+                  const SizedBox(width: 4),
+                  const Text('PREMIUM', style: AppTheme.overline),
+                ],
               ),
             ),
-            const SizedBox(height: 10),
-            _PlanCard(
-              title: 'Bijbelquiz Premium Maandelijks',
-              subtitle: 'Flexibel opzegbaar, volledige toegang',
-              price: monthlyPrice,
-              billingLabel: 'per maand',
-              badge: 'Aanbevolen',
-              selected: _selectedPlan == _PremiumPlan.monthly,
-              onTap: () => setState(() => _selectedPlan = _PremiumPlan.monthly),
-            ),
-            const SizedBox(height: 10),
-            _PlanCard(
-              title: 'Lifetime toegang',
-              subtitle: 'Eenmalig betalen, altijd premium',
-              price: lifetimePrice,
-              billingLabel: 'eenmalig',
-              selected: _selectedPlan == _PremiumPlan.lifetime,
-              onTap: () =>
-                  setState(() => _selectedPlan = _PremiumPlan.lifetime),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: isLoading ? null : _onPurchase,
-                icon: isLoading
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
+            // `<section id="premium" class="bg-ink">` — the site's inverted
+            // premium panel, reproduced 1:1.
+            const _PremiumInkPanel(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 36, 20, 40),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SectionHeader(
+                    eyebrow: 'Abonnement',
+                    title: 'Kies je plan',
+                    description:
+                        'Beide plannen geven volledige toegang tot alle '
+                        'premium functies.',
+                  ),
+                  const SizedBox(height: 24),
+                  RuleGrid(
+                    children: [
+                      _PlanRow(
+                        index: '01',
+                        title: 'Maandelijks',
+                        subtitle: 'Flexibel opzegbaar, volledige toegang',
+                        price: monthlyPrice,
+                        billingLabel: 'per maand',
+                        badge: 'Aanbevolen',
+                        selected: _selectedPlan == _PremiumPlan.monthly,
+                        onTap: () => setState(
+                          () => _selectedPlan = _PremiumPlan.monthly,
                         ),
-                      )
-                    : const Icon(Icons.workspace_premium_rounded),
-                label: Text(
-                  isLoading
-                      ? 'Verwerken…'
-                      : 'Ga verder met ${_selectedPlan == _PremiumPlan.monthly ? 'Maandelijks' : 'Lifetime'}',
-                ),
+                      ),
+                      _PlanRow(
+                        index: '02',
+                        title: 'Levenslang',
+                        subtitle: 'Eenmalig betalen, altijd premium',
+                        price: lifetimePrice,
+                        billingLabel: 'eenmalig',
+                        selected: _selectedPlan == _PremiumPlan.lifetime,
+                        onTap: () => setState(
+                          () => _selectedPlan = _PremiumPlan.lifetime,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  SiteButton(
+                    loading: isLoading,
+                    label: isLoading
+                        ? 'Verwerken…'
+                        : 'Ga verder met ${isMonthlyPlan ? 'Maandelijks' : 'Levenslang'}',
+                    trailingIcon: isLoading ? null : Icons.arrow_forward,
+                    onPressed: isLoading ? null : _onPurchase,
+                  ),
+                  const SizedBox(height: 12),
+                  SiteOutlineButton(
+                    label: 'Aankopen herstellen',
+                    onPressed: isLoading
+                        ? null
+                        : () => ref
+                              .read(premiumControllerProvider.notifier)
+                              .restorePurchases(),
+                  ),
+                  const SizedBox(height: 28),
+                  const RuleLine(),
+                  const SizedBox(height: 20),
+                  const Text('VOORWAARDEN', style: AppTheme.overline),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Gebruik "Aankopen herstellen" als je al eerder Premium '
+                    'hebt gekocht met hetzelfde account. De app controleert dan '
+                    'je eerdere aankopen en activeert Premium opnieuw.',
+                    style: AppTheme.caption,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(billingInfoText, style: AppTheme.caption),
+                  const SizedBox(height: 10),
+                  Text(selectedPlanDetails, style: AppTheme.caption),
+                  const SizedBox(height: 20),
+                  const RuleLine(),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      _LegalLink(
+                        label: 'Privacybeleid',
+                        onTap: () => _openLegalUrl(AppConfig.privacyPolicyUrl),
+                      ),
+                      Container(
+                        width: 1,
+                        height: 12,
+                        color: AppTheme.rule,
+                        margin: const EdgeInsets.symmetric(horizontal: 14),
+                      ),
+                      _LegalLink(
+                        label: 'Gebruiksvoorwaarden (EULA)',
+                        onTap: () => _openLegalUrl(AppConfig.termsOfUseUrl),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 8),
-            Center(
-              child: TextButton(
-                onPressed: isLoading
-                    ? null
-                    : () => ref
-                          .read(premiumControllerProvider.notifier)
-                          .restorePurchases(),
-                child: const Text('Aankopen herstellen'),
-              ),
-            ),
-            const Text(
-              'Gebruik dit als je al eerder Premium hebt gekocht met hetzelfde Apple-account. De app controleert dan je eerdere aankopen en activeert Premium opnieuw.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppTheme.muted,
-                fontSize: 11,
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              billingInfoText,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: AppTheme.muted,
-                fontSize: 12,
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              selectedPlanDetails,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: AppTheme.muted,
-                fontSize: 12,
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              alignment: WrapAlignment.center,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 6,
-              children: [
-                TextButton(
-                  onPressed: () => _openLegalUrl(AppConfig.privacyPolicyUrl),
-                  child: const Text('Privacybeleid'),
-                ),
-                const Text('•', style: TextStyle(color: AppTheme.muted)),
-                TextButton(
-                  onPressed: () => _openLegalUrl(AppConfig.termsOfUseUrl),
-                  child: const Text('Gebruiksvoorwaarden (EULA)'),
-                ),
-              ],
             ),
           ],
         ),
@@ -251,181 +243,135 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
   }
 }
 
-// ─── Hero card ────────────────────────────────────────────────────────────────
+class _LegalLink extends StatelessWidget {
+  const _LegalLink({required this.label, required this.onTap});
 
-class _PremiumHeroCard extends StatelessWidget {
-  const _PremiumHeroCard();
+  final String label;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF4E66B8), Color(0xFF7F9CEF)],
-        ),
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF4E66B8).withValues(alpha: 0.28),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
-          ),
-        ],
+    return InkWell(
+      onTap: onTap,
+      child: Text(
+        label,
+        style: AppTheme.caption.copyWith(color: AppTheme.inkSoft),
       ),
-      child: Stack(
+    );
+  }
+}
+
+/// The site's premium block:
+///
+/// ```html
+/// <section id="premium" class="bg-ink">
+///   <span class="eyebrow text-ink-inverted/70">Premium</span>
+///   <h2 class="font-display text-[26px] leading-[1.12] tracking-[-0.025em]
+///              text-ink-inverted">…</h2>
+///   <p class="text-[15px] text-ink-inverted/70">…</p>
+///   <ul class="border-t border-ink-inverted/15 pt-6">…</ul>
+/// </section>
+/// ```
+class _PremiumInkPanel extends StatelessWidget {
+  const _PremiumInkPanel();
+
+  static const List<String> _benefits = [
+    'Onbeperkt rooms hosten en tot 20 spelers samen spelen',
+    'Uitleg en bijbelverwijzing bij elke vraag, ook na de game',
+    'Voortgangsinzichten per boek, streakbescherming en alle premium quizzen',
+    'Toegang tot nieuwe seizoenspakketten en thema-quizzen',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    const inverted = AppTheme.inkInverted;
+
+    return Container(
+      width: double.infinity,
+      color: AppTheme.ink,
+      padding: const EdgeInsets.fromLTRB(20, 40, 20, 40),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Positioned(
-            top: -30,
-            right: -20,
-            child: Container(
-              width: 110,
-              height: 110,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.14),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -42,
-            left: -26,
-            child: Container(
-              width: 140,
-              height: 140,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.auto_awesome_rounded,
-                    color: Colors.white,
-                    size: 18,
-                  ),
-                  SizedBox(width: 6),
-                  Text(
-                    'Bijbelquiz Premium',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
+              Container(
+                width: 24,
+                height: 1,
+                color: inverted.withValues(alpha: 0.5),
               ),
-              SizedBox(height: 12),
+              const SizedBox(width: 10),
               Text(
-                'Speel zonder limieten',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  fontFamily: AppTheme.sansFontName,
-                  height: 1.1,
-                ),
-              ),
-              SizedBox(height: 8),
-              Text(
-                'Ontgrendel hosten, exclusieve quizzen en extra voortgangsfuncties voor jouw account.',
-                style: TextStyle(
-                  color: Color(0xFFE9EEFF),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  height: 1.4,
+                'PREMIUM',
+                style: AppTheme.eyebrow.copyWith(
+                  color: inverted.withValues(alpha: 0.7),
                 ),
               ),
             ],
           ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── Benefits ─────────────────────────────────────────────────────────────────
-
-class _BenefitsCard extends StatelessWidget {
-  const _BenefitsCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.border),
-      ),
-      child: const Column(
-        children: [
-          _BenefitRow(
-            icon: Icons.groups_2_rounded,
-            title: 'Start je eigen multiplayer kamers',
-          ),
-          SizedBox(height: 10),
-          _BenefitRow(
-            icon: Icons.quiz_outlined,
-            title: 'Toegang tot premium quizcollecties',
-          ),
-          SizedBox(height: 10),
-          _BenefitRow(
-            icon: Icons.bolt_rounded,
-            title: 'Snellere voortgang met extra beloningen',
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BenefitRow extends StatelessWidget {
-  const _BenefitRow({required this.icon, required this.title});
-
-  final IconData icon;
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(
-            color: AppTheme.accentSoft,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, color: AppTheme.accent, size: 18),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            title,
-            style: const TextStyle(
-              color: AppTheme.ink,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
+          const SizedBox(height: 20),
+          const Text(
+            'Speel onbeperkt samen — en verdiep je kennis bij elke vraag.',
+            style: TextStyle(
+              fontFamily: AppTheme.displayFontName,
+              fontSize: 26,
+              fontWeight: FontWeight.w400,
+              height: 1.12,
+              letterSpacing: -0.65,
+              color: inverted,
             ),
           ),
-        ),
-      ],
+          const SizedBox(height: 16),
+          Text(
+            'Met Premium host je multiplayer-rooms tot 20 spelers, krijg je '
+            'uitleg en bijbelverwijzingen bij elke vraag, en volg je je '
+            'voortgang per boek.',
+            style: AppTheme.bodyLead.copyWith(
+              color: inverted.withValues(alpha: 0.7),
+            ),
+          ),
+          const SizedBox(height: 28),
+          Container(height: 1, color: inverted.withValues(alpha: 0.15)),
+          const SizedBox(height: 24),
+          ..._benefits.map(
+            (text) => Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 3),
+                    child: Icon(
+                      Icons.check,
+                      size: 14,
+                      color: inverted.withValues(alpha: 0.85),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      text,
+                      style: AppTheme.bodyMuted.copyWith(
+                        color: inverted.withValues(alpha: 0.85),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-// ─── Plan card ────────────────────────────────────────────────────────────────
-
-class _PlanCard extends StatelessWidget {
-  const _PlanCard({
+/// Plan row inside the hairline grid. Selected state uses a solid ink radio
+/// mark — the site never tints a selected row.
+class _PlanRow extends StatelessWidget {
+  const _PlanRow({
+    required this.index,
     required this.title,
     required this.subtitle,
     required this.price,
@@ -435,6 +381,7 @@ class _PlanCard extends StatelessWidget {
     this.badge,
   });
 
+  final String index;
   final String title;
   final String subtitle;
   final String price;
@@ -445,124 +392,89 @@ class _PlanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: selected ? AppTheme.accent : AppTheme.border,
-            width: selected ? 1.5 : 1,
-          ),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: AppTheme.accent.withValues(alpha: 0.14),
-                    blurRadius: 14,
-                    offset: const Offset(0, 6),
+    return Material(
+      color: selected ? AppTheme.paperSunken : AppTheme.paperRaised,
+      child: InkWell(
+        onTap: onTap,
+        highlightColor: AppTheme.paperSunken,
+        splashColor: AppTheme.paperSunken,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  index,
+                  style: TextStyle(
+                    fontFamily: AppTheme.displayFontName,
+                    fontSize: 14,
+                    color: selected ? AppTheme.lapis : AppTheme.inkMuted,
+                    fontFeatures: const [FontFeature.tabularFigures()],
                   ),
-                ]
-              : null,
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: selected ? AppTheme.accent : const Color(0xFFB9C3D8),
-                  width: 2,
                 ),
               ),
-              child: selected
-                  ? Center(
-                      child: Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: AppTheme.accent,
-                          shape: BoxShape.circle,
+              const SizedBox(width: 18),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTheme.displayBase,
+                          ),
                         ),
-                      ),
-                    )
-                  : null,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                        if (badge != null) ...[
+                          const SizedBox(width: 10),
+                          SiteBadge.lapis(badge!),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(subtitle, style: AppTheme.caption),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppTheme.ink,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                    ),
+                    price,
+                    style: AppTheme.statNumber.copyWith(fontSize: 20),
                   ),
-                  if (badge != null) ...[
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppTheme.accentSoft,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        badge!,
-                        style: const TextStyle(
-                          color: AppTheme.accent,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      color: AppTheme.muted,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+                  const SizedBox(height: 5),
+                  Text(billingLabel.toUpperCase(), style: AppTheme.overline),
                 ],
               ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  price,
-                  style: const TextStyle(
-                    color: AppTheme.ink,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
+              const SizedBox(width: 14),
+              // Selection mark: square, hairline — matching the rank badge.
+              Container(
+                width: 18,
+                height: 18,
+                margin: const EdgeInsets.only(top: 2),
+                decoration: BoxDecoration(
+                  color: selected ? AppTheme.ink : AppTheme.paperRaised,
+                  border: Border.all(
+                    color: selected ? AppTheme.ink : AppTheme.ruleStrong,
                   ),
                 ),
-                Text(
-                  billingLabel,
-                  style: const TextStyle(
-                    color: AppTheme.muted,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ],
+                child: selected
+                    ? const Icon(
+                        Icons.check,
+                        size: 12,
+                        color: AppTheme.inkInverted,
+                      )
+                    : null,
+              ),
+            ],
+          ),
         ),
       ),
     );

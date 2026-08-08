@@ -71,8 +71,7 @@ class MultiplayerSessionController
       _consecutiveRoomNotFound = 0;
       state = AsyncValue.data(nextState);
 
-      if (nextState.room.status == MultiplayerRoomStatus.questionResult) {
-      }
+      if (nextState.room.status == MultiplayerRoomStatus.questionResult) {}
 
       if (nextState.room.status == MultiplayerRoomStatus.finished &&
           _snapshotRefreshTimer != null) {
@@ -112,10 +111,7 @@ class MultiplayerSessionController
       await refreshRoom();
     } catch (e) {
       if (e is MultiplayerApiException && e.code == 'ROOM_NOT_FOUND') {
-        await _handleRoomNotFound(
-          state.asData?.value,
-          source: 'stopMatch',
-        );
+        await _handleRoomNotFound(state.asData?.value, source: 'stopMatch');
         return;
       }
       _setSessionError(_errorText(e));
@@ -198,7 +194,9 @@ class MultiplayerSessionController
       await _realtimeService.connect(_roomCode);
       _realtimeService.sendJoin(_roomCode);
     } catch (e) {
-      _setSessionError('Realtime verbinding niet beschikbaar. Verversing blijft actief.');
+      _setSessionError(
+        'Realtime verbinding niet beschikbaar. Verversing blijft actief.',
+      );
     }
   }
 
@@ -322,7 +320,10 @@ class MultiplayerSessionController
     );
   }
 
-  bool _hasQuestionChanged(MultiplayerRoom? previousRoom, MultiplayerRoom room) {
+  bool _hasQuestionChanged(
+    MultiplayerRoom? previousRoom,
+    MultiplayerRoom room,
+  ) {
     final currentQuestionId = room.currentQuestion?.id;
     if (currentQuestionId == null || currentQuestionId.isEmpty) {
       return false;

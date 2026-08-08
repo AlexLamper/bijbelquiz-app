@@ -10,7 +10,8 @@ final multiplayerActionControllerProvider =
     );
 
 class MultiplayerActionController extends AsyncNotifier<void> {
-  MultiplayerRepository get _repository => ref.read(multiplayerRepositoryProvider);
+  MultiplayerRepository get _repository =>
+      ref.read(multiplayerRepositoryProvider);
 
   @override
   Future<void> build() async {}

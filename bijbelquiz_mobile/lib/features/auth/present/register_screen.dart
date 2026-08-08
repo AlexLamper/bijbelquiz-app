@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/app_widgets.dart';
 import '../../../core/ui/primary_button.dart';
 import '../../../core/ui/custom_text_field.dart';
 import 'auth_controller.dart';
@@ -51,120 +53,111 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final isIOSApp = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
     final showGoogleSignIn = !isIOSApp;
     final hasSocialLoginOption = showGoogleSignIn;
-    final isGoogleInit =
-        showGoogleSignIn ? ref.watch(googleSignInInitProvider).hasValue : true;
+    final isGoogleInit = showGoogleSignIn
+        ? ref.watch(googleSignInInitProvider).hasValue
+        : true;
     final isLoading = state.isLoading || !isGoogleInit;
 
     return Scaffold(
+      backgroundColor: AppTheme.paper,
       appBar: AppBar(
+        backgroundColor: AppTheme.paper,
+        elevation: 0,
+        scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: Theme.of(context).colorScheme.onSurface,
-          ),
+          icon: const Icon(Icons.arrow_back, size: 20),
+          color: AppTheme.inkSoft,
           onPressed: () => context.pop(),
         ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Image.asset(
-                  'assets/images/logo-dark.png',
-                  width: 80,
-                  height: 80,
-                  errorBuilder: (c, o, s) => const SizedBox.shrink(),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Center(
-                child: Text(
-                  'Account aanmaken',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onSurface,
+        top: false,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+          children: [
+            const Eyebrow('Registreren'),
+            const SizedBox(height: 18),
+            const Text('Account aanmaken', style: AppTheme.displayLarge),
+            const SizedBox(height: 14),
+            const Text(
+              'Maak een account aan om je voortgang op te slaan en mee te doen '
+              'op de ranglijst.',
+              style: AppTheme.bodyLead,
+            ),
+            const SizedBox(height: 36),
+            CustomTextField(
+              label: 'Naam',
+              hintText: 'Je naam',
+              controller: _nameController,
+              textInputAction: TextInputAction.next,
+            ),
+            const SizedBox(height: 18),
+            CustomTextField(
+              label: 'E-mail',
+              hintText: 'jij@voorbeeld.nl',
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
+            ),
+            const SizedBox(height: 18),
+            CustomTextField(
+              label: 'Wachtwoord',
+              hintText: '••••••••',
+              controller: _passwordController,
+              obscureText: true,
+              textInputAction: TextInputAction.done,
+            ),
+            const SizedBox(height: 32),
+            PrimaryButton(
+              text: 'Registreren',
+              isLoading: isLoading,
+              onPressed: isLoading ? null : _register,
+            ),
+            if (hasSocialLoginOption) ...[
+              const SizedBox(height: 28),
+              Row(
+                children: [
+                  const Expanded(child: RuleLine()),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: Text('OF GA VERDER MET', style: AppTheme.overline),
                   ),
-                ),
+                  const Expanded(child: RuleLine()),
+                ],
               ),
-              const SizedBox(height: 8),
-              Center(
-                child: Text(
-                  'Maak een account aan om je voortgang op te slaan en mee te doen op het klassement.',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF131D2B),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 32),
-              CustomTextField(
-                label: 'Naam',
-                controller: _nameController,
-                prefixIcon: Icons.person,
-              ),
-              const SizedBox(height: 16),
-              CustomTextField(
-                label: 'E-mail',
-                controller: _emailController,
-                prefixIcon: Icons.email,
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 16),
-              CustomTextField(
-                label: 'Wachtwoord',
-                controller: _passwordController,
-                obscureText: true,
-                prefixIcon: Icons.lock,
-              ),
-              const SizedBox(height: 32),
-              PrimaryButton(
-                text: 'Registreren',
+              const SizedBox(height: 20),
+              buildGoogleSignInButton(
+                context: context,
                 isLoading: isLoading,
-                onPressed: isLoading ? null : _register,
+                onPressed: isLoading ? null : _registerWithGoogle,
               ),
-              if (hasSocialLoginOption) ...[
-                const SizedBox(height: 10),
-                Text(
-                  'of log in met',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF8A8F98),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                buildGoogleSignInButton(
-                  context: context,
-                  isLoading: isLoading,
-                  onPressed: isLoading ? null : _registerWithGoogle,
-                ),
-                const SizedBox(height: 12),
-              ],
-              const SizedBox(height: 16),
-              Center(
-                child: TextButton(
-                  onPressed: () {
-                    context.pop();
-                  },
-                  child: Text(
-                    'Heb je al een account? Inloggen',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 2),
-              Center(child: buildUserDataInfoLink(context)),
             ],
-          ),
+            const SizedBox(height: 32),
+            const RuleLine(),
+            const SizedBox(height: 20),
+            Center(
+              child: TextButton(
+                onPressed: () => context.pop(),
+                child: Text.rich(
+                  TextSpan(
+                    style: AppTheme.bodyMuted,
+                    children: const [
+                      TextSpan(text: 'Heb je al een account?  '),
+                      TextSpan(
+                        text: 'Inloggen',
+                        style: TextStyle(
+                          color: AppTheme.lapis,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Center(child: buildUserDataInfoLink(context)),
+          ],
         ),
       ),
     );

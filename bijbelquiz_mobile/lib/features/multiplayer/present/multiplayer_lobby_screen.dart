@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/app_widgets.dart';
 import '../../profile/present/profile_provider.dart';
 import '../domain/multiplayer_models.dart';
 import 'multiplayer_session_controller.dart';
@@ -45,17 +46,22 @@ class _MultiplayerLobbyScreenState
     );
 
     return Scaffold(
-      backgroundColor: AppTheme.canvas,
+      backgroundColor: AppTheme.paper,
       appBar: AppBar(
-        title: const Text(
-          'Wachtkamer',
-          style: TextStyle(fontWeight: FontWeight.w800),
+        backgroundColor: AppTheme.paper,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, size: 20),
+          onPressed: () => context.go('/play-together'),
         ),
+        title: const Text('WACHTKAMER', style: AppTheme.overline),
       ),
       body: SafeArea(
+        top: false,
         child: sessionAsync.when(
           data: (session) => _buildContent(context, session),
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const AppLoader(),
           error: (error, _) => _buildError(context, _toMessage(error)),
         ),
       ),
@@ -78,68 +84,72 @@ class _MultiplayerLobbyScreenState
     final canStart = isHost && room.players.length >= 2;
 
     return RefreshIndicator(
+      color: AppTheme.ink,
+      backgroundColor: AppTheme.paperRaised,
       onRefresh: () => controller.refreshRoom(),
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
         children: [
           _buildRoomInfo(room),
-          const SizedBox(height: 14),
+          const SizedBox(height: 40),
+          SectionHeader(
+            eyebrow: 'Deelnemers',
+            title: '${room.players.length} in de kamer',
+          ),
+          const SizedBox(height: 24),
           _buildPlayerList(room),
           if (session.lastError != null) ...[
-            const SizedBox(height: 14),
-            Text(
-              session.lastError!,
-              style: const TextStyle(
-                color: Color(0xFFB42318),
-                fontWeight: FontWeight.w600,
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.vermilionTint,
+                borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+                border: Border.all(
+                  color: AppTheme.destructive.withValues(alpha: 0.35),
+                ),
+              ),
+              child: Text(
+                session.lastError!,
+                style: AppTheme.bodyMuted.copyWith(color: AppTheme.destructive),
               ),
             ),
           ],
-          const SizedBox(height: 14),
+          const SizedBox(height: 28),
           if (isHost)
-            ElevatedButton.icon(
+            SiteButton(
+              label: canStart ? 'Start quiz' : 'Minimaal 2 spelers nodig',
+              trailingIcon: canStart ? Icons.arrow_forward : null,
               onPressed: canStart ? () => controller.startMatch() : null,
-              icon: const Icon(Icons.play_arrow_rounded),
-              label: Text(
-                canStart
-                    ? 'Start quiz'
-                    : 'Minimaal 2 spelers nodig om te starten',
-              ),
             )
           else
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppTheme.border),
-              ),
-              child: const Row(
+            AppCard(
+              child: Row(
                 children: [
-                  Icon(Icons.hourglass_top_rounded, color: AppTheme.muted),
-                  SizedBox(width: 8),
+                  const Icon(
+                    Icons.hourglass_empty,
+                    size: 16,
+                    color: AppTheme.inkMuted,
+                  ),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       'Wacht tot de host de quiz start.',
-                      style: TextStyle(
-                        color: AppTheme.muted,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: AppTheme.bodyMuted,
                     ),
                   ),
                 ],
               ),
             ),
-          const SizedBox(height: 10),
-          OutlinedButton.icon(
+          const SizedBox(height: 12),
+          SiteOutlineButton(
+            label: 'Verlaat kamer',
             onPressed: () async {
               await controller.leaveRoom();
               if (!context.mounted) return;
               context.go('/play-together');
             },
-            icon: const Icon(Icons.exit_to_app_rounded),
-            label: const Text('Verlaat kamer'),
           ),
         ],
       ),
@@ -147,225 +157,112 @@ class _MultiplayerLobbyScreenState
   }
 
   Widget _buildRoomInfo(MultiplayerRoom room) {
-    final questionCount = room.totalQuestions > 0 ? room.totalQuestions : '-';
+    final questionCount = room.totalQuestions > 0
+        ? '${room.totalQuestions}'
+        : '—';
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            room.quizTitle.isEmpty ? 'Multiplayer Quiz' : room.quizTitle,
-            style: const TextStyle(
-              color: AppTheme.ink,
-              fontSize: 19,
-              fontWeight: FontWeight.w800,
-              fontFamily: AppTheme.sansFontName,
-              height: 1.15,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Eyebrow('Kamer'),
+        const SizedBox(height: 16),
+        Text(
+          room.quizTitle.isEmpty ? 'Multiplayer quiz' : room.quizTitle,
+          style: AppTheme.displayLarge,
+        ),
+        const SizedBox(height: 24),
+        StatStrip(
+          stacked: true,
+          items: [
+            StatItem(value: questionCount, label: 'Vragen'),
+            StatItem(value: '${room.xpReward}', label: 'XP'),
+            StatItem(
+              value: '${room.players.length}/${room.maxPlayers}',
+              label: 'Spelers',
+              ruleColor: AppTheme.positive,
             ),
+          ],
+        ),
+        const SizedBox(height: 28),
+        // The room code is the page's data centrepiece — serif, tracked out.
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppTheme.lapisTint,
+            borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+            border: Border.all(color: AppTheme.lapis.withValues(alpha: 0.35)),
           ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _MetaPill(
-                icon: Icons.help_outline_rounded,
-                text: '$questionCount vragen',
+              Text(
+                'KAMERCODE',
+                style: AppTheme.overline.copyWith(color: AppTheme.lapis),
               ),
-              _MetaPill(
-                icon: Icons.bolt_rounded,
-                text: '${room.xpReward} XP beloning',
-              ),
-              _MetaPill(
-                icon: Icons.groups_2_rounded,
-                text: '${room.players.length}/${room.maxPlayers} spelers',
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      room.code,
+                      style: const TextStyle(
+                        fontFamily: AppTheme.displayFontName,
+                        fontSize: 32,
+                        letterSpacing: 7,
+                        height: 1,
+                        color: AppTheme.ink,
+                        fontFeatures: [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ),
+                  SiteOutlineButton(
+                    label: 'Kopieer',
+                    icon: Icons.copy,
+                    expand: false,
+                    height: 36,
+                    onPressed: () async {
+                      await Clipboard.setData(ClipboardData(text: room.code));
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Kamercode gekopieerd.')),
+                      );
+                    },
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: AppTheme.accentSoft,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFCDD9F6)),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Kamercode',
-                        style: TextStyle(
-                          color: AppTheme.muted,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 1),
-                      Text(
-                        room.code,
-                        style: AppTheme.monoTextStyle(
-                          const TextStyle(
-                            color: AppTheme.ink,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                TextButton.icon(
-                  onPressed: () async {
-                    await Clipboard.setData(ClipboardData(text: room.code));
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Kamercode gekopieerd.')),
-                    );
-                  },
-                  icon: const Icon(Icons.copy_rounded, size: 16),
-                  label: const Text('Kopieer'),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   Widget _buildPlayerList(MultiplayerRoom room) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: AppTheme.border),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(14, 12, 14, 8),
-            child: Text(
-              'Spelers in de kamer',
-              style: TextStyle(
-                color: AppTheme.ink,
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-          ...room.players.asMap().entries.map((entry) {
-            final index = entry.key;
-            final player = entry.value;
-            final isOffline = !player.isConnected;
-
-            return Container(
-              decoration: BoxDecoration(
-                border: index == room.players.length - 1
-                    ? null
-                    : const Border(
-                        bottom: BorderSide(color: AppTheme.border),
-                      ),
-              ),
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: isOffline
-                      ? const Color(0xFFD1D5DB)
-                      : AppTheme.accent,
-                  child: Text(
-                    player.name.isNotEmpty ? player.name[0].toUpperCase() : '?',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                title: Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        player.name.isEmpty ? 'Speler' : player.name,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: AppTheme.ink,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    if (player.isHost)
-                      const Padding(
-                        padding: EdgeInsets.only(left: 8),
-                        child: Icon(
-                          Icons.workspace_premium_rounded,
-                          size: 16,
-                          color: AppTheme.warning,
-                        ),
-                      ),
-                  ],
-                ),
-                subtitle: Text(
-                  isOffline ? 'Offline' : 'Verbonden',
-                  style: TextStyle(
-                    color: isOffline ? const Color(0xFF9CA3AF) : AppTheme.muted,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                trailing: Text(
-                  '${player.score} pt',
-                  style: const TextStyle(
-                    color: AppTheme.ink,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            );
-          }),
-        ],
-      ),
+    return RuleGrid(
+      children: [
+        for (var i = 0; i < room.players.length; i++)
+          _PlayerRow(player: room.players[i], rank: i + 1),
+      ],
     );
   }
 
   Widget _buildError(BuildContext context, String message) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Color(0xFFB42318),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: () {
-                ref
-                    .read(
-                      multiplayerSessionControllerProvider(
-                        widget.roomCode,
-                      ).notifier,
-                    )
-                    .refreshRoom(showLoading: true);
-              },
-              child: const Text('Opnieuw proberen'),
-            ),
-          ],
-        ),
+    return AppEmptyState(
+      icon: Icons.error_outline,
+      title: 'Kamer niet beschikbaar',
+      description: message,
+      action: SiteOutlineButton(
+        label: 'Opnieuw proberen',
+        expand: false,
+        height: 44,
+        onPressed: () {
+          ref
+              .read(
+                multiplayerSessionControllerProvider(widget.roomCode).notifier,
+              )
+              .refreshRoom(showLoading: true);
+        },
       ),
     );
   }
@@ -378,32 +275,75 @@ class _MultiplayerLobbyScreenState
   }
 }
 
-class _MetaPill extends StatelessWidget {
-  const _MetaPill({required this.icon, required this.text});
+/// Player row, matching the leaderboard row: square rank badge, hairline rule.
+class _PlayerRow extends StatelessWidget {
+  const _PlayerRow({required this.player, required this.rank});
 
-  final IconData icon;
-  final String text;
+  final MultiplayerPlayer player;
+  final int rank;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF4F7FF),
-        borderRadius: BorderRadius.circular(999),
-      ),
+    final isOffline = !player.isConnected;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: AppTheme.accent),
-          const SizedBox(width: 6),
-          Text(
-            text,
-            style: const TextStyle(
-              color: AppTheme.ink,
-              fontWeight: FontWeight.w700,
-              fontSize: 12,
+          Container(
+            height: 32,
+            constraints: const BoxConstraints(minWidth: 32),
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            decoration: BoxDecoration(
+              color: AppTheme.paperSunken,
+              border: Border.all(color: AppTheme.rule),
             ),
+            child: Text(
+              player.name.isNotEmpty ? player.name[0].toUpperCase() : '?',
+              style: const TextStyle(
+                fontFamily: AppTheme.displayFontName,
+                fontSize: 14,
+                color: AppTheme.inkSoft,
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        player.name.isEmpty ? 'Speler' : player.name,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTheme.bodyStrong.copyWith(
+                          color: isOffline ? AppTheme.inkMuted : AppTheme.ink,
+                        ),
+                      ),
+                    ),
+                    if (player.isHost) ...[
+                      const SizedBox(width: 10),
+                      SiteBadge.lapis('Host'),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  isOffline ? 'OFFLINE' : 'VERBONDEN',
+                  style: AppTheme.overline.copyWith(
+                    color: isOffline ? AppTheme.inkMuted : AppTheme.positive,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            '${player.score}',
+            style: AppTheme.statNumber.copyWith(fontSize: 18),
           ),
         ],
       ),

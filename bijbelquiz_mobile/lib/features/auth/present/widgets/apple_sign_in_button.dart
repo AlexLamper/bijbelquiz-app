@@ -28,9 +28,7 @@ Widget buildAppleSignInButton({
         absorbing: isLoading || onPressed == null,
         child: Opacity(
           opacity: (isLoading || onPressed == null) ? 0.5 : 1.0,
-          child: SignInWithAppleButton(
-            onPressed: onPressed ?? () {},
-          ),
+          child: SignInWithAppleButton(onPressed: onPressed ?? () {}),
         ),
       );
     },

@@ -264,5 +264,4 @@ class MultiplayerRealtimeService {
     }
     return uri.replace(queryParameters: query).toString();
   }
-
 }

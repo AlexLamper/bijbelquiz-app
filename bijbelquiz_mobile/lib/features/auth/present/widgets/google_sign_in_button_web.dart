@@ -6,10 +6,5 @@ Widget buildButton({
   required VoidCallback? onPressed,
   required bool isLoading,
 }) {
-  return SizedBox(
-    height: 48,
-    child: Center(
-      child: web.renderButton(),
-    ),
-  );
+  return SizedBox(height: 48, child: Center(child: web.renderButton()));
 }

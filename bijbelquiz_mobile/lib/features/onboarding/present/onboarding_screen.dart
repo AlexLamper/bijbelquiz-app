@@ -3,29 +3,40 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/app_widgets.dart';
 import '../../auth/present/auth_controller.dart';
+import '../../auth/present/splash_screen.dart' show BijbelQuizWordmark;
+import '../data/onboarding_storage.dart';
 
 class _OnboardingPageData {
   const _OnboardingPageData({
-    required this.icon,
+    required this.index,
     required this.badge,
     required this.title,
+    required this.accent,
     required this.body,
     required this.highlights,
   });
 
-  final IconData icon;
+  final String index;
   final String badge;
+
+  /// Leading part of the headline, rendered in ink.
   final String title;
+
+  /// Trailing part of the headline, rendered in lapis — the site always
+  /// colours one phrase of a heading with `text-lapis`.
+  final String accent;
   final String body;
   final List<String> highlights;
 }
 
 const List<_OnboardingPageData> _pages = [
   _OnboardingPageData(
-    icon: Icons.psychology_rounded,
+    index: '01',
     badge: 'Welkom',
-    title: 'Hoe goed ken jij\nde Bijbel?',
+    title: 'Hoe goed ken jij de ',
+    accent: 'Bijbel?',
     body:
         'Ontdek het met tientallen quizzen. Test je kennis, daag jezelf uit '
         'en leer elke dag iets nieuws over Gods Woord.',
@@ -35,9 +46,10 @@ const List<_OnboardingPageData> _pages = [
     ],
   ),
   _OnboardingPageData(
-    icon: Icons.emoji_events_rounded,
+    index: '02',
     badge: 'Groei',
-    title: 'Klim naar de top\nvan de ranglijst',
+    title: 'Klim naar de top van de ',
+    accent: 'ranglijst',
     body:
         'Verdien punten bij elke vraag, bouw een dagelijkse streak op en '
         'concurreer met spelers uit het hele land.',
@@ -47,9 +59,10 @@ const List<_OnboardingPageData> _pages = [
     ],
   ),
   _OnboardingPageData(
-    icon: Icons.groups_2_rounded,
+    index: '03',
     badge: 'Samen',
-    title: 'Speel samen\nmet vrienden',
+    title: 'Speel samen met ',
+    accent: 'vrienden',
     body:
         'Speciaal ontworpen voor groepen - van gezin tot jeugdvereniging. '
         'Host een room en speel live tegelijk met tot 20 spelers.',
@@ -80,9 +93,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _finish() async {
-    // TEMP (testing): onboarding is shown on every launch and the seen-flag is
-    // not persisted. Re-enable `onboardingStorageProvider.markSeen()` before
-    // release. Route to home if already logged in, otherwise to login.
+    // Persist the seen-flag so the intro never reappears on later launches.
+    await ref.read(onboardingStorageProvider).markSeen();
+
     final token = await ref.read(authStorageProvider).getToken();
     final hasSession = token != null && token.isNotEmpty;
     if (mounted) context.go(hasSession ? '/home' : '/login');
@@ -102,129 +115,76 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: DecoratedBox(
-        decoration: const BoxDecoration(gradient: AppTheme.brandGradient),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Top bar: brand + skip
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 18, 16, 0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 36,
-                          height: 36,
-                          padding: const EdgeInsets.all(5),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.15),
-                                blurRadius: 8,
-                                offset: const Offset(0, 3),
-                              ),
-                            ],
-                          ),
-                          child: Image.asset(
-                            'assets/images/logo-dark.png',
-                            errorBuilder: (context, error, stackTrace) =>
-                                const Icon(
-                                  Icons.menu_book_rounded,
-                                  color: AppTheme.brand,
-                                  size: 18,
-                                ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        const Text(
-                          'BijbelQuiz',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.3,
-                          ),
-                        ),
-                      ],
-                    ),
-                    AnimatedOpacity(
-                      duration: const Duration(milliseconds: 200),
-                      opacity: _isLast ? 0 : 1,
-                      child: TextButton(
-                        onPressed: _isLast ? null : _finish,
-                        child: const Text(
-                          'Overslaan',
-                          style: TextStyle(
-                            color: Color(0xFFC7D2F2),
-                            fontWeight: FontWeight.w600,
-                          ),
+      backgroundColor: AppTheme.paper,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header rail — `sticky top-0 border-b border-rule bg-paper/90`.
+            Container(
+              decoration: const BoxDecoration(
+                border: Border(bottom: BorderSide(color: AppTheme.rule)),
+              ),
+              padding: const EdgeInsets.fromLTRB(20, 0, 12, 0),
+              height: 60,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const BijbelQuizWordmark(fontSize: 20),
+                  AnimatedOpacity(
+                    duration: const Duration(milliseconds: 200),
+                    opacity: _isLast ? 0 : 1,
+                    child: TextButton(
+                      onPressed: _isLast ? null : _finish,
+                      child: Text(
+                        'Overslaan',
+                        style: AppTheme.bodyStrong.copyWith(
+                          color: AppTheme.inkMuted,
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              Expanded(
-                child: PageView.builder(
-                  controller: _controller,
-                  itemCount: _pages.length,
-                  onPageChanged: (i) => setState(() => _index = i),
-                  itemBuilder: (context, i) => _OnboardingPage(data: _pages[i]),
-                ),
+            ),
+            Expanded(
+              child: PageView.builder(
+                controller: _controller,
+                itemCount: _pages.length,
+                onPageChanged: (i) => setState(() => _index = i),
+                itemBuilder: (context, i) => _OnboardingPage(data: _pages[i]),
               ),
-              // Indicators
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+            ),
+            // Hairline step indicator — active segment is solid ink.
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
                 children: List.generate(_pages.length, (i) {
                   final active = i == _index;
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    height: 7,
-                    width: active ? 24 : 7,
-                    decoration: BoxDecoration(
-                      color: active
-                          ? Colors.white
-                          : Colors.white.withValues(alpha: 0.32),
-                      borderRadius: BorderRadius.circular(999),
+                  return Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        right: i == _pages.length - 1 ? 0 : 6,
+                      ),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 250),
+                        height: 2,
+                        color: active ? AppTheme.ink : AppTheme.rule,
+                      ),
                     ),
                   );
                 }),
               ),
-              const SizedBox(height: 22),
-              // CTA
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 22),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _next,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: AppTheme.brand,
-                      minimumSize: const Size.fromHeight(54),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      textStyle: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 16,
-                      ),
-                    ),
-                    child: Text(_isLast ? 'Aan de slag' : 'Volgende'),
-                  ),
-                ),
+            ),
+            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              child: SiteButton(
+                label: _isLast ? 'Aan de slag' : 'Volgende',
+                trailingIcon: Icons.arrow_forward,
+                onPressed: _next,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -238,109 +198,75 @@ class _OnboardingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(28, 12, 28, 12),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Spacer(),
-          // Illustration: layered glow + glass icon tile
-          Center(
-            child: Container(
-              width: 132,
-              height: 132,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(36),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.18),
+          Row(
+            children: [
+              // Serif step number, like the site's `01`/`02` list markers.
+              Text(
+                data.index,
+                style: const TextStyle(
+                  fontFamily: AppTheme.displayFontName,
+                  fontSize: 14,
+                  color: AppTheme.lapis,
+                  fontFeatures: [FontFeature.tabularFigures()],
                 ),
               ),
-              child: Center(
-                child: Container(
-                  width: 84,
-                  height: 84,
-                  decoration: BoxDecoration(
-                    gradient: AppTheme.accentGradient,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppTheme.accent.withValues(alpha: 0.5),
-                        blurRadius: 28,
-                        offset: const Offset(0, 12),
-                      ),
-                    ],
-                  ),
-                  child: Icon(data.icon, color: Colors.white, size: 42),
-                ),
-              ),
-            ),
+              const SizedBox(width: 16),
+              Expanded(child: Eyebrow(data.badge)),
+            ],
           ),
-          const SizedBox(height: 40),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              data.badge.toUpperCase(),
+          const SizedBox(height: 28),
+          // `font-display text-[34px] font-semibold leading-[1.06]
+          //  tracking-[-0.03em]`
+          Text.rich(
+            TextSpan(
               style: const TextStyle(
-                color: Color(0xFFD7E0FA),
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.2,
+                fontFamily: AppTheme.displayFontName,
+                fontSize: 34,
+                fontWeight: FontWeight.w600,
+                height: 1.06,
+                letterSpacing: -1.02,
+                color: AppTheme.ink,
               ),
+              children: [
+                TextSpan(text: data.title),
+                TextSpan(
+                  text: data.accent,
+                  style: const TextStyle(color: AppTheme.lapis),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 14),
-          Text(
-            data.title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 30,
-              height: 1.15,
-              fontWeight: FontWeight.w800,
-              fontFamily: AppTheme.sansFontName,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            data.body,
-            style: const TextStyle(
-              color: Color(0xFFC7D2F2),
-              fontSize: 15.5,
-              height: 1.5,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 20),
+          Text(data.body, style: AppTheme.bodyLead),
+          const SizedBox(height: 28),
+          const RuleLine(),
+          const SizedBox(height: 20),
+          // `space-y-2.5 border-t border-rule pt-5` with positive check icons.
           ...data.highlights.map(
             (text) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 24,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.14),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.check_rounded,
-                      color: Colors.white,
-                      size: 15,
+                  const Padding(
+                    padding: EdgeInsets.only(top: 3),
+                    child: Icon(
+                      Icons.check,
+                      color: AppTheme.positive,
+                      size: 14,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       text,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
+                      style: AppTheme.bodyMuted.copyWith(
+                        color: AppTheme.inkSoft,
                       ),
                     ),
                   ),
@@ -348,7 +274,6 @@ class _OnboardingPage extends StatelessWidget {
               ),
             ),
           ),
-          const Spacer(),
         ],
       ),
     );

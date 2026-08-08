@@ -19,8 +19,10 @@ class ProfileScreen extends ConsumerWidget {
     final leaderboardAsync = ref.watch(leaderboardProvider);
 
     return Scaffold(
-      backgroundColor: AppTheme.canvas,
+      backgroundColor: AppTheme.paper,
       body: RefreshIndicator(
+        color: AppTheme.ink,
+        backgroundColor: AppTheme.paperRaised,
         onRefresh: () async {
           ref.invalidate(profileProvider);
           await ref.read(profileProvider.future);
@@ -39,25 +41,17 @@ class ProfileScreen extends ConsumerWidget {
           ),
           loading: () => ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            children: const [
-              SizedBox(height: 260),
-              Center(child: CircularProgressIndicator()),
-            ],
+            children: const [SizedBox(height: 260), AppLoader()],
           ),
           error: (err, _) => ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(24),
             children: [
-              const SizedBox(height: 120),
-              const Icon(
-                Icons.error_outline,
-                size: 52,
-                color: Colors.redAccent,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Fout bij laden van profiel: $err',
-                textAlign: TextAlign.center,
+              const SizedBox(height: 100),
+              AppEmptyState(
+                icon: Icons.error_outline,
+                title: 'Profiel kon niet laden',
+                description: '$err',
               ),
             ],
           ),
@@ -90,6 +84,8 @@ class ProfileScreen extends ConsumerWidget {
     return index >= 0 ? index + 1 : null;
   }
 
+  /// Sheet styled like the site's dropdown menu:
+  /// `rounded-lg border border-rule bg-paper-raised p-1.5`.
   Future<void> _openSettingsSheet(
     BuildContext context,
     WidgetRef ref,
@@ -97,50 +93,50 @@ class ProfileScreen extends ConsumerWidget {
   ) async {
     await showModalBottomSheet<void>(
       context: context,
+      backgroundColor: AppTheme.paperRaised,
+      elevation: 0,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
       ),
       builder: (sheetContext) {
         return SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 8),
-              Container(
-                width: 42,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppTheme.border,
-                  borderRadius: BorderRadius.circular(999),
-                ),
+              const SizedBox(height: 12),
+              Center(
+                child: Container(width: 36, height: 3, color: AppTheme.rule),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 18),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: Text('INSTELLINGEN', style: AppTheme.overline),
+              ),
+              const SizedBox(height: 14),
+              const RuleLine(),
               if (!profile.isPremium)
-                ListTile(
-                  leading: const Icon(Icons.workspace_premium_rounded),
-                  title: const Text('Ontdek Premium'),
+                _SheetTile(
+                  icon: Icons.workspace_premium_outlined,
+                  label: 'Ontdek Premium',
                   onTap: () {
                     Navigator.of(sheetContext).pop();
                     context.push('/premium');
                   },
                 ),
-              ListTile(
-                leading: const Icon(Icons.refresh_rounded),
-                title: const Text('Profiel vernieuwen'),
+              _SheetTile(
+                icon: Icons.refresh,
+                label: 'Profiel vernieuwen',
                 onTap: () {
                   Navigator.of(sheetContext).pop();
                   ref.invalidate(profileProvider);
                 },
               ),
-              ListTile(
-                leading: const Icon(
-                  Icons.logout_rounded,
-                  color: Colors.redAccent,
-                ),
-                title: const Text(
-                  'Uitloggen',
-                  style: TextStyle(color: Colors.redAccent),
-                ),
+              _SheetTile(
+                icon: Icons.logout,
+                label: 'Uitloggen',
+                color: AppTheme.destructive,
+                showRule: false,
                 onTap: () async {
                   Navigator.of(sheetContext).pop();
 
@@ -154,11 +150,49 @@ class ProfileScreen extends ConsumerWidget {
                   }
                 },
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
             ],
           ),
         );
       },
+    );
+  }
+}
+
+class _SheetTile extends StatelessWidget {
+  const _SheetTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.color = AppTheme.ink,
+    this.showRule = true,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Color color;
+  final bool showRule;
+
+  @override
+  Widget build(BuildContext context) {
+    return RuleListTile(
+      onTap: onTap,
+      showRule: showRule,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: color),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text(
+              label,
+              style: AppTheme.bodyStrong.copyWith(color: color),
+            ),
+          ),
+          const Icon(Icons.arrow_forward, size: 13, color: AppTheme.inkMuted),
+        ],
+      ),
     );
   }
 }
@@ -188,32 +222,80 @@ class _ProfileContent extends StatelessWidget {
     return SafeArea(
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
         children: [
-          GradientHeader(
-            title: 'Profiel',
-            subtitle: 'Jouw voortgang, statistieken en prestaties.',
-            trailing: Material(
-              color: Colors.white.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(12),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: onOpenSettings,
-                child: const SizedBox(
-                  width: 44,
-                  height: 44,
-                  child: Icon(
-                    Icons.settings_rounded,
-                    color: Colors.white,
-                    size: 22,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Eyebrow('Profiel'),
+                    const SizedBox(height: 14),
+                    Text(profile.name, style: AppTheme.displayLarge),
+                    const SizedBox(height: 10),
+                    Text(profile.email, style: AppTheme.bodyLead),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              // `h-9 w-9 rounded-md border-rule bg-paper-raised text-ink`
+              Material(
+                color: AppTheme.paperRaised,
+                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                  onTap: onOpenSettings,
+                  child: Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                      border: Border.all(color: AppTheme.rule),
+                    ),
+                    child: const Icon(
+                      Icons.settings_outlined,
+                      color: AppTheme.inkSoft,
+                      size: 18,
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
           ),
-          const SizedBox(height: 12),
-          _ProfileHeaderCard(profile: profile, rank: rank),
-          const SizedBox(height: 12),
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              SiteBadge.neutral('Level ${profile.level}'),
+              SiteBadge.lapis(rank == null ? 'Rang —' : 'Rang #$rank'),
+              if (profile.isPremium) SiteBadge.vermilion('Premium'),
+            ],
+          ),
+          const SizedBox(height: 28),
+          StatStrip(
+            stacked: true,
+            items: [
+              StatItem(
+                value: '${profile.recentProgress.length}',
+                label: 'Quizzen',
+              ),
+              StatItem(
+                value: '$averageScore%',
+                label: 'Score',
+                ruleColor: AppTheme.positive,
+              ),
+              StatItem(value: _formatNumber(profile.xp), label: 'Punten'),
+            ],
+          ),
+          const SizedBox(height: 40),
+          const SectionHeader(
+            eyebrow: 'Voortgang',
+            title: 'Naar het volgende level',
+          ),
+          const SizedBox(height: 24),
           _ProgressCard(
             level: profile.level,
             currentXpInLevel: currentXpInLevel,
@@ -221,94 +303,36 @@ class _ProfileContent extends StatelessWidget {
             xpRemaining: xpRemaining,
             progress: progress,
           ),
-          const SizedBox(height: 18),
-          const Text(
-            'Jouw Statistieken',
-            style: TextStyle(
-              color: AppTheme.ink,
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              fontFamily: AppTheme.sansFontName,
-            ),
-          ),
-          const SizedBox(height: 10),
-          GridView.count(
-            crossAxisCount: 2,
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            childAspectRatio: 2,
+          const SizedBox(height: 40),
+          const SectionHeader(eyebrow: 'Statistieken', title: 'Jouw cijfers'),
+          const SizedBox(height: 24),
+          RuleGrid(
             children: [
-              _StatCard(
-                title: 'Quizzen',
+              _StatRow(
+                label: 'Quizzen gespeeld',
                 value: '${profile.recentProgress.length}',
-                icon: Icons.quiz_outlined,
-                iconColor: const Color(0xFF6D86DB),
               ),
-              _StatCard(
-                title: 'Nauwkeurigheid',
-                value: '$averageScore%',
-                icon: Icons.track_changes_rounded,
-                iconColor: const Color(0xFF18A96B),
+              _StatRow(label: 'Nauwkeurigheid', value: '$averageScore%'),
+              _StatRow(
+                label: 'Reeks',
+                value:
+                    '${profile.streak} ${profile.streak == 1 ? 'dag' : 'dagen'}',
               ),
-              _StatCard(
-                title: 'Reeks',
-                value: '${profile.streak}',
-                unit: profile.streak == 1 ? 'dag' : 'dagen',
-                icon: Icons.local_fire_department_outlined,
-                iconColor: const Color(0xFFF17A31),
-              ),
-              _StatCard(
-                title: 'Punten',
-                value: _formatNumber(profile.xp),
-                icon: Icons.bolt_rounded,
-                iconColor: const Color(0xFFE9A522),
-              ),
+              _StatRow(label: 'Punten', value: _formatNumber(profile.xp)),
             ],
           ),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'Prestaties',
-                  style: TextStyle(
-                    color: AppTheme.ink,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    fontFamily: AppTheme.sansFontName,
-                  ),
-                ),
-              ),
-              TextButton(
-                onPressed: onViewAllAchievements,
-                style: TextButton.styleFrom(
-                  foregroundColor: AppTheme.accent,
-                  padding: EdgeInsets.zero,
-                  minimumSize: const Size(0, 0),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: const Text(
-                  'Bekijk alles',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-                ),
-              ),
-            ],
+          const SizedBox(height: 40),
+          SectionHeader(
+            eyebrow: 'Prestaties',
+            title: 'Behaalde badges',
+            actionLabel: 'Bekijk alles',
+            onAction: onViewAllAchievements,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 24),
           _AchievementsRow(badges: profile.badges),
-          const SizedBox(height: 18),
-          const Text(
-            'Recente Activiteit',
-            style: TextStyle(
-              color: AppTheme.ink,
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              fontFamily: AppTheme.sansFontName,
-            ),
-          ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 40),
+          const SectionHeader(eyebrow: 'Activiteit', title: 'Recent gespeeld'),
+          const SizedBox(height: 24),
           _RecentActivityList(recentProgress: profile.recentProgress),
         ],
       ),
@@ -327,125 +351,8 @@ class _ProfileContent extends StatelessWidget {
   }
 }
 
-class _ProfileHeaderCard extends StatelessWidget {
-  const _ProfileHeaderCard({required this.profile, required this.rank});
-
-  final ProfileModel profile;
-  final int? rank;
-
-  @override
-  Widget build(BuildContext context) {
-    final initial = profile.name.isEmpty ? 'U' : profile.name[0].toUpperCase();
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 8),
-      child: Row(
-        children: [
-          Container(
-            width: 78,
-            height: 78,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE8EDF8),
-              shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFFC5D0E7), width: 2),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              initial,
-              style: const TextStyle(
-                color: AppTheme.accent,
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
-                fontFamily: AppTheme.sansFontName,
-              ),
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  profile.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: AppTheme.ink,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    fontFamily: AppTheme.sansFontName,
-                    height: 1.08,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  profile.email,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: AppTheme.muted,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _InfoPill(label: 'Level ${profile.level}'),
-                    _InfoPill(
-                      label: rank == null ? 'Rang onbekend' : 'Rang #$rank',
-                    ),
-                    if (profile.isPremium)
-                      const _InfoPill(
-                        label: 'Premium',
-                        tint: Color(0xFFFFF3D6),
-                        textColor: Color(0xFFB07B00),
-                      ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoPill extends StatelessWidget {
-  const _InfoPill({
-    required this.label,
-    this.tint = AppTheme.accentSoft,
-    this.textColor = AppTheme.accent,
-  });
-
-  final String label;
-  final Color tint;
-  final Color textColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-      decoration: BoxDecoration(
-        color: tint.withValues(alpha: 0.72),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppTheme.border),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: textColor,
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-}
-
+/// `rounded-lg border border-rule bg-paper-raised p-5` with a 2px progress
+/// rule — the site never rounds or thickens its bars.
 class _ProgressCard extends StatelessWidget {
   const _ProgressCard({
     required this.level,
@@ -463,57 +370,39 @@ class _ProgressCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.border),
-      ),
+    return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Expanded(
-                child: Text(
-                  'Level $level',
-                  style: const TextStyle(
-                    color: AppTheme.ink,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                    fontFamily: AppTheme.sansFontName,
-                  ),
-                ),
+                child: Text('Level $level', style: AppTheme.displayBase),
               ),
               Text(
-                '${_formatNumber(currentXpInLevel)}/${_formatNumber(levelSpan)} XP',
-                style: const TextStyle(
-                  color: AppTheme.muted,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+                '${_formatNumber(currentXpInLevel)} / ${_formatNumber(levelSpan)} XP',
+                style: AppTheme.caption.copyWith(
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              minHeight: 8,
-              value: progress,
-              backgroundColor: const Color(0xFFEFF3FC),
-              valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.accent),
+          const SizedBox(height: 16),
+          Container(
+            height: 2,
+            width: double.infinity,
+            color: AppTheme.paperSunken,
+            child: FractionallySizedBox(
+              alignment: Alignment.centerLeft,
+              widthFactor: progress,
+              child: Container(color: AppTheme.ink),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Text(
-            '${_formatNumber(xpRemaining)} XP tot Level ${level + 1}',
-            style: const TextStyle(
-              color: AppTheme.muted,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
+            '${_formatNumber(xpRemaining)} XP tot level ${level + 1}',
+            style: AppTheme.caption,
           ),
         ],
       ),
@@ -521,86 +410,21 @@ class _ProgressCard extends StatelessWidget {
   }
 }
 
-class _StatCard extends StatelessWidget {
-  const _StatCard({
-    required this.title,
-    required this.value,
-    this.unit,
-    required this.icon,
-    this.iconColor = AppTheme.accent,
-  });
+/// Label / value row inside a hairline grid.
+class _StatRow extends StatelessWidget {
+  const _StatRow({required this.label, required this.value});
 
-  final String title;
+  final String label;
   final String value;
-  final String? unit;
-  final IconData icon;
-  final Color iconColor;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.start,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: Row(
         children: [
-          Row(
-            children: [
-              Icon(icon, color: iconColor, size: 15),
-              const SizedBox(width: 5),
-              Expanded(
-                child: Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: AppTheme.muted,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 11,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Flexible(
-                child: Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: AppTheme.ink,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    fontFamily: AppTheme.sansFontName,
-                    height: 1,
-                  ),
-                ),
-              ),
-              if (unit != null) ...[
-                const SizedBox(width: 6),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 2),
-                  child: Text(
-                    unit!,
-                    style: const TextStyle(
-                      color: AppTheme.muted,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
+          Expanded(child: Text(label.toUpperCase(), style: AppTheme.overline)),
+          Text(value, style: AppTheme.statNumber.copyWith(fontSize: 18)),
         ],
       ),
     );
@@ -615,42 +439,20 @@ class _AchievementsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final defaults = <_AchievementItem>[
+      const _AchievementItem('Eerste quiz', Icons.star_border),
       const _AchievementItem(
-        'Eerste Quiz',
-        Icons.star_border_rounded,
-        color: Color(0xFFE3A623),
-        tint: Color(0xFFFFF2D5),
-      ),
-      const _AchievementItem(
-        '7-Dagen\nReeks',
+        '7-dagen reeks',
         Icons.local_fire_department_outlined,
-        color: Color(0xFFE87E2F),
-        tint: Color(0xFFFFE8D6),
       ),
-      const _AchievementItem(
-        'Quiz Meester',
-        Icons.emoji_events_outlined,
-        color: Color(0xFF8A6CE0),
-        tint: Color(0xFFEDE7FF),
-      ),
-      const _AchievementItem(
-        'Perfecte\nScore',
-        Icons.gps_fixed_rounded,
-        color: Color(0xFF2EAA7F),
-        tint: Color(0xFFDFF5EC),
-      ),
-      const _AchievementItem(
-        '100 Quizzen',
-        Icons.auto_awesome_rounded,
-        color: Color(0xFF4C8BF3),
-        tint: Color(0xFFE4EEFF),
-      ),
+      const _AchievementItem('Quiz meester', Icons.emoji_events_outlined),
+      const _AchievementItem('Perfecte score', Icons.gps_fixed),
+      const _AchievementItem('100 quizzen', Icons.auto_awesome_outlined),
     ];
 
     final normalizedBadges = badges.map((badge) => badge.toLowerCase()).toSet();
 
     return SizedBox(
-      height: 98,
+      height: 108,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemBuilder: (context, index) {
@@ -659,41 +461,42 @@ class _AchievementsRow extends StatelessWidget {
               index < badges.length ||
               normalizedBadges.any((badge) => badge.contains(item.matchKey));
 
-          return SizedBox(
-            width: 74,
+          // Unlocked badges carry the lapis tint the site uses for accents.
+          return Container(
+            width: 104,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: active ? AppTheme.lapisTint : AppTheme.paperRaised,
+              borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+              border: Border.all(
+                color: active
+                    ? AppTheme.lapis.withValues(alpha: 0.35)
+                    : AppTheme.rule,
+              ),
+            ),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: active ? item.tint : const Color(0xFFDCE2EC),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(
-                    item.icon,
-                    color: active ? item.color : const Color(0xFF9AA6BC),
-                    size: 24,
-                  ),
+                Icon(
+                  item.icon,
+                  size: 20,
+                  color: active ? AppTheme.lapis : AppTheme.ruleStrong,
                 ),
-                const SizedBox(height: 6),
+                const Spacer(),
                 Text(
-                  item.label,
-                  maxLines: 2,
+                  item.label.toUpperCase(),
+                  maxLines: 3,
                   overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: active ? AppTheme.ink : const Color(0xFF9AA6BC),
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
-                    height: 1.16,
+                  style: AppTheme.overline.copyWith(
+                    color: active ? AppTheme.lapis : AppTheme.inkMuted,
+                    height: 1.4,
                   ),
                 ),
               ],
             ),
           );
         },
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
         itemCount: defaults.length,
       ),
     );
@@ -701,17 +504,10 @@ class _AchievementsRow extends StatelessWidget {
 }
 
 class _AchievementItem {
-  const _AchievementItem(
-    this.label,
-    this.icon, {
-    required this.color,
-    required this.tint,
-  });
+  const _AchievementItem(this.label, this.icon);
 
   final String label;
   final IconData icon;
-  final Color color;
-  final Color tint;
 
   String get matchKey {
     return label.replaceAll('\n', ' ').replaceAll('-', ' ').toLowerCase();
@@ -726,81 +522,50 @@ class _RecentActivityList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (recentProgress.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.border),
-        ),
-        child: const Text(
+      return const AppCard(
+        child: Text(
           'Nog geen recente activiteit gevonden.',
-          style: TextStyle(color: AppTheme.muted),
+          style: AppTheme.bodyMuted,
         ),
       );
     }
 
     final visible = recentProgress.take(5).toList();
 
-    return Column(
-      children: visible.map((item) {
-        return Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppTheme.border),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.quizTitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppTheme.ink,
-                        fontWeight: FontWeight.w700,
+    return RuleGrid(
+      children: [
+        for (final item in visible)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.isCompleted ? 'VOLTOOID' : 'IN VOORTGANG',
+                        style: AppTheme.overline,
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      item.isCompleted ? 'Voltooid' : 'In voortgang',
-                      style: const TextStyle(
-                        color: AppTheme.muted,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                      const SizedBox(height: 6),
+                      Text(
+                        item.quizTitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTheme.displayBase,
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEAF0FF),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  '${item.score}%',
-                  style: const TextStyle(
-                    color: AppTheme.ink,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12,
+                    ],
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 12),
+                Text(
+                  '${item.score}%',
+                  style: AppTheme.statNumber.copyWith(fontSize: 18),
+                ),
+              ],
+            ),
           ),
-        );
-      }).toList(),
+      ],
     );
   }
 }
@@ -814,7 +579,7 @@ String _formatNumber(int value) {
     final reverseIndex = digits.length - i;
     buffer.write(digits[i]);
     if (reverseIndex > 1 && reverseIndex % 3 == 1) {
-      buffer.write(',');
+      buffer.write('.');
     }
   }
 

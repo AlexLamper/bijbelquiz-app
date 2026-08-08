@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Modify this file to customize your launch splash screen -->
+<!-- Launch background uses the paper colour (#faf9f6) from www.bijbelquiz.com -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@android:color/white" />
+    <item android:drawable="@color/paper" />
 
     <!-- You can insert your own image assets here -->
     <!-- <item>

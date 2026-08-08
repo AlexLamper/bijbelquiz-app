@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
+
+/// Site button.
+///
+/// Primary  : `h-12 rounded-md bg-ink px-5 text-ink-inverted hover:bg-ink-soft`
+/// Secondary: `h-12 rounded-md border border-rule bg-paper-raised text-ink
+///             hover:bg-paper-sunken`
 class PrimaryButton extends StatelessWidget {
   final String text;
   final VoidCallback? onPressed;
   final bool isLoading;
   final bool isSecondary;
   final Widget? leading;
+  final double height;
 
   const PrimaryButton({
     super.key,
@@ -14,53 +22,61 @@ class PrimaryButton extends StatelessWidget {
     this.isLoading = false,
     this.isSecondary = false,
     this.leading,
+    this.height = 48,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final bgColor = isSecondary
-        ? theme.colorScheme.surface
-        : theme.colorScheme.primary;
-    final fgColor = isSecondary ? theme.colorScheme.onSurface : Colors.white;
+    final bgColor = isSecondary ? AppTheme.paperRaised : AppTheme.ink;
+    final fgColor = isSecondary ? AppTheme.ink : AppTheme.inkInverted;
 
     return SizedBox(
       width: double.infinity,
-      height: 56,
+      height: height,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: bgColor,
           foregroundColor: fgColor,
+          disabledBackgroundColor: isSecondary
+              ? AppTheme.paperSunken
+              : AppTheme.ink.withValues(alpha: 0.45),
+          disabledForegroundColor: isSecondary
+              ? AppTheme.inkMuted
+              : AppTheme.inkInverted.withValues(alpha: 0.75),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
             side: isSecondary
-                ? BorderSide(color: theme.colorScheme.outline)
+                ? const BorderSide(color: AppTheme.rule)
                 : BorderSide.none,
           ),
-          elevation: isSecondary ? 0 : 2,
+          elevation: 0,
+          shadowColor: Colors.transparent,
+          textStyle: AppTheme.buttonLabel,
         ),
         onPressed: isLoading ? null : onPressed,
         child: isLoading
-            ? const SizedBox(
-                width: 24,
-                height: 24,
+            ? SizedBox(
+                width: 18,
+                height: 18,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  valueColor: AlwaysStoppedAnimation<Color>(fgColor),
                 ),
               )
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (leading != null) ...[
-                    leading!,
-                    const SizedBox(width: 10),
-                  ],
-                  Text(
-                    text,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                  if (leading != null) ...[leading!, const SizedBox(width: 10)],
+                  Flexible(
+                    child: Text(
+                      text,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: AppTheme.sansFontName,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ],

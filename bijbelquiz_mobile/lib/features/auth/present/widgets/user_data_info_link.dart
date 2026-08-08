@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_theme.dart';
+
 /// Subtle link that explains how user data is handled.
 Widget buildUserDataInfoLink(BuildContext context) {
   final theme = Theme.of(context);
@@ -41,8 +43,9 @@ Widget buildUserDataInfoLink(BuildContext context) {
         'Meer over gegevensgebruik',
         style: theme.textTheme.bodySmall?.copyWith(
           fontSize: 12,
-          color: const Color(0xFF8A8F98),
+          color: AppTheme.inkMuted,
           decoration: TextDecoration.underline,
+          decorationColor: AppTheme.ruleStrong,
         ),
       ),
     ),
