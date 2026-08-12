@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/config/app_config.dart';
+import '../../../core/errors/app_error.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/app_notice.dart';
 import '../../../core/ui/app_widgets.dart';
 import '../data/purchase_service.dart';
 import 'premium_controller.dart';
@@ -43,9 +45,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
         ),
       );
     } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Aankopen hersteld.')));
+      AppNotice.success(context, 'Aankopen hersteld.');
     }
   }
 
@@ -65,8 +65,12 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
       mode: LaunchMode.externalApplication,
     );
     if (!didLaunch && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Kon link niet openen. Probeer opnieuw.')),
+      AppNotice.error(
+        context,
+        const AppError(
+          title: 'Link niet geopend',
+          message: 'We konden deze pagina niet openen. Probeer het opnieuw.',
+        ),
       );
     }
   }
@@ -81,12 +85,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
       } else if (next.status == PurchaseStatus.error &&
           next.errorMessage != null) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(next.errorMessage!),
-            backgroundColor: AppTheme.destructive,
-          ),
-        );
+        AppNotice.error(context, next.errorMessage);
         ref.read(premiumControllerProvider.notifier).clearStatus();
       }
     });

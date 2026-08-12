@@ -85,7 +85,11 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                   if (sortedEntries.isEmpty)
                     const _EmptyLeaderboardState()
                   else
-                    _LeaderboardTable(entries: sortedEntries),
+                    _LeaderboardTable(
+                      // Collapse again when the player switches period.
+                      key: ValueKey(_selectedRange),
+                      entries: sortedEntries,
+                    ),
                 ],
               );
             },
@@ -121,7 +125,6 @@ class _RangeSelector extends StatelessWidget {
   final ValueChanged<LeaderboardPeriod> onSelect;
 
   static const Map<LeaderboardPeriod, String> _labels = {
-    LeaderboardPeriod.week: 'Wekelijks',
     LeaderboardPeriod.month: 'Maandelijks',
     LeaderboardPeriod.all: 'All-time',
   };
@@ -172,13 +175,30 @@ class _RangeSelector extends StatelessWidget {
   }
 }
 
-class _LeaderboardTable extends StatelessWidget {
-  const _LeaderboardTable({required this.entries});
+class _LeaderboardTable extends StatefulWidget {
+  const _LeaderboardTable({super.key, required this.entries});
 
   final List<LeaderboardEntry> entries;
 
+  /// Rows shown before the list has to be expanded. Keeps a 100-player board
+  /// from turning the page into an endless scroll.
+  static const int collapsedLimit = 20;
+
+  @override
+  State<_LeaderboardTable> createState() => _LeaderboardTableState();
+}
+
+class _LeaderboardTableState extends State<_LeaderboardTable> {
+  bool _expanded = false;
+
   @override
   Widget build(BuildContext context) {
+    final total = widget.entries.length;
+    final canCollapse = total > _LeaderboardTable.collapsedLimit;
+    final visible = _expanded || !canCollapse
+        ? widget.entries
+        : widget.entries.take(_LeaderboardTable.collapsedLimit).toList();
+
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
@@ -208,13 +228,68 @@ class _LeaderboardTable extends StatelessWidget {
               ],
             ),
           ),
-          for (var i = 0; i < entries.length; i++)
+          for (var i = 0; i < visible.length; i++)
             _LeaderboardRow(
-              entry: entries[i],
+              entry: visible[i],
               rank: i + 1,
-              isLast: i == entries.length - 1,
+              isLast: !canCollapse && i == visible.length - 1,
+            ),
+          if (canCollapse)
+            _ShowMoreRow(
+              expanded: _expanded,
+              total: total,
+              onTap: () => setState(() => _expanded = !_expanded),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// Footer row of the table — `border-t border-rule` with a centred label, so
+/// expanding reads as part of the table rather than as a floating button.
+class _ShowMoreRow extends StatelessWidget {
+  const _ShowMoreRow({
+    required this.expanded,
+    required this.total,
+    required this.onTap,
+  });
+
+  final bool expanded;
+  final int total;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        highlightColor: AppTheme.paperSunken,
+        splashColor: AppTheme.paperSunken,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Flexible(
+                child: Text(
+                  expanded ? 'TOON MINDER' : 'TOON ALLE $total SPELERS',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.overline.copyWith(color: AppTheme.ink),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                expanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                size: 16,
+                color: AppTheme.inkSoft,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -298,8 +373,6 @@ class _LeaderboardRow extends StatelessWidget {
 extension on LeaderboardPeriod {
   String get shortLabel {
     switch (this) {
-      case LeaderboardPeriod.week:
-        return 'Week';
       case LeaderboardPeriod.month:
         return 'Maand';
       case LeaderboardPeriod.all:

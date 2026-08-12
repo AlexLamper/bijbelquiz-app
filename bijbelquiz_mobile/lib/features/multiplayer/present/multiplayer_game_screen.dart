@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/errors/app_error.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/app_notice.dart';
 import '../../../core/ui/app_widgets.dart';
 import '../../profile/present/profile_provider.dart';
+import '../data/multiplayer_api_exception.dart';
 import '../domain/multiplayer_models.dart';
 import 'multiplayer_session_controller.dart';
 
@@ -50,11 +53,11 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
       if (_isRoomMissingError(session.lastError)) {
         if (_handledRoomMissing) return;
         _handledRoomMissing = true;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Deze kamer lijkt niet meer beschikbaar. Controleer de status of ga terug.',
-            ),
+        AppNotice.error(
+          context,
+          const MultiplayerApiException(
+            code: 'ROOM_NOT_FOUND',
+            message: 'Kamer niet gevonden.',
           ),
         );
         return;
@@ -111,7 +114,7 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
         child: sessionAsync.when(
           data: (session) => _buildContent(context, session),
           loading: () => const AppLoader(),
-          error: (error, _) => _buildError(context, _toMessage(error)),
+          error: (error, _) => _buildError(context, AppError.from(error)),
         ),
       ),
     );
@@ -499,11 +502,11 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
     );
   }
 
-  Widget _buildError(BuildContext context, String message) {
+  Widget _buildError(BuildContext context, AppError error) {
     return AppEmptyState(
-      icon: Icons.error_outline,
-      title: 'Kamer niet beschikbaar',
-      description: message,
+      icon: error.icon,
+      title: error.title,
+      description: error.message,
       action: SiteOutlineButton(
         label: 'Opnieuw proberen',
         expand: false,
@@ -519,12 +522,6 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
     );
   }
 
-  static String _toMessage(Object error) {
-    final text = error.toString();
-    return text.startsWith('Exception: ')
-        ? text.replaceFirst('Exception: ', '')
-        : text;
-  }
 
   bool _isRoomMissingError(String? error) {
     final normalized = error?.toLowerCase() ?? '';

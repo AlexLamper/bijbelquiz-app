@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/errors/app_error.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/app_notice.dart';
 import '../../../core/ui/app_widgets.dart';
 import '../../profile/present/profile_provider.dart';
 import '../../quiz/data/quiz_repository.dart';
 import '../../quiz/domain/quiz.dart';
+import '../data/multiplayer_api_exception.dart';
 import 'multiplayer_action_controller.dart';
 
 enum _PlayMode { create, join }
@@ -40,7 +43,12 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
       final profile = await ref.read(profileProvider.future);
       if (!profile.isPremium) {
         if (!mounted) return;
-        _showMessage('Kamer hosten is een premium functie.');
+        _showError(
+          const MultiplayerApiException(
+            code: 'PREMIUM_REQUIRED',
+            message: 'Kamer hosten is een premium functie.',
+          ),
+        );
         context.push('/premium');
         return;
       }
@@ -54,15 +62,16 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
       if (!mounted) return;
       context.push('/play-together/room/${room.code}');
     } catch (error) {
-      final message = _toMessage(error);
-      if (message.toLowerCase().contains('premium')) {
+      final mapped = AppError.from(error);
+      if (mapped.title.toLowerCase().contains('premium') ||
+          mapped.message.toLowerCase().contains('premium')) {
         if (!mounted) return;
-        _showMessage('Kamer hosten is een premium functie.');
+        _showError(error);
         context.push('/premium');
         return;
       }
 
-      _showMessage(message);
+      _showError(error);
     }
   }
 
@@ -89,7 +98,7 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
       if (!mounted) return;
       context.push('/play-together/room/${room.code}');
     } catch (error) {
-      _showMessage(_toMessage(error));
+      _showError(error);
     }
   }
 
@@ -199,20 +208,11 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    AppNotice.info(context, message);
   }
 
-  static String _toMessage(Object error) {
-    final raw = error.toString();
-    if (raw.contains('PREMIUM_REQUIRED')) {
-      return 'Kamer hosten is een premium functie.';
-    }
-
-    return raw.startsWith('Exception: ')
-        ? raw.replaceFirst('Exception: ', '')
-        : raw;
+  void _showError(Object error) {
+    AppNotice.error(context, error);
   }
 }
 
@@ -600,7 +600,10 @@ class _QuickStartQuizzes extends StatelessWidget {
           children: [
             for (final quiz in visible)
               Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
                 child: Row(
                   children: [
                     Expanded(
@@ -615,7 +618,9 @@ class _QuickStartQuizzes extends StatelessWidget {
                           ),
                           const SizedBox(height: 5),
                           Text(
-                            '${quiz.questionCount} VRAGEN',
+                            '${quiz.questionCount} VRAGEN  ·  ${quiz.difficultyLabelNl}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: AppTheme.overline,
                           ),
                         ],

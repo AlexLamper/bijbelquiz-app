@@ -123,7 +123,8 @@ class PremiumController extends Notifier<PremiumState> {
       state = state.copyWith(
         status: PurchaseStatus.error,
         errorMessage:
-            'Product niet gevonden in App Store/RevenueCat. Controleer of je IAP-producten gekoppeld en beschikbaar zijn.',
+            'Dit abonnement is nu niet beschikbaar in de App Store. Probeer '
+            'het later opnieuw.',
       );
       _log(
         'Product lookup failed. Requested="$productId", error="$e". '
@@ -133,7 +134,8 @@ class PremiumController extends Notifier<PremiumState> {
     } catch (e) {
       state = state.copyWith(
         status: PurchaseStatus.error,
-        errorMessage: 'Aankoop mislukt: $e',
+        errorMessage: 'De aankoop is niet afgerond. Er is niets in rekening '
+            'gebracht.',
       );
       _log('Purchase failed with error: $e');
     }

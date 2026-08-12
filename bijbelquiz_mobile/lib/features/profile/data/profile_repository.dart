@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_client.dart';
 import '../../auth/present/auth_controller.dart';
+import 'badge_catalog.dart';
 import 'profile_model.dart';
 import 'package:dio/dio.dart';
 
@@ -29,6 +30,31 @@ class ProfileRepository {
       throw Exception('Fout bij ophalen profiel: ${e.message}');
     } catch (_) {
       throw Exception('Onbekende fout bij ophalen profiel');
+    }
+  }
+
+  /// Achievement definitions straight from the database.
+  ///
+  /// `GET /api/mobile/badges` does not exist yet, so an empty list means
+  /// "fall back to the built-in catalogue" rather than "no achievements".
+  Future<List<BadgeDefinition>> getBadgeDefinitions() async {
+    try {
+      final response = await _apiClient.dio.get('/badges');
+      final data = response.data;
+
+      final items = data is List
+          ? data
+          : (data is Map && data['badges'] is List)
+          ? data['badges'] as List
+          : const [];
+
+      return items
+          .whereType<Map<String, dynamic>>()
+          .map(BadgeDefinition.fromJson)
+          .where((definition) => definition.code.isNotEmpty)
+          .toList();
+    } catch (_) {
+      return const <BadgeDefinition>[];
     }
   }
 

@@ -8,6 +8,7 @@ import '../../profile/present/profile_provider.dart';
 import '../data/quiz_repository.dart';
 import '../domain/answer.dart';
 import '../domain/question.dart';
+import '../domain/quiz.dart';
 
 class QuizPlayerScreen extends ConsumerStatefulWidget {
   final String idOrSlug;
@@ -22,16 +23,23 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
   int _currentIndex = 0;
   Answer? _selectedAnswer;
   bool _isAnswered = false;
+  int _correctCount = 0;
+
+  /// XP the server actually awarded, once the attempt has been reported.
+  int? _awardedXp;
+  bool _resultSubmitted = false;
 
   void _handleOptionSelected(Answer answer) {
     if (_isAnswered) return;
     setState(() {
       _selectedAnswer = answer;
       _isAnswered = true;
+      if (answer.isCorrect) _correctCount++;
     });
   }
 
-  void _nextQuestion(int totalQuestions) {
+  void _nextQuestion(Quiz quiz) {
+    final totalQuestions = quiz.questions.length;
     setState(() {
       if (_currentIndex < totalQuestions - 1) {
         _currentIndex++;
@@ -41,6 +49,29 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
         _currentIndex++;
       }
     });
+
+    if (_currentIndex >= totalQuestions) {
+      _submitResult(quiz);
+    }
+  }
+
+  Future<void> _submitResult(Quiz quiz) async {
+    if (_resultSubmitted) return;
+    _resultSubmitted = true;
+
+    final awarded = await ref
+        .read(quizRepositoryProvider)
+        .submitQuizResult(
+          quizId: quiz.id,
+          correctAnswers: _correctCount,
+          totalQuestions: quiz.questions.length,
+        );
+
+    if (!mounted) return;
+    setState(() => _awardedXp = awarded);
+
+    // The profile header, streak and badges all move on a finished quiz.
+    ref.invalidate(profileProvider);
   }
 
   @override
@@ -62,7 +93,7 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
             }
 
             if (_currentIndex >= quiz.questions.length) {
-              return _buildFinishedScreen(quiz.xpReward, quiz.questions.length);
+              return _buildFinishedScreen(quiz);
             }
 
             final question = quiz.questions[_currentIndex];
@@ -155,7 +186,7 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
                     child: SafeArea(
                       top: false,
-                      child: _buildNextQuestionButton(totalQuestions),
+                      child: _buildNextQuestionButton(quiz),
                     ),
                   ),
               ],
@@ -350,13 +381,13 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
     );
   }
 
-  Widget _buildNextQuestionButton(int totalQuestions) {
-    final bool isLastQuestion = _currentIndex == totalQuestions - 1;
+  Widget _buildNextQuestionButton(Quiz quiz) {
+    final bool isLastQuestion = _currentIndex == quiz.questions.length - 1;
 
     return SiteButton(
       label: isLastQuestion ? 'Rond quiz af' : 'Volgende vraag',
       trailingIcon: Icons.arrow_forward,
-      onPressed: () => _nextQuestion(totalQuestions),
+      onPressed: () => _nextQuestion(quiz),
     );
   }
 
@@ -467,7 +498,19 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
 
   /// Result page, in the site's centred CTA-section layout:
   /// eyebrow -> `font-display text-[26px]` -> lead -> rule-divided stats.
-  Widget _buildFinishedScreen(int xpReward, int totalQuestions) {
+  Widget _buildFinishedScreen(Quiz quiz) {
+    final totalQuestions = quiz.questions.length;
+    // XP scales with how much you got right, exactly like the quiz's own
+    // reward value implies. The server's number wins whenever it answers.
+    final earnedXp =
+        _awardedXp ??
+        (totalQuestions == 0
+            ? 0
+            : (quiz.xpReward * _correctCount / totalQuestions).round());
+    final percentage = totalQuestions == 0
+        ? 0
+        : (_correctCount * 100 / totalQuestions).round();
+
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
@@ -484,8 +527,9 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
             ),
             const SizedBox(height: 14),
             Text(
-              'Je hebt $xpReward XP verdiend. Ga door om je reeks in stand te '
-              'houden en verder te stijgen op de ranglijst.',
+              'Je had $_correctCount van de $totalQuestions vragen goed en '
+              'verdiende $earnedXp XP. Ga door om je reeks in stand te houden '
+              'en verder te stijgen op de ranglijst.',
               textAlign: TextAlign.center,
               style: AppTheme.bodyLead,
             ),
@@ -493,9 +537,13 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
             StatStrip(
               stacked: true,
               items: [
-                StatItem(value: '$totalQuestions', label: 'Vragen'),
                 StatItem(
-                  value: '$xpReward',
+                  value: '$_correctCount/$totalQuestions',
+                  label: 'Goed',
+                ),
+                StatItem(value: '$percentage%', label: 'Score'),
+                StatItem(
+                  value: '$earnedXp',
                   label: 'XP',
                   ruleColor: AppTheme.positive,
                 ),

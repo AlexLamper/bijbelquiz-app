@@ -7,6 +7,7 @@ import '../../../core/ui/app_widgets.dart';
 import '../../leaderboard/data/leaderboard_repository.dart';
 import '../../leaderboard/domain/leaderboard_entry.dart';
 import '../../auth/present/auth_controller.dart';
+import '../data/badge_catalog.dart';
 import '../data/profile_model.dart';
 import 'profile_provider.dart';
 
@@ -431,35 +432,32 @@ class _StatRow extends StatelessWidget {
   }
 }
 
-class _AchievementsRow extends StatelessWidget {
+class _AchievementsRow extends ConsumerWidget {
   const _AchievementsRow({required this.badges});
 
   final List<String> badges;
 
   @override
-  Widget build(BuildContext context) {
-    final defaults = <_AchievementItem>[
-      const _AchievementItem('Eerste quiz', Icons.star_border),
-      const _AchievementItem(
-        '7-dagen reeks',
-        Icons.local_fire_department_outlined,
-      ),
-      const _AchievementItem('Quiz meester', Icons.emoji_events_outlined),
-      const _AchievementItem('Perfecte score', Icons.gps_fixed),
-      const _AchievementItem('100 quizzen', Icons.auto_awesome_outlined),
-    ];
+  Widget build(BuildContext context, WidgetRef ref) {
+    final catalog =
+        ref.watch(badgeCatalogProvider).asData?.value ?? kFallbackBadgeCatalog;
 
-    final normalizedBadges = badges.map((badge) => badge.toLowerCase()).toSet();
+    // Badges the account holds that the catalogue does not describe still get
+    // a tile, so nothing earned goes missing here.
+    final items = <BadgeDefinition>[
+      ...catalog,
+      ...badges
+          .where((badge) => !catalog.any((entry) => entry.matches(badge)))
+          .map((badge) => resolveBadge(badge, catalog)),
+    ];
 
     return SizedBox(
       height: 108,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemBuilder: (context, index) {
-          final item = defaults[index];
-          final active =
-              index < badges.length ||
-              normalizedBadges.any((badge) => badge.contains(item.matchKey));
+          final item = items[index];
+          final active = item.isUnlockedBy(badges);
 
           // Unlocked badges carry the lapis tint the site uses for accents.
           return Container(
@@ -497,20 +495,9 @@ class _AchievementsRow extends StatelessWidget {
           );
         },
         separatorBuilder: (_, __) => const SizedBox(width: 10),
-        itemCount: defaults.length,
+        itemCount: items.length,
       ),
     );
-  }
-}
-
-class _AchievementItem {
-  const _AchievementItem(this.label, this.icon);
-
-  final String label;
-  final IconData icon;
-
-  String get matchKey {
-    return label.replaceAll('\n', ' ').replaceAll('-', ' ').toLowerCase();
   }
 }
 

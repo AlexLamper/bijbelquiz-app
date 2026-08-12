@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/errors/app_error.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/app_widgets.dart';
 import '../domain/multiplayer_models.dart';
@@ -73,7 +74,7 @@ class _MultiplayerResultsScreenState
             return _buildResults(context, session);
           },
           loading: () => const AppLoader(),
-          error: (error, _) => _buildError(context, _toMessage(error)),
+          error: (error, _) => _buildError(context, AppError.from(error)),
         ),
       ),
     );
@@ -194,11 +195,11 @@ class _MultiplayerResultsScreenState
     );
   }
 
-  Widget _buildError(BuildContext context, String message) {
+  Widget _buildError(BuildContext context, AppError error) {
     return AppEmptyState(
-      icon: Icons.error_outline,
-      title: 'Resultaten niet beschikbaar',
-      description: message,
+      icon: error.icon,
+      title: error.title,
+      description: error.message,
       action: SiteOutlineButton(
         label: 'Opnieuw proberen',
         expand: false,
@@ -214,12 +215,6 @@ class _MultiplayerResultsScreenState
     );
   }
 
-  static String _toMessage(Object error) {
-    final text = error.toString();
-    return text.startsWith('Exception: ')
-        ? text.replaceFirst('Exception: ', '')
-        : text;
-  }
 }
 
 class _ResultRow extends StatelessWidget {

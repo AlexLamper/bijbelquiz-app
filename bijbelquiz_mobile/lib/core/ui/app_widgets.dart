@@ -495,6 +495,10 @@ class SiteButton extends StatelessWidget {
       width: expand ? double.infinity : null,
       child: FilledButton(
         onPressed: loading ? null : onPressed,
+        // The theme sets `minimumSize: Size.fromHeight(48)`, i.e. an *infinite*
+        // minimum width. Inside a Row that swallows the whole line and starves
+        // the flexible siblings, so a non-expanding button must drop it.
+        style: expand ? null : _compactStyle(height),
         child: loading
             ? const SizedBox(
                 width: 18,
@@ -548,6 +552,9 @@ class SiteOutlineButton extends StatelessWidget {
       width: expand ? double.infinity : null,
       child: OutlinedButton(
         onPressed: onPressed,
+        // See [SiteButton.build]: the theme's infinite minimum width has to go
+        // when the button shares a Row with flexible content.
+        style: expand ? null : _compactStyle(height),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -561,6 +568,19 @@ class SiteOutlineButton extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Style override for buttons that must size to their label instead of to the
+/// full line. Only the properties that need to differ are set, so everything
+/// else still comes from the theme.
+ButtonStyle _compactStyle(double height) {
+  return ButtonStyle(
+    minimumSize: WidgetStatePropertyAll<Size>(Size(0, height)),
+    padding: const WidgetStatePropertyAll<EdgeInsetsGeometry>(
+      EdgeInsets.symmetric(horizontal: 14),
+    ),
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+  );
 }
 
 /// A rule-separated list row, as used by the leaderboard and settings lists.

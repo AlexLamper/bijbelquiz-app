@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/app_notice.dart';
 import '../../../core/ui/app_widgets.dart';
 import '../../../core/ui/primary_button.dart';
 import '../../../core/ui/custom_text_field.dart';
@@ -38,10 +39,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (next.hasValue && next.value != null) {
         context.go('/home');
       } else if (next.hasError) {
-        final msg = next.error.toString();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(msg.replaceAll('Exception: ', ''))),
-        );
+        AppNotice.error(context, next.error);
       }
     });
 

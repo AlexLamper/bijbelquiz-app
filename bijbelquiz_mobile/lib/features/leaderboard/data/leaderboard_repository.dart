@@ -3,13 +3,11 @@ import '../../auth/present/auth_controller.dart';
 import '../../../core/api/api_client.dart';
 import '../domain/leaderboard_entry.dart';
 
-enum LeaderboardPeriod { week, month, all }
+enum LeaderboardPeriod { month, all }
 
 extension LeaderboardPeriodX on LeaderboardPeriod {
   String get apiValue {
     switch (this) {
-      case LeaderboardPeriod.week:
-        return 'weekly';
       case LeaderboardPeriod.month:
         return 'monthly';
       case LeaderboardPeriod.all:

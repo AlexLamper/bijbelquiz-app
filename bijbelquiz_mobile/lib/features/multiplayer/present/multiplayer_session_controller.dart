@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/errors/app_error.dart';
 import '../../auth/present/auth_controller.dart';
 import '../data/multiplayer_api_exception.dart';
 import '../data/multiplayer_realtime_service.dart';
@@ -419,29 +420,7 @@ class MultiplayerSessionController
     );
   }
 
-  String _errorText(Object error) {
-    if (error is MultiplayerApiException) {
-      switch (error.code) {
-        case 'ROOM_NOT_FOUND':
-          return 'Deze kamer bestaat niet meer of is gesloten. Ga terug en start een nieuwe kamer.';
-        case 'NETWORK_ERROR':
-          return 'Netwerkprobleem. Controleer je verbinding en probeer opnieuw.';
-        default:
-          return error.message;
-      }
-    }
-
-    final text = error.toString();
-    if (text.contains('WebSocketException') ||
-        text.contains('WebSocketChannelException')) {
-      return 'Realtime verbinding niet beschikbaar. Verversing blijft actief.';
-    }
-
-    if (text.startsWith('Exception: ')) {
-      return text.replaceFirst('Exception: ', '');
-    }
-    return text;
-  }
+  String _errorText(Object error) => AppError.messageOf(error);
 
   MultiplayerRoom? _roomFromPayload(Map<String, dynamic> payload) {
     final roomData = payload['room'];
