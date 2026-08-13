@@ -7,11 +7,11 @@ on:
   workflow_dispatch:
     inputs:
       build_name:
-        description: "Version name (e.g. 1.0.3). Leave blank to read it from pubspec.yaml."
+        description: "Version name (e.g. 1.0.3). Leave blank to resolve it automatically from pubspec.yaml + App Store Connect."
         required: false
         default: ""
       build_number:
-        description: "Build number — MUST be higher than the last uploaded build (e.g. 36). Leave blank to use the run number."
+        description: "Build number (e.g. 46). Leave blank to resolve it automatically from App Store Connect."
         required: false
         default: ""
 
@@ -109,6 +109,22 @@ jobs:
           echo "Using provisioning profile: $PP_NAME ($PP_UUID)"
           echo "Provisioning profile app id: $APP_BUNDLE_ID"
 
+      # ── 3b. Resolve version ──────────────────────────────────────────────────
+      # Asks App Store Connect which version/build numbers already exist and picks
+      # the next free pair, so an unbumped pubspec.yaml can no longer fail the
+      # upload with error 90062 ("must contain a higher version").
+      - name: Resolve version and build number
+        env:
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+          INPUT_BUILD_NAME: ${{ github.event.inputs.build_name }}
+          INPUT_BUILD_NUMBER: ${{ github.event.inputs.build_number }}
+          PUBSPEC_PATH: bijbelquiz_mobile/pubspec.yaml
+        run: |
+          python3 -m pip install --quiet --disable-pip-version-check pyjwt cryptography
+          python3 .github/workflows/scripts/resolve_version.py
+
       # ── 4. ExportOptions ─────────────────────────────────────────────────────
       # Tells Xcode to export for App Store Connect distribution.
       - name: Create ExportOptions.plist
@@ -149,12 +165,7 @@ jobs:
           APPLE_SERVICE_ID: ${{ vars.APPLE_SERVICE_ID }}
           APPLE_REDIRECT_URI: ${{ vars.APPLE_REDIRECT_URI }}
         run: |
-          # Version name: use the manual input, else the version from pubspec.yaml.
-          BUILD_NAME="${{ github.event.inputs.build_name }}"
-          if [ -z "$BUILD_NAME" ]; then
-            BUILD_NAME="$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//' | cut -d'+' -f1)"
-          fi
-          BUILD_NUMBER="${{ github.event.inputs.build_number || github.run_number }}"
+          # BUILD_NAME / BUILD_NUMBER come from the "Resolve version" step.
           echo "Building $BUILD_NAME ($BUILD_NUMBER)"
 
           if [ -z "${REVENUECAT_APPLE_KEY:-}" ]; then
