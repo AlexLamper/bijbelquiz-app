@@ -122,8 +122,11 @@ jobs:
           INPUT_BUILD_NUMBER: ${{ github.event.inputs.build_number }}
           PUBSPEC_PATH: bijbelquiz_mobile/pubspec.yaml
         run: |
-          python3 -m pip install --quiet --disable-pip-version-check pyjwt cryptography
-          python3 .github/workflows/scripts/resolve_version.py
+          # macOS runners ship a Homebrew python that refuses system-wide pip
+          # installs (PEP 668), so install into a throwaway virtualenv.
+          python3 -m venv "$RUNNER_TEMP/versionvenv"
+          "$RUNNER_TEMP/versionvenv/bin/python" -m pip install --quiet --disable-pip-version-check pyjwt cryptography
+          "$RUNNER_TEMP/versionvenv/bin/python" .github/workflows/scripts/resolve_version.py
 
       # ── 4. ExportOptions ─────────────────────────────────────────────────────
       # Tells Xcode to export for App Store Connect distribution.
