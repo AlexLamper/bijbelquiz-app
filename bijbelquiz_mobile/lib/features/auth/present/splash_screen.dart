@@ -33,7 +33,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       // user instead of an anonymous RevenueCat id.
       await ref.read(authControllerProvider.notifier).restoreSession();
 
-      // A signed-in user never sees the onboarding again — it is a
+      // A signed-in user never sees the onboarding again - it is a
       // first-run intro for visitors who still have to create an account.
       // Mark it seen so signing out later also skips it.
       await ref.read(onboardingStorageProvider).markSeen();
@@ -50,7 +50,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Paper background with the site wordmark — the site has no dark hero.
+    // Paper background with the site wordmark - the site has no dark hero.
     return const Scaffold(
       backgroundColor: AppTheme.paper,
       body: Center(

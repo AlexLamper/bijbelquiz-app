@@ -1,6 +1,17 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="com.android.vending.BILLING" />
+    <!-- The evening streak reminder. POST_NOTIFICATIONS is the Android 13+
+         runtime permission, asked for only when the player switches the
+         reminder on; RECEIVE_BOOT_COMPLETED lets the pending reminder survive
+         a restart.
+
+         Deliberately NOT declared: SCHEDULE_EXACT_ALARM / USE_EXACT_ALARM.
+         Google Play only grants those to alarm clocks and calendars, and the
+         reminder is scheduled inexactly - nobody minds whether it lands at
+         19:00 or 19:07. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <application
         android:label="Bijbelquiz"
         android:name="${applicationName}"
@@ -26,6 +37,22 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- App Links for room invitations. `autoVerify` makes Android
+                 check https://www.bijbelquiz.com/.well-known/assetlinks.json
+                 at install time; until that file carries a real fingerprint
+                 verification fails and the link opens the browser, which is
+                 the current behaviour and is not an error. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="www.bijbelquiz.com" android:pathPrefix="/samen-spelen"/>
+                <data android:scheme="https" android:host="bijbelquiz.com" android:pathPrefix="/samen-spelen"/>
+            </intent-filter>
+            <!-- Flutter's deep-link handling is opt-in from Android 12 up. -->
+            <meta-data
+                android:name="flutter_deeplinking_enabled"
+                android:value="true" />
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

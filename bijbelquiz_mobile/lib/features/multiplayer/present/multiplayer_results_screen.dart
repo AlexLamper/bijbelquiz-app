@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/avatar/avatar_catalog.dart';
+import '../../../core/avatar/mascot_avatar.dart';
 import '../../../core/errors/app_error.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/app_notice.dart';
 import '../../../core/ui/app_widgets.dart';
+import '../../groups/data/player_group_repository.dart';
 import '../domain/multiplayer_models.dart';
 import 'multiplayer_session_controller.dart';
 
@@ -21,6 +25,9 @@ class MultiplayerResultsScreen extends ConsumerStatefulWidget {
 class _MultiplayerResultsScreenState
     extends ConsumerState<MultiplayerResultsScreen> {
   bool _requestedResults = false;
+  bool _savingGroup = false;
+  bool _groupDismissed = false;
+  String? _savedGroupName;
 
   @override
   Widget build(BuildContext context) {
@@ -131,7 +138,7 @@ class _MultiplayerResultsScreenState
           items: [
             StatItem(value: '${sorted.length}', label: 'Spelers'),
             StatItem(
-              value: winner == null ? '—' : '${winner.score}',
+              value: winner == null ? '-' : '${winner.score}',
               label: 'Topscore',
               ruleColor: AppTheme.positive,
             ),
@@ -151,7 +158,15 @@ class _MultiplayerResultsScreenState
           RuleGrid(
             children: [
               for (var i = 0; i < sorted.length; i++)
-                _ResultRow(entry: sorted[i], rank: i + 1),
+                _ResultRow(
+                  entry: sorted[i],
+                  rank: i + 1,
+                  // The results payload carries no mascot, so it is read off
+                  // the room snapshot, which still holds every player.
+                  avatar: session.room
+                      .playerById(sorted[i].playerId)
+                      ?.avatar,
+                ),
             ],
           ),
         if (session.lastError != null) ...[
@@ -172,6 +187,7 @@ class _MultiplayerResultsScreenState
           ),
         ],
         const SizedBox(height: 32),
+        _buildSaveGroupPrompt(session),
         SiteButton(
           label: 'Terug naar home',
           onPressed: () async {
@@ -193,6 +209,97 @@ class _MultiplayerResultsScreenState
         ),
       ],
     );
+  }
+
+  /// Offers to keep the people who just played.
+  ///
+  /// Shown here and nowhere else. This is the one moment the group provably
+  /// exists, everybody's name is on screen, and nobody has walked off yet; a
+  /// prompt buried in settings a week later reaches no one.
+  Widget _buildSaveGroupPrompt(MultiplayerSessionState session) {
+    if (session.room.players.length < 2 || _groupDismissed) {
+      return const SizedBox.shrink();
+    }
+
+    if (_savedGroupName != null) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('"$_savedGroupName" is bewaard.', style: AppTheme.bodyStrong),
+              const SizedBox(height: 6),
+              Text(
+                'Je vindt de stand van deze groep op de ranglijst.',
+                style: AppTheme.bodyMuted,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppTheme.lapisTint,
+          borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+          border: Border.all(color: AppTheme.lapis.withValues(alpha: 0.35)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Deze groep bewaren?', style: AppTheme.bodyStrong),
+            const SizedBox(height: 6),
+            Text(
+              'Dan houd je een eigen ranglijst bij met deze '
+              '${session.room.players.length} spelers, en nodig je ze de '
+              'volgende keer met een tik weer uit.',
+              style: AppTheme.bodyMuted,
+            ),
+            const SizedBox(height: 16),
+            SiteButton(
+              label: 'Groep bewaren',
+              loading: _savingGroup,
+              onPressed: _savingGroup ? null : _saveGroup,
+            ),
+            const SizedBox(height: 8),
+            SiteOutlineButton(
+              label: 'Nee, bedankt',
+              height: 40,
+              onPressed: () => setState(() => _groupDismissed = true),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _saveGroup() async {
+    setState(() => _savingGroup = true);
+
+    try {
+      final group = await ref
+          .read(playerGroupRepositoryProvider)
+          .createFromRoom(widget.roomCode);
+
+      // The leaderboard screen reads this list, and it is not auto-disposed,
+      // so a stale copy would hide the group the user just made.
+      ref.invalidate(playerGroupsProvider);
+
+      if (!mounted) return;
+      setState(() {
+        _savedGroupName = group.name;
+        _savingGroup = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _savingGroup = false);
+      AppNotice.error(context, AppError.messageOf(error));
+    }
   }
 
   Widget _buildError(BuildContext context, AppError error) {
@@ -218,10 +325,15 @@ class _MultiplayerResultsScreenState
 }
 
 class _ResultRow extends StatelessWidget {
-  const _ResultRow({required this.entry, required this.rank});
+  const _ResultRow({
+    required this.entry,
+    required this.rank,
+    required this.avatar,
+  });
 
   final MultiplayerLeaderboardEntry entry;
   final int rank;
+  final AvatarConfig? avatar;
 
   @override
   Widget build(BuildContext context) {
@@ -255,7 +367,13 @@ class _ResultRow extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 12),
+          MascotAvatar(
+            avatar: avatar ?? AvatarConfig.fromSeed(entry.playerId),
+            size: 36,
+            bordered: true,
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

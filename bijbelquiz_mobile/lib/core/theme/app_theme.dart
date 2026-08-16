@@ -22,10 +22,10 @@ class AppTheme {
   // Typefaces
   // ---------------------------------------------------------------------
 
-  /// Body / UI face — Inter (`--font-sans`).
+  /// Body / UI face - Inter (`--font-sans`).
   static const String sansFontName = 'Inter';
 
-  /// Display face — Newsreader (`--font-serif`, used via `.font-display`).
+  /// Display face - Newsreader (`--font-serif`, used via `.font-display`).
   static const String displayFontName = 'Newsreader';
 
   /// Kept for backwards compatibility with older call sites.
@@ -60,7 +60,7 @@ class AppTheme {
 
   static const Color destructive = Color(0xFF9B3B26);
 
-  // Dark palette (site `.dark`) — exposed so surfaces that must stay dark
+  // Dark palette (site `.dark`) - exposed so surfaces that must stay dark
   // (splash / onboarding) use the exact same values as the website.
   static const Color darkPaper = Color(0xFF0D0D0C);
   static const Color darkPaperRaised = Color(0xFF161513);
@@ -82,22 +82,22 @@ class AppTheme {
   // Semantic aliases (legacy names kept so existing screens keep compiling)
   // ---------------------------------------------------------------------
 
-  /// Page background — `bg-paper`.
+  /// Page background - `bg-paper`.
   static const Color canvas = paper;
 
-  /// Card background — `bg-paper-raised`.
+  /// Card background - `bg-paper-raised`.
   static const Color surface = paperRaised;
 
-  /// Muted / secondary text — `text-ink-muted`.
+  /// Muted / secondary text - `text-ink-muted`.
   static const Color muted = inkMuted;
 
-  /// Hairline — `border-rule`.
+  /// Hairline - `border-rule`.
   static const Color border = rule;
 
-  /// Accent — `text-lapis` / `bg-lapis`.
+  /// Accent - `text-lapis` / `bg-lapis`.
   static const Color accent = lapis;
 
-  /// Accent wash — `bg-lapis-tint`.
+  /// Accent wash - `bg-lapis-tint`.
   static const Color accentSoft = lapisTint;
 
   /// Active filter chip on the site is solid ink, not a tint.
@@ -116,17 +116,17 @@ class AppTheme {
   // Radii (`--radius: .5rem`)
   // ---------------------------------------------------------------------
 
-  /// `rounded-lg` — cards, panels.
+  /// `rounded-lg` - cards, panels.
   static const double radiusLg = 8;
 
-  /// `rounded-md` — buttons, inputs, images.
+  /// `rounded-md` - buttons, inputs, images.
   static const double radiusMd = 6;
 
-  /// `rounded-sm` — badges.
+  /// `rounded-sm` - badges.
   static const double radiusSm = 4;
 
   // ---------------------------------------------------------------------
-  // Gradients — the site is flat, so these are near-solid ink washes used
+  // Gradients - the site is flat, so these are near-solid ink washes used
   // only by the full-bleed splash / onboarding surfaces.
   // ---------------------------------------------------------------------
 
@@ -159,7 +159,7 @@ class AppTheme {
   }
 
   // ---------------------------------------------------------------------
-  // Type scale — mirrors the utility classes used on the site
+  // Type scale - mirrors the utility classes used on the site
   // ---------------------------------------------------------------------
 
   /// `font-display text-[32px] font-normal leading-[1.08] tracking-[-0.025em]`
@@ -182,7 +182,7 @@ class AppTheme {
     color: ink,
   );
 
-  /// `font-display text-xl font-normal tracking-[-0.015em]` — section titles.
+  /// `font-display text-xl font-normal tracking-[-0.015em]` - section titles.
   static const TextStyle displaySmall = TextStyle(
     fontFamily: displayFontName,
     fontSize: 20,
@@ -192,7 +192,7 @@ class AppTheme {
     color: ink,
   );
 
-  /// `font-display text-lg font-normal leading-snug` — card titles.
+  /// `font-display text-lg font-normal leading-snug` - card titles.
   static const TextStyle displayTitle = TextStyle(
     fontFamily: displayFontName,
     fontSize: 18,
@@ -211,7 +211,7 @@ class AppTheme {
   );
 
   /// `font-display text-[22px] font-normal leading-none tracking-[-0.015em]
-  /// tabular-nums` — the stat numbers in rule-separated strips.
+  /// tabular-nums` - the stat numbers in rule-separated strips.
   static const TextStyle statNumber = TextStyle(
     fontFamily: displayFontName,
     fontSize: 22,
@@ -282,7 +282,7 @@ class AppTheme {
     color: inkMuted,
   );
 
-  /// Button label — `text-sm font-medium`.
+  /// Button label - `text-sm font-medium`.
   static const TextStyle buttonLabel = TextStyle(
     fontFamily: sansFontName,
     fontSize: 14,

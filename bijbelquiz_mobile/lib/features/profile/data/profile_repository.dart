@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_client.dart';
+import '../../../core/avatar/avatar_catalog.dart';
 import '../../auth/present/auth_controller.dart';
 import 'badge_catalog.dart';
 import 'profile_model.dart';
@@ -9,6 +10,28 @@ final profileRepositoryProvider = Provider((ref) {
   final apiClient = ref.watch(apiClientProvider);
   return ProfileRepository(apiClient);
 });
+
+/// What the server accepted after an identity change.
+class IdentityUpdate {
+  const IdentityUpdate({
+    required this.name,
+    required this.avatar,
+    required this.nameChangeAllowedInDays,
+  });
+
+  final String name;
+  final AvatarConfig avatar;
+  final int nameChangeAllowedInDays;
+}
+
+/// Carries the server's own Dutch message straight to the UI.
+class IdentityUpdateException implements Exception {
+  const IdentityUpdateException(this.message);
+  final String message;
+
+  @override
+  String toString() => message;
+}
 
 class ProfileRepository {
   final ApiClient _apiClient;
@@ -33,10 +56,63 @@ class ProfileRepository {
     }
   }
 
-  /// Achievement definitions straight from the database.
+  /// Writes a new display name and/or mascot.
   ///
-  /// `GET /api/mobile/badges` does not exist yet, so an empty list means
-  /// "fall back to the built-in catalogue" rather than "no achievements".
+  /// `PUT /api/mobile/profile` runs the same `updateIdentity` the website
+  /// posts to, so the 30 day rename cooldown and the mascot catalogue check
+  /// behave the same on both platforms. The server's own error text is Dutch
+  /// and contextual (it names the number of days left), so it is surfaced
+  /// verbatim rather than replaced with a generic message.
+  Future<IdentityUpdate> updateIdentity({
+    String? name,
+    AvatarConfig? avatar,
+  }) async {
+    try {
+      final response = await _apiClient.dio.put(
+        '/profile',
+        data: {
+          if (name != null) 'name': name,
+          if (avatar != null) 'avatar': avatar.toJson(),
+        },
+      );
+
+      final data = response.data?['data'] ?? response.data;
+      final map = data is Map ? Map<String, dynamic>.from(data) : const {};
+
+      return IdentityUpdate(
+        name: map['name'] as String? ?? name ?? '',
+        avatar: map['avatar'] is Map
+            ? AvatarConfig.fromJson(
+                Map<String, dynamic>.from(map['avatar'] as Map),
+              )
+            : avatar ?? AvatarConfig.fallback,
+        nameChangeAllowedInDays:
+            (map['nameChangeAllowedInDays'] as num?)?.toInt() ?? 0,
+      );
+    } on DioException catch (error) {
+      throw IdentityUpdateException(_serverMessage(error));
+    } catch (_) {
+      throw const IdentityUpdateException(
+        'Opslaan is niet gelukt. Probeer het opnieuw.',
+      );
+    }
+  }
+
+  String _serverMessage(DioException error) {
+    final data = error.response?.data;
+    if (data is Map) {
+      final message = data['error'] ?? data['message'];
+      final text = message?.toString().trim();
+      if (text != null && text.isNotEmpty) return text;
+    }
+
+    return 'Opslaan is niet gelukt. Controleer je verbinding.';
+  }
+
+  /// Achievement definitions straight from the server catalogue.
+  ///
+  /// An empty list means "fall back to the built-in catalogue" rather than
+  /// "no achievements", so an unreachable backend never blanks the screen.
   Future<List<BadgeDefinition>> getBadgeDefinitions() async {
     try {
       final response = await _apiClient.dio.get('/badges');

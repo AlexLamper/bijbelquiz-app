@@ -147,7 +147,7 @@ class QuizDetailScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
-                // Sticky CTA bar — `border-t border-rule bg-paper-raised`.
+                // Sticky CTA bar - `border-t border-rule bg-paper-raised`.
                 Container(
                   decoration: const BoxDecoration(
                     color: AppTheme.paperRaised,

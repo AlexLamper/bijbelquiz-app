@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../analytics/analytics.dart';
+import '../config/app_config.dart';
 import '../config/preview_config.dart';
 import '../theme/app_theme.dart';
 
@@ -14,6 +16,8 @@ import '../../features/quiz/present/library_screen.dart';
 import '../../features/leaderboard/present/leaderboard_screen.dart';
 import '../../features/profile/present/profile_screen.dart';
 import '../../features/profile/present/profile_achievements_screen.dart';
+import '../../features/profile/present/profile_identity_screen.dart';
+import '../../features/premium/present/group_license_screen.dart';
 import '../../features/premium/present/premium_screen.dart';
 import '../../features/multiplayer/present/play_together_screen.dart';
 import '../../features/multiplayer/present/multiplayer_lobby_screen.dart';
@@ -31,7 +35,7 @@ class MainScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     final currentIndex = _calculateSelectedIndex(context);
 
-    // `border-t border-rule bg-paper-raised` — the site's mobile tab bar.
+    // `border-t border-rule bg-paper-raised` - the site's mobile tab bar.
     return Scaffold(
       backgroundColor: AppTheme.paper,
       body: child,
@@ -64,7 +68,9 @@ class MainScaffold extends StatelessWidget {
 
   static const List<_NavItemData> _items = [
     _NavItemData(Icons.home_outlined, Icons.home, 'Home'),
-    _NavItemData(Icons.menu_book_outlined, Icons.menu_book, 'Quizzen'),
+    // `menu_book` read as "read a chapter", not "answer questions", and sat
+    // too close to the Bible imagery used elsewhere in the app.
+    _NavItemData(Icons.quiz_outlined, Icons.quiz, 'Quizzen'),
     _NavItemData(Icons.leaderboard_outlined, Icons.leaderboard, 'Ranglijst'),
     _NavItemData(Icons.groups_outlined, Icons.groups, 'Samen'),
     _NavItemData(Icons.person_outline, Icons.person, 'Profiel'),
@@ -109,7 +115,7 @@ class _NavItemData {
   final String label;
 }
 
-/// Tab item — active is solid ink with a `bg-lapis` marker rule above it,
+/// Tab item - active is solid ink with a `bg-lapis` marker rule above it,
 /// matching the underline the site draws under the active desktop nav link
 /// (`after:absolute after:bottom-0 after:h-px after:bg-lapis`).
 class _NavItem extends StatelessWidget {
@@ -157,12 +163,56 @@ class _NavItem extends StatelessWidget {
   }
 }
 
+/// Maps an incoming website invite URL onto the app's own routes.
+///
+/// The shared link is `/samen-spelen/CODE/lobby?bron=uitnodiging`, which is a
+/// real page on bijbelquiz.com so that somebody without the app still lands
+/// somewhere useful. When the app *is* installed the OS hands us that same
+/// path, and this turns it into `/play-together/room/CODE`.
+///
+/// `bron` is preserved so the join is still attributed to the invite in the
+/// funnel; dropping it here would make every deep-linked join look like a
+/// typed code.
+String? _redirectWebInviteLinks(BuildContext context, GoRouterState state) {
+  final segments = state.uri.pathSegments;
+  if (segments.isEmpty || segments.first != 'samen-spelen') return null;
+
+  // `/samen-spelen` on its own is the entry page, not a room.
+  if (segments.length < 2) return '/play-together';
+
+  final code = segments[1].toUpperCase();
+  final viaInvite =
+      state.uri.queryParameters[AppConfig.inviteSourceParam] ==
+      AppConfig.inviteSourceValue;
+  final query = viaInvite
+      ? '?${AppConfig.inviteSourceParam}=${AppConfig.inviteSourceValue}'
+      : '';
+
+  final base = '/play-together/room/$code';
+
+  // The website uses Dutch path segments for the phases; the app uses English
+  // ones. Anything else - including `/lobby` - is the lobby.
+  final phase = segments.length > 2 ? segments[2] : 'lobby';
+  switch (phase) {
+    case 'spel':
+      return '$base/play$query';
+    case 'uitslag':
+      return '$base/results$query';
+    default:
+      return '$base$query';
+  }
+}
+
 // Router Provider
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     // Design-preview mode skips splash/onboarding/login and lands on the
     // dashboard so the styling can be reviewed straight away.
     initialLocation: PreviewConfig.enabled ? '/home' : '/',
+    // An invite link is a *website* URL - the app has no say in its shape,
+    // because it also has to work for somebody without the app. Translating it
+    // here is what lets one link serve both.
+    redirect: _redirectWebInviteLinks,
     routes: [
       GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
       GoRoute(
@@ -201,11 +251,24 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/profile/achievements',
             builder: (context, state) => const ProfileAchievementsScreen(),
           ),
+          GoRoute(
+            path: '/profile/edit',
+            builder: (context, state) => const ProfileIdentityScreen(),
+          ),
         ],
       ),
       GoRoute(
+        path: '/group-license',
+        builder: (context, state) => const GroupLicenseScreen(),
+      ),
+      GoRoute(
         path: '/premium',
-        builder: (context, state) => const PremiumScreen(),
+        // `?reden=` names the surface that raised the paywall, so the screen
+        // can open on what the player was stopped from doing and the funnel
+        // can attribute the sale to it.
+        builder: (context, state) => PremiumScreen(
+          trigger: state.uri.queryParameters['reden'] ?? PaywallTrigger.direct,
+        ),
       ),
       GoRoute(
         path: '/play-together/room/:roomCode',

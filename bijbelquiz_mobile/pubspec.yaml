@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.6+46
+version: 1.0.8+48
 
 environment:
   sdk: ^3.8.0
@@ -41,12 +41,19 @@ dependencies:
   google_sign_in: ^7.2.0
   sign_in_with_apple: ^6.1.4
   dio: ^5.9.2
-  web_socket_channel: ^3.0.3
   cached_network_image: ^3.4.1
   flutter_svg: ^2.2.3
   google_sign_in_web: ^1.1.0
   purchases_flutter: ^8.7.3
   url_launcher: ^6.3.2
+  # Native share sheet for room invitations: on a phone that is one tap into
+  # WhatsApp, which is where these groups actually organise themselves.
+  share_plus: ^12.0.2
+  # The evening streak reminder. Scheduled on the device, not pushed: there is
+  # no Firebase project, no APNs certificate and no server involved, and a
+  # reminder about a streak the phone already knows about does not need one.
+  flutter_local_notifications: ^19.4.2
+  timezone: ^0.10.1
 
 dev_dependencies:
   flutter_test:

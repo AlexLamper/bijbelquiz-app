@@ -7,8 +7,8 @@ import '../../features/multiplayer/data/multiplayer_api_exception.dart';
 
 /// A user-facing error, in Dutch.
 ///
-/// Everything the app throws — API codes like `ROOM_NOT_FOUND (404)`, Dio
-/// failures, raw English repository messages — is funnelled through
+/// Everything the app throws - API codes like `ROOM_NOT_FOUND (404)`, Dio
+/// failures, raw English repository messages - is funnelled through
 /// [AppError.from] so the UI never shows a code or a stack trace to a player.
 @immutable
 class AppError {
@@ -26,7 +26,7 @@ class AppError {
 
   final IconData icon;
 
-  /// Generic last resort — used whenever the underlying error carries nothing
+  /// Generic last resort - used whenever the underlying error carries nothing
   /// a player could act on.
   static const AppError unknown = AppError(
     title: 'Er ging iets mis',
@@ -199,7 +199,7 @@ class AppError {
 
     final lower = text.toLowerCase();
 
-    // 1. A known code hiding in the text wins — that is the precise answer.
+    // 1. A known code hiding in the text wins - that is the precise answer.
     final codeMatch = _codePattern.firstMatch(text);
     if (codeMatch != null) {
       final mapped = _forCode(codeMatch.group(0)!);

@@ -6,7 +6,7 @@ import '../theme/app_theme.dart';
 /// Snackbars in the app's own editorial styling: paper card, hairline rule,
 /// a coloured marker down the left edge instead of a filled banner.
 ///
-/// Use [AppNotice.error] for anything thrown — it runs through [AppError], so
+/// Use [AppNotice.error] for anything thrown - it runs through [AppError], so
 /// raw codes like `ROOM_NOT_FOUND (404)` never reach a player.
 class AppNotice {
   const AppNotice._();
@@ -102,7 +102,7 @@ class _NoticeCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // `border-l-2 border-vermilion` — the site's notice marker.
+              // `border-l-2 border-vermilion` - the site's notice marker.
               Container(width: 3, color: accent),
               Expanded(
                 child: Padding(

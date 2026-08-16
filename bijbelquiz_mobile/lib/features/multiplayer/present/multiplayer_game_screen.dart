@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'dart:async';
+
+import '../../../core/avatar/mascot_avatar.dart';
 import '../../../core/errors/app_error.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/app_notice.dart';
@@ -23,6 +26,11 @@ class MultiplayerGameScreen extends ConsumerStatefulWidget {
 
 class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
   bool _handledRoomMissing = false;
+
+  bool _isHost(MultiplayerRoom room) {
+    final userId = ref.read(profileProvider).asData?.value.id;
+    return room.isHost(userId);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -124,21 +132,15 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
     final room = session.room;
     final question = room.currentQuestion;
     final roomMissing = _isRoomMissingError(session.lastError);
-    final sortedPlayers = _sortPlayersByScore(room.players);
-    final allPlayersAnswered =
-        sortedPlayers.isNotEmpty &&
-        sortedPlayers.every((player) => player.hasAnswered);
-    final showAnswerReveal =
-        room.status == MultiplayerRoomStatus.questionResult ||
-        allPlayersAnswered;
-    final correctAnswerId = question?.resolvedCorrectAnswerId ?? '';
-    final selectedAnswerId =
-        (session.selectedAnswerId != null &&
-            session.selectedAnswerId!.isNotEmpty)
-        ? session.selectedAnswerId
-        : ((question?.selectedAnswerId.isNotEmpty ?? false)
-              ? question?.selectedAnswerId
-              : null);
+    final sortedPlayers = room.standings;
+
+    // Only the server reveals. It withholds `correctAnswerId` while the room
+    // is `in_progress` precisely so a client cannot show the answer early, and
+    // guessing from "everyone has answered" produced a reveal card with
+    // nothing to reveal for the beat before the next poll landed.
+    final showAnswerReveal = question?.isRevealed ?? false;
+    final correctAnswerId = question?.correctAnswerId ?? '';
+    final selectedAnswerId = session.selectedAnswerId;
 
     if (question == null) {
       return Center(
@@ -181,7 +183,7 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildQuestionHeader(question),
+          _buildQuestionHeader(question, session),
           const SizedBox(height: 28),
           Text(
             question.text,
@@ -207,7 +209,7 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
               correctAnswerId: correctAnswerId,
               selectedAnswerId: selectedAnswerId,
             ),
-          if (showAnswerReveal)
+          if (showAnswerReveal) ...[
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: _buildAnswerOutcomeCard(
@@ -215,8 +217,28 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
                 selectedAnswerId: selectedAnswerId,
                 correctAnswerId: correctAnswerId,
               ),
-            )
-          else if (session.hasSubmittedCurrentAnswer)
+            ),
+            if (question.explanation != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: _NoticeBlock(
+                  accent: AppTheme.lapis,
+                  label: 'Toelichting',
+                  message: question.explanation!,
+                ),
+              ),
+            // The host can cut the reveal pause short instead of everyone
+            // waiting out the full twelve seconds.
+            if (_isHost(room) && room.status == MultiplayerRoomStatus.questionResult)
+              Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: SiteButton(
+                  label: 'Volgende vraag',
+                  trailingIcon: Icons.arrow_forward,
+                  onPressed: controller.advance,
+                ),
+              ),
+          ] else if (session.hasAnswered)
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: _NoticeBlock(
@@ -246,13 +268,13 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
           const SizedBox(height: 40),
           const SectionHeader(eyebrow: 'Live', title: 'Voortgang'),
           const SizedBox(height: 24),
-          _buildProgress(sortedPlayers),
+          _buildProgress(sortedPlayers, showAnswerReveal),
         ],
       ),
     );
   }
 
-  /// Answer option — identical treatment to the single-player quiz:
+  /// Answer option - identical treatment to the single-player quiz:
   /// `rounded-md border border-rule bg-paper-raised`, revealed states use
   /// `bg-positive-tint / border-positive/35` and the vermilion equivalents.
   Widget _buildAnswerOption({
@@ -270,7 +292,7 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
     final isCorrect =
         correctAnswerId.isNotEmpty && correctAnswerId == answer.id;
     final canAnswer =
-        !roomMissing && !session.hasSubmittedCurrentAnswer && !showAnswerReveal;
+        !roomMissing && !session.hasAnswered && !showAnswerReveal;
 
     Color background = AppTheme.paperRaised;
     Color borderColor = AppTheme.rule;
@@ -344,6 +366,16 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
                     ),
                   ),
                 ),
+                // How the room split. Only present after the reveal, which is
+                // also the only moment the server sends it.
+                if (showAnswerReveal && answer.count != null)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 10),
+                    child: Text(
+                      '${answer.count}x',
+                      style: AppTheme.caption.copyWith(color: textColor),
+                    ),
+                  ),
                 if (showAnswerReveal && isCorrect)
                   const Padding(
                     padding: EdgeInsets.only(left: 10),
@@ -371,8 +403,10 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
   }
 
   /// `border-y border-rule` rail: question counter left, countdown right.
-  Widget _buildQuestionHeader(MultiplayerQuestionState question) {
-    final seconds = question.remainingSeconds.clamp(0, 600);
+  Widget _buildQuestionHeader(
+    MultiplayerQuestionState question,
+    MultiplayerSessionState session,
+  ) {
     final progress = question.totalQuestions == 0
         ? 0.0
         : question.questionNumber / question.totalQuestions;
@@ -390,20 +424,19 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
                 ),
               ),
             ),
-            TweenAnimationBuilder<double>(
-              key: ValueKey('${question.id}-${question.remainingSeconds}'),
-              tween: Tween<double>(begin: seconds.toDouble(), end: 0),
-              duration: Duration(seconds: seconds),
-              builder: (context, value, child) {
-                return Text(
-                  '${value.ceil()}s',
-                  style: AppTheme.overline.copyWith(
-                    color: AppTheme.vermilion,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
-                );
-              },
-            ),
+            if (!question.isRevealed)
+              _Countdown(
+                remainingMs: () => session.questionRemainingMs,
+                fallbackSeconds: question.remainingSeconds,
+                color: AppTheme.vermilion,
+              )
+            else if (session.resultPhaseRemainingMs != null)
+              _Countdown(
+                remainingMs: () => session.resultPhaseRemainingMs,
+                fallbackSeconds: 0,
+                color: AppTheme.lapis,
+                prefix: 'volgende in ',
+              ),
           ],
         ),
         const SizedBox(height: 12),
@@ -420,31 +453,62 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
     );
   }
 
-  Widget _buildProgress(List<MultiplayerPlayer> players) {
+  Widget _buildProgress(List<MultiplayerPlayer> players, bool revealed) {
     return RuleGrid(
       children: [
         for (final player in players)
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             child: Row(
               children: [
+                MascotAvatar(avatar: player.avatar, size: 30, bordered: true),
+                const SizedBox(width: 12),
+                // During the reveal the server says who was right; while
+                // answering it only says who has responded.
                 Icon(
-                  player.hasAnswered
-                      ? Icons.check_circle_outline
-                      : Icons.radio_button_unchecked,
+                  revealed
+                      ? (player.answeredCorrectly == true
+                            ? Icons.check_circle
+                            : player.answeredCorrectly == false
+                            ? Icons.cancel
+                            : Icons.remove_circle_outline)
+                      : (player.hasAnswered
+                            ? Icons.check_circle_outline
+                            : Icons.radio_button_unchecked),
                   size: 16,
-                  color: player.hasAnswered
-                      ? AppTheme.positive
-                      : AppTheme.ruleStrong,
+                  color: revealed
+                      ? (player.answeredCorrectly == true
+                            ? AppTheme.positive
+                            : player.answeredCorrectly == false
+                            ? AppTheme.destructive
+                            : AppTheme.ruleStrong)
+                      : (player.hasAnswered
+                            ? AppTheme.positive
+                            : AppTheme.ruleStrong),
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     player.name.isEmpty ? 'Speler' : player.name,
                     overflow: TextOverflow.ellipsis,
-                    style: AppTheme.bodyStrong,
+                    style: player.isConnected
+                        ? AppTheme.bodyStrong
+                        : AppTheme.bodyStrong.copyWith(
+                            color: AppTheme.inkMuted,
+                          ),
                   ),
                 ),
+                if (revealed && (player.scoreGained ?? 0) > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Text(
+                      '+${player.scoreGained}',
+                      style: AppTheme.caption.copyWith(
+                        color: AppTheme.positive,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
                 Text(
                   '${player.score}',
                   style: AppTheme.statNumber.copyWith(fontSize: 18),
@@ -454,20 +518,6 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
           ),
       ],
     );
-  }
-
-  List<MultiplayerPlayer> _sortPlayersByScore(List<MultiplayerPlayer> players) {
-    final sorted = [...players];
-    sorted.sort((a, b) {
-      final scoreCompare = b.score.compareTo(a.score);
-      if (scoreCompare != 0) return scoreCompare;
-
-      final correctCompare = b.correctAnswers.compareTo(a.correctAnswers);
-      if (correctCompare != 0) return correctCompare;
-
-      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-    });
-    return sorted;
   }
 
   Widget _buildAnswerOutcomeCard({
@@ -587,10 +637,71 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
     await ref
         .read(multiplayerSessionControllerProvider(widget.roomCode).notifier)
         .stopMatch();
+
+    // Polling has stopped, so nothing would move this screen on by itself.
+    if (!mounted) return;
+    context.go('/play-together');
   }
 }
 
-/// Tinted notice block — `bg-<accent>-tint border-<accent>/35 rounded-lg`.
+/// Ticking countdown against a server deadline.
+///
+/// Reads the remaining time from the session on every tick rather than
+/// animating a fixed duration: polls land at irregular moments, and a tween
+/// restarted on each one visibly stutters. [fallbackSeconds] covers the case
+/// where the server sent no absolute deadline.
+class _Countdown extends StatefulWidget {
+  const _Countdown({
+    required this.remainingMs,
+    required this.fallbackSeconds,
+    required this.color,
+    this.prefix = '',
+  });
+
+  final int? Function() remainingMs;
+  final int fallbackSeconds;
+  final Color color;
+  final String prefix;
+
+  @override
+  State<_Countdown> createState() => _CountdownState();
+}
+
+class _CountdownState extends State<_Countdown> {
+  Timer? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = Timer.periodic(const Duration(milliseconds: 250), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final remaining = widget.remainingMs();
+    final seconds = remaining == null
+        ? widget.fallbackSeconds
+        : (remaining / 1000).ceil();
+
+    return Text(
+      '${widget.prefix}${seconds.clamp(0, 600)}s',
+      style: AppTheme.overline.copyWith(
+        color: widget.color,
+        fontFeatures: const [FontFeature.tabularFigures()],
+      ),
+    );
+  }
+}
+
+/// Tinted notice block - `bg-<accent>-tint border-<accent>/35 rounded-lg`.
 class _NoticeBlock extends StatelessWidget {
   const _NoticeBlock({
     required this.accent,
@@ -608,6 +719,8 @@ class _NoticeBlock extends StatelessWidget {
         ? AppTheme.positiveTint
         : accent == AppTheme.destructive
         ? AppTheme.vermilionTint
+        : accent == AppTheme.lapis
+        ? AppTheme.lapisTint
         : AppTheme.paperSunken;
 
     return Container(

@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../data/multiplayer_api_exception.dart';
 import '../data/multiplayer_repository.dart';
 import '../domain/multiplayer_models.dart';
 
@@ -9,6 +8,22 @@ final multiplayerActionControllerProvider =
       MultiplayerActionController.new,
     );
 
+/// What this account may do right now, straight from the server.
+///
+/// The app used to gate hosting on `profile.isPremium` alone, which hid the
+/// free games every account gets: the quota lives on the server and is only
+/// spent when a game actually starts, so only the server can answer this.
+final multiplayerCapabilityProvider =
+    FutureProvider.autoDispose<MultiplayerCapability>((ref) async {
+      return ref.watch(multiplayerRepositoryProvider).getCapability();
+    });
+
+/// The unfinished room this account is already in, if any.
+final activeMultiplayerRoomProvider =
+    FutureProvider.autoDispose<MultiplayerRoom?>((ref) async {
+      return ref.watch(multiplayerRepositoryProvider).getActiveRoom();
+    });
+
 class MultiplayerActionController extends AsyncNotifier<void> {
   MultiplayerRepository get _repository =>
       ref.read(multiplayerRepositoryProvider);
@@ -16,17 +31,11 @@ class MultiplayerActionController extends AsyncNotifier<void> {
   @override
   Future<void> build() async {}
 
-  Future<MultiplayerRoom> createRoom({
-    required String quizId,
-    required bool hasPremiumAccess,
-  }) async {
-    if (!hasPremiumAccess) {
-      throw const MultiplayerApiException(
-        code: 'PREMIUM_REQUIRED',
-        message: 'Kamer hosten is alleen beschikbaar voor premium leden.',
-      );
-    }
-
+  /// Creating a room is free for everyone; the credit is spent by starting the
+  /// game. The server returns `PREMIUM_REQUIRED` with its own Dutch message
+  /// when the caller has nothing left, and that message is what the player
+  /// sees, so there is no second copy of the rule here.
+  Future<MultiplayerRoom> createRoom({required String quizId}) async {
     state = const AsyncValue.loading();
     try {
       final room = await _repository.createRoom(quizId: quizId);
@@ -38,10 +47,13 @@ class MultiplayerActionController extends AsyncNotifier<void> {
     }
   }
 
-  Future<MultiplayerRoom> joinRoom({required String roomCode}) async {
+  Future<MultiplayerRoom> joinRoom({
+    required String roomCode,
+    bool viaInvite = false,
+  }) async {
     state = const AsyncValue.loading();
     try {
-      final room = await _repository.joinRoom(roomCode);
+      final room = await _repository.joinRoom(roomCode, viaInvite: viaInvite);
       state = const AsyncValue.data(null);
       return room;
     } catch (e, st) {

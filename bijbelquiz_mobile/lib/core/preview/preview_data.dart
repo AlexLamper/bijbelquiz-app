@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../avatar/avatar_catalog.dart';
 import '../../features/leaderboard/data/leaderboard_repository.dart';
 import '../../features/leaderboard/domain/leaderboard_entry.dart';
 import '../../features/profile/data/profile_model.dart';
@@ -31,7 +32,7 @@ class PreviewData {
       title: 'Genesis',
       slug: 'genesis',
       description:
-          'Van de schepping tot Jozef in Egypte — test je kennis van het '
+          'Van de schepping tot Jozef in Egypte - test je kennis van het '
           'eerste bijbelboek.',
       difficulty: 'medium',
       categoryId: 'c1',
@@ -72,7 +73,7 @@ class PreviewData {
       id: 'q4',
       title: 'Prediker',
       slug: 'prediker',
-      description: 'IJdelheid der ijdelheden — alles is ijdelheid.',
+      description: 'IJdelheid der ijdelheden - alles is ijdelheid.',
       difficulty: 'medium',
       categoryId: 'c1',
       category: categories[0],
@@ -98,7 +99,7 @@ class PreviewData {
       id: 'q6',
       title: 'Psalm 23',
       slug: 'psalm-23',
-      description: 'De HEERE is mijn Herder — regel voor regel.',
+      description: 'De HEERE is mijn Herder - regel voor regel.',
       difficulty: 'easy',
       categoryId: 'c4',
       category: categories[3],
@@ -153,48 +154,116 @@ class PreviewData {
     ),
   ];
 
+  // Mirrors what the server would return for this XP total: 1240 XP sits in
+  // level 2 (500-1500), so the bar is 74% of the way to "Leerling".
   static final ProfileModel profile = ProfileModel(
     id: 'preview-user',
     name: 'Testspeler',
     email: 'preview@bijbelquiz.com',
+    avatar: const AvatarConfig(
+      character: 'uil',
+      color: 'lapis',
+      background: 'perkament',
+      accessory: 'bril',
+    ),
     xp: 1240,
-    level: 3,
-    levelTitle: 'Kenner',
+    level: 2,
+    levelTitle: 'Lezer',
+    levelProgress: 74,
+    nextLevelXp: 1500,
     isPremium: false,
     streak: 4,
     bestStreak: 11,
-    badges: ['Eerste quiz', '7-dagen reeks'],
+    badges: ['first_steps', 'streak_3', 'perfect_score'],
+    quizzesPlayed: 23,
+    averageScore: 78,
     recentProgress: [
       RecentProgressModel(
         quizId: 'q1',
         quizTitle: 'Genesis',
-        score: 87,
-        isCompleted: true,
+        score: 9,
+        totalQuestions: 10,
+        xpEarned: 45,
       ),
       RecentProgressModel(
         quizId: 'q6',
         quizTitle: 'Psalm 23',
-        score: 100,
-        isCompleted: true,
+        score: 8,
+        totalQuestions: 8,
+        xpEarned: 50,
       ),
       RecentProgressModel(
         quizId: 'q4',
         quizTitle: 'Prediker',
-        score: 62,
-        isCompleted: false,
+        score: 5,
+        totalQuestions: 8,
+        xpEarned: 31,
       ),
     ],
   );
 
+  // Mascots are seeded from the id, exactly as the server does for an account
+  // that has not opened the customiser, so the preview shows the same spread
+  // of creatures a real ranking does.
   static final List<LeaderboardEntry> leaderboard = [
-    LeaderboardEntry(id: 'u2', name: 'Bas Graveland', xp: 2690),
-    LeaderboardEntry(id: 'u3', name: 'Neline Schinkel', xp: 2508),
-    LeaderboardEntry(id: 'u4', name: 'Arja Swart', xp: 1390),
-    LeaderboardEntry(id: 'preview-user', name: 'Testspeler', xp: 1240),
-    LeaderboardEntry(id: 'u5', name: 'Sandra Timmerman', xp: 1290),
-    LeaderboardEntry(id: 'u6', name: 'Jedidja Regterschot', xp: 988),
-    LeaderboardEntry(id: 'u7', name: 'Ruben Van Asselt', xp: 877),
-    LeaderboardEntry(id: 'u8', name: 'Timon van der Wal', xp: 705),
+    LeaderboardEntry(
+      id: 'u2',
+      name: 'Bas Graveland',
+      xp: 2690,
+      streak: 12,
+      avatar: AvatarConfig.fromSeed('u2'),
+    ),
+    LeaderboardEntry(
+      id: 'u3',
+      name: 'Neline Schinkel',
+      xp: 2508,
+      streak: 7,
+      avatar: AvatarConfig.fromSeed('u3'),
+    ),
+    LeaderboardEntry(
+      id: 'u4',
+      name: 'Arja Swart',
+      xp: 1390,
+      streak: 3,
+      avatar: AvatarConfig.fromSeed('u4'),
+    ),
+    LeaderboardEntry(
+      id: 'preview-user',
+      name: 'Testspeler',
+      xp: 1240,
+      streak: 4,
+      avatar: const AvatarConfig(
+        character: 'uil',
+        color: 'lapis',
+        background: 'perkament',
+        accessory: 'bril',
+      ),
+    ),
+    LeaderboardEntry(
+      id: 'u5',
+      name: 'Sandra Timmerman',
+      xp: 1290,
+      streak: 2,
+      avatar: AvatarConfig.fromSeed('u5'),
+    ),
+    LeaderboardEntry(
+      id: 'u6',
+      name: 'Jedidja Regterschot',
+      xp: 988,
+      avatar: AvatarConfig.fromSeed('u6'),
+    ),
+    LeaderboardEntry(
+      id: 'u7',
+      name: 'Ruben Van Asselt',
+      xp: 877,
+      avatar: AvatarConfig.fromSeed('u7'),
+    ),
+    LeaderboardEntry(
+      id: 'u8',
+      name: 'Timon van der Wal',
+      xp: 705,
+      avatar: AvatarConfig.fromSeed('u8'),
+    ),
   ];
 
   /// Wraps [child] in a scope where every network-backed provider is swapped

@@ -31,7 +31,7 @@ void expectNoLayoutError(WidgetTester tester) {
   final error = tester.takeException();
   if (error == null) return;
 
-  // Walk the element tree to name the widget whose Flex overflowed — the bare
+  // Walk the element tree to name the widget whose Flex overflowed - the bare
   // FlutterError only carries the pixel count.
   final culprits = <String>[];
   for (final element in tester.allElements) {
@@ -136,18 +136,23 @@ void main() {
     name: 'Alex',
     email: 'alex@voorbeeld.nl',
     xp: 1240,
-    level: 3,
-    levelTitle: 'Kenner',
+    level: 2,
+    levelTitle: 'Lezer',
+    levelProgress: 74,
+    nextLevelXp: 1500,
     isPremium: false,
     streak: 4,
     bestStreak: 9,
-    badges: ['Eerste quiz'],
+    badges: ['first_steps'],
+    quizzesPlayed: 12,
+    averageScore: 80,
     recentProgress: [
       RecentProgressModel(
         quizId: 'q1',
         quizTitle: 'Genesis',
-        score: 80,
-        isCompleted: true,
+        score: 8,
+        totalQuestions: 10,
+        xpEarned: 40,
       ),
     ],
   );
@@ -224,7 +229,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
   }
 
-  /// Scrolls the page to the bottom so lazily-built slivers are laid out too —
+  /// Scrolls the page to the bottom so lazily-built slivers are laid out too -
   /// an overflow further down the list stays invisible otherwise.
   Future<void> scrollThrough(WidgetTester tester) async {
     final list = find.byType(Scrollable).first;

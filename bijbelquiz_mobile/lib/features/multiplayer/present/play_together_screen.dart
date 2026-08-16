@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 
-import '../../../core/errors/app_error.dart';
+import '../../../core/analytics/analytics.dart';
+import '../../../core/config/app_config.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/app_notice.dart';
 import '../../../core/ui/app_widgets.dart';
-import '../../profile/present/profile_provider.dart';
+import '../../groups/data/player_group_repository.dart';
+import '../../groups/domain/player_group.dart';
 import '../../quiz/data/quiz_repository.dart';
 import '../../quiz/domain/quiz.dart';
 import '../data/multiplayer_api_exception.dart';
+import '../domain/multiplayer_models.dart';
 import 'multiplayer_action_controller.dart';
 
 enum _PlayMode { create, join }
@@ -40,37 +44,24 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
     }
 
     try {
-      final profile = await ref.read(profileProvider.future);
-      if (!profile.isPremium) {
-        if (!mounted) return;
-        _showError(
-          const MultiplayerApiException(
-            code: 'PREMIUM_REQUIRED',
-            message: 'Kamer hosten is een premium functie.',
-          ),
-        );
-        context.push('/premium');
-        return;
-      }
-
       final room = await ref
           .read(multiplayerActionControllerProvider.notifier)
-          .createRoom(
-            quizId: _selectedQuizId!,
-            hasPremiumAccess: profile.isPremium,
-          );
+          .createRoom(quizId: _selectedQuizId!);
       if (!mounted) return;
-      context.push('/play-together/room/${room.code}');
-    } catch (error) {
-      final mapped = AppError.from(error);
-      if (mapped.title.toLowerCase().contains('premium') ||
-          mapped.message.toLowerCase().contains('premium')) {
-        if (!mounted) return;
-        _showError(error);
-        context.push('/premium');
-        return;
-      }
 
+      // Starting the game spends a credit, so the remaining count on this
+      // screen is stale the moment a room opens.
+      ref.invalidate(multiplayerCapabilityProvider);
+      context.push('/play-together/room/${room.code}');
+    } on MultiplayerApiException catch (error) {
+      if (!mounted) return;
+      _showError(error);
+
+      if (error.code == 'PREMIUM_REQUIRED') {
+        ref.invalidate(multiplayerCapabilityProvider);
+        context.push('/premium?reden=host_quota_exhausted');
+      }
+    } catch (error) {
       _showError(error);
     }
   }
@@ -102,6 +93,22 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
     }
   }
 
+  /// Routes to whichever screen matches the room's current phase, so resuming
+  /// a game in progress does not drop the player back into the lobby.
+  void _openRoom(MultiplayerRoom room) {
+    final base = '/play-together/room/${room.code}';
+    switch (room.status) {
+      case MultiplayerRoomStatus.inProgress:
+      case MultiplayerRoomStatus.questionResult:
+        context.push('$base/play');
+      case MultiplayerRoomStatus.finished:
+        context.push('$base/results');
+      case MultiplayerRoomStatus.lobby:
+      case MultiplayerRoomStatus.unknown:
+        context.push(base);
+    }
+  }
+
   Future<void> _startRoomForQuiz(String quizId) async {
     setState(() {
       _mode = _PlayMode.create;
@@ -111,13 +118,78 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
     await _createRoom();
   }
 
+  /// Opens a room and hands the group's invite straight to the share sheet.
+  ///
+  /// The whole value of a saved group is not having to reassemble it: one tap
+  /// makes the room and puts the link in front of the same chat that played
+  /// last time. It still needs a quiz, because a room without one is nothing to
+  /// invite anybody to.
+  Future<void> _reinviteGroup(PlayerGroup group) async {
+    final quizId = _selectedQuizId;
+    if (quizId == null || quizId.isEmpty) {
+      setState(() => _mode = _PlayMode.create);
+      _showMessage('Kies eerst een quiz, dan nodigen we ${group.name} uit.');
+      return;
+    }
+
+    try {
+      final room = await ref
+          .read(multiplayerActionControllerProvider.notifier)
+          .createRoom(quizId: quizId);
+      if (!mounted) return;
+
+      ref.invalidate(multiplayerCapabilityProvider);
+
+      ref
+          .read(analyticsProvider)
+          .track(
+            AnalyticsEvents.roomInviteShared,
+            props: {
+              'roomCode': room.code,
+              'method': 'share_sheet',
+              'groupId': group.id,
+            },
+          );
+
+      try {
+        await SharePlus.instance.share(
+          ShareParams(
+            text: AppConfig.roomInviteMessage(room.code, room.quizTitle),
+            subject: 'Doe mee met mijn BijbelQuiz',
+          ),
+        );
+      } catch (_) {
+        // No share target, or the sheet was dismissed. The room exists either
+        // way and the lobby below shows the code.
+      }
+
+      if (!mounted) return;
+      context.push('/play-together/room/${room.code}');
+    } on MultiplayerApiException catch (error) {
+      if (!mounted) return;
+      _showError(error);
+
+      if (error.code == 'PREMIUM_REQUIRED') {
+        ref.invalidate(multiplayerCapabilityProvider);
+        context.push('/premium?reden=host_quota_exhausted');
+      }
+    } catch (error) {
+      if (!mounted) return;
+      _showError(error);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final quizzesAsync = ref.watch(quizzesProvider(const QuizQuery(limit: 25)));
     final actionState = ref.watch(multiplayerActionControllerProvider);
-    final profileAsync = ref.watch(profileProvider);
-    final bool? hasPremiumAccess = profileAsync.asData?.value.isPremium;
-    final hostingLocked = hasPremiumAccess == false;
+    final capability = ref.watch(multiplayerCapabilityProvider).asData?.value;
+
+    // Unknown while the capability call is in flight: hosting stays open, and
+    // the server refuses with its own message if the quota is actually spent.
+    final hostingLocked = capability?.canCreateRoom == false;
+    final freeGamesLeft = capability?.freeRoomsRemaining;
+    final onMonthlyAllowance = capability?.onMonthlyAllowance ?? false;
 
     return Scaffold(
       backgroundColor: AppTheme.paper,
@@ -129,11 +201,28 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
               eyebrow: 'Samen spelen',
               title: 'Speciaal ontworpen voor groepen',
               subtitle:
-                  'Van gezin tot jeugdvereniging — iedereen speelt mee. Geen '
+                  'Van gezin tot jeugdvereniging - iedereen speelt mee. Geen '
                   'installatie, gewoon een code delen en direct beginnen.',
             ),
             const SizedBox(height: 28),
-            // Mode toggle — same button pair as the site's filter row.
+            // A game survives a crash, a reboot or an incoming call: the room
+            // lives on the server, so the way back into it is offered here
+            // rather than leaving the player to remember the code.
+            ref
+                .watch(activeMultiplayerRoomProvider)
+                .maybeWhen(
+                  data: (room) => room == null
+                      ? const SizedBox.shrink()
+                      : Padding(
+                          padding: const EdgeInsets.only(bottom: 24),
+                          child: _ResumeRoomCard(
+                            room: room,
+                            onResume: () => _openRoom(room),
+                          ),
+                        ),
+                  orElse: () => const SizedBox.shrink(),
+                ),
+            // Mode toggle - same button pair as the site's filter row.
             Row(
               children: [
                 _ModeButton(
@@ -160,6 +249,8 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
                       selectedQuizId: _selectedQuizId,
                       isBusy: actionState.isLoading,
                       hasPremiumAccess: !hostingLocked,
+                      freeGamesLeft: freeGamesLeft,
+                      onMonthlyAllowance: onMonthlyAllowance,
                       onSelectQuiz: (id) {
                         setState(() {
                           _selectedQuizId = id;
@@ -167,7 +258,7 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
                       },
                       onCreateRoom: _createRoom,
                       onUpgrade: () {
-                        context.push('/premium');
+                        context.push('/premium?reden=host_quota_exhausted');
                       },
                     )
                   : _JoinRoomForm(
@@ -177,6 +268,37 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
                       onJoin: _joinRoom,
                     ),
             ),
+            // Saved groups, if any. Placed above "Zo werkt het" because a
+            // returning host is not reading the explainer again - they are
+            // here to get the same eight people back in a room.
+            ...(() {
+              final groups =
+                  ref.watch(playerGroupsProvider).asData?.value ??
+                  const <PlayerGroup>[];
+              if (groups.isEmpty) return const <Widget>[];
+
+              return [
+                const SizedBox(height: 44),
+                const SectionHeader(
+                  eyebrow: 'Je groepen',
+                  title: 'Nodig ze zo weer uit',
+                  description:
+                      'Kies een quiz en stuur je groep in een tik een nieuwe '
+                      'uitnodiging.',
+                ),
+                const SizedBox(height: 24),
+                RuleGrid(
+                  children: [
+                    for (final group in groups)
+                      _SavedGroupRow(
+                        group: group,
+                        isBusy: actionState.isLoading,
+                        onReinvite: () => _reinviteGroup(group),
+                      ),
+                  ],
+                ),
+              ];
+            })(),
             const SizedBox(height: 44),
             const SectionHeader(
               eyebrow: 'Zo werkt het',
@@ -198,7 +320,7 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
               hasPremiumAccess: !hostingLocked,
               onStartRoom: _startRoomForQuiz,
               onUpgrade: () {
-                context.push('/premium');
+                context.push('/premium?reden=host_quota_exhausted');
               },
             ),
           ],
@@ -217,6 +339,174 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
 }
 
 /// `h-9 rounded-md border-rule bg-paper-raised px-4` / active `bg-ink`.
+/// The last-two-games notice.
+///
+/// Deliberately states a fact rather than pressuring: the number is real, the
+/// consequence is real, and the player still gets to host tonight either way.
+class _FreeGamesWarning extends StatelessWidget {
+  const _FreeGamesWarning({
+    required this.remaining,
+    required this.monthly,
+    required this.onUpgrade,
+  });
+
+  final int remaining;
+
+  /// Whether this is the recurring monthly allowance rather than the one-off
+  /// discovery pack. "Laatste gratis spel" would be a lie on a game that comes
+  /// back in a fortnight.
+  final bool monthly;
+
+  final VoidCallback onUpgrade;
+
+  @override
+  Widget build(BuildContext context) {
+    final isLast = remaining <= 1;
+
+    final label = monthly
+        ? 'JE SPEL VAN DEZE MAAND'
+        : isLast
+        ? 'LAATSTE GRATIS SPEL'
+        : 'NOG $remaining GRATIS SPELLEN';
+
+    final body = monthly
+        ? 'Dit is je gratis spel voor deze maand. Volgende maand krijg je er '
+              'weer een. Met Premium host je meteen zoveel je wilt.'
+        : isLast
+        ? 'Dit is je laatste gratis spel om te hosten. Daarna krijg je er elke '
+              'maand een terug. Meedoen met andermans spel blijft gratis.'
+        : 'Je hebt nog $remaining gratis spellen om te hosten. Een spel telt '
+              'pas mee zodra je hem echt start.';
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.vermilionTint,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: AppTheme.vermilion.withValues(alpha: 0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: AppTheme.overline.copyWith(color: AppTheme.vermilion),
+          ),
+          const SizedBox(height: 8),
+          Text(body, style: AppTheme.bodyMuted),
+          const SizedBox(height: 12),
+          SiteOutlineButton(
+            label: 'Bekijk Premium',
+            expand: false,
+            height: 38,
+            onPressed: onUpgrade,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One saved group, with its re-invite action.
+class _SavedGroupRow extends StatelessWidget {
+  const _SavedGroupRow({
+    required this.group,
+    required this.isBusy,
+    required this.onReinvite,
+  });
+
+  final PlayerGroup group;
+  final bool isBusy;
+  final VoidCallback onReinvite;
+
+  @override
+  Widget build(BuildContext context) {
+    final memberLabel = group.memberCount == 1
+        ? '1 speler'
+        : '${group.memberCount} spelers';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  group.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.bodyStrong,
+                ),
+                const SizedBox(height: 5),
+                Text(memberLabel.toUpperCase(), style: AppTheme.overline),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          SiteOutlineButton(
+            label: 'Uitnodigen',
+            icon: Icons.ios_share,
+            expand: false,
+            height: 36,
+            onPressed: isBusy ? null : onReinvite,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// "You still have a game running" banner.
+class _ResumeRoomCard extends StatelessWidget {
+  const _ResumeRoomCard({required this.room, required this.onResume});
+
+  final MultiplayerRoom room;
+  final VoidCallback onResume;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = switch (room.status) {
+      MultiplayerRoomStatus.lobby => 'Je wachtkamer staat nog open',
+      MultiplayerRoomStatus.finished => 'Je laatste spel is afgelopen',
+      _ => 'Je spel loopt nog',
+    };
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppTheme.lapisTint,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: AppTheme.lapis.withValues(alpha: 0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'HERVATTEN',
+            style: AppTheme.overline.copyWith(color: AppTheme.lapis),
+          ),
+          const SizedBox(height: 12),
+          Text(label, style: AppTheme.displaySmall),
+          const SizedBox(height: 6),
+          Text(
+            '${room.quizTitle.isEmpty ? 'Multiplayer quiz' : room.quizTitle} '
+            '- kamer ${room.code}',
+            style: AppTheme.bodyMuted,
+          ),
+          const SizedBox(height: 18),
+          SiteButton(
+            label: 'Ga verder',
+            trailingIcon: Icons.arrow_forward,
+            onPressed: onResume,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ModeButton extends StatelessWidget {
   const _ModeButton({
     required this.label,
@@ -281,6 +571,8 @@ class _CreateRoomForm extends StatelessWidget {
     required this.selectedQuizId,
     required this.isBusy,
     required this.hasPremiumAccess,
+    required this.freeGamesLeft,
+    required this.onMonthlyAllowance,
     required this.onSelectQuiz,
     required this.onCreateRoom,
     required this.onUpgrade,
@@ -290,6 +582,15 @@ class _CreateRoomForm extends StatelessWidget {
   final String? selectedQuizId;
   final bool isBusy;
   final bool hasPremiumAccess;
+
+  /// Free hosted games left, or null for Premium (unlimited) and while the
+  /// capability call is still in flight.
+  final int? freeGamesLeft;
+
+  /// True once the discovery pack is spent: the number above then counts this
+  /// month rather than a lifetime allowance.
+  final bool onMonthlyAllowance;
+
   final ValueChanged<String?> onSelectQuiz;
   final Future<void> Function() onCreateRoom;
   final VoidCallback onUpgrade;
@@ -297,7 +598,7 @@ class _CreateRoomForm extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!hasPremiumAccess) {
-      // `dark:bg-lapis/10 border-lapis/35` — the site's accent notice block.
+      // `dark:bg-lapis/10 border-lapis/35` - the site's accent notice block.
       return Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
@@ -308,14 +609,13 @@ class _CreateRoomForm extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Eyebrow('Premium vereist'),
+            const Eyebrow('Gratis spellen op'),
             const SizedBox(height: 16),
-            const Text('Hosten is Premium', style: AppTheme.displaySmall),
+            const Text('Je gratis spellen zijn op', style: AppTheme.displaySmall),
             const SizedBox(height: 10),
             const Text(
-              'Upgrade om je eigen kamer te starten, een quiz te kiezen en '
-              'vrienden live uit te dagen. Deelnemen met een kamercode blijft '
-              'gratis.',
+              'Met Premium host je onbeperkt kamers, tot 20 spelers tegelijk. '
+              'Deelnemen met een kamercode blijft altijd gratis.',
               style: AppTheme.bodyMuted,
             ),
             const SizedBox(height: 20),
@@ -335,6 +635,27 @@ class _CreateRoomForm extends StatelessWidget {
         children: [
           const Text('NIEUWE KAMER', style: AppTheme.overline),
           const SizedBox(height: 16),
+          // Two games out, the counter stops being a footnote and becomes a
+          // notice. Meeting the wall for the first time in a lobby full of
+          // waiting people is the one experience this has to prevent.
+          ...switch (freeGamesLeft) {
+            null => const <Widget>[],
+            final int left when left <= 2 => <Widget>[
+              _FreeGamesWarning(
+                remaining: left,
+                monthly: onMonthlyAllowance,
+                onUpgrade: onUpgrade,
+              ),
+              const SizedBox(height: 16),
+            ],
+            final int left => <Widget>[
+              Text(
+                'Je hebt nog $left gratis spellen om te hosten.',
+                style: AppTheme.caption,
+              ),
+              const SizedBox(height: 16),
+            ],
+          },
           quizzesAsync.when(
             data: (quizzes) {
               if (quizzes.isEmpty) {
@@ -462,7 +783,7 @@ class _JoinRoomForm extends StatelessWidget {
             cursorColor: AppTheme.ink,
             cursorWidth: 1.4,
             textAlign: TextAlign.center,
-            // Room codes read as data — serif, tabular, wide tracking.
+            // Room codes read as data - serif, tabular, wide tracking.
             style: const TextStyle(
               fontFamily: AppTheme.displayFontName,
               fontSize: 26,

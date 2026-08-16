@@ -83,4 +83,42 @@ class AppConfig {
 
   /// Get the actual API URL to use (respects custom override)
   static String get effectiveApiBaseUrl => _customApiBaseUrl ?? apiBaseUrl;
+
+  /// Marks a join that arrived through a shared link, for the funnel.
+  ///
+  /// Mirrors `INVITE_SOURCE_PARAM` / `INVITE_SOURCE_VALUE` in
+  /// `src/lib/multiplayer/invite.ts` on the website. The server reads these off
+  /// the join request, so the spellings have to match exactly.
+  static const String inviteSourceParam = 'bron';
+  static const String inviteSourceValue = 'uitnodiging';
+
+  /// The URL to share for a room.
+  ///
+  /// Points at the web lobby rather than the app: a link that only works for
+  /// people who already have the app installed is useless as an invite, and
+  /// the website hands them a download prompt. Once the deep-link files are
+  /// hosted this same URL will open the app for those who do have it.
+  static String roomInviteUrl(String roomCode) {
+    final code = roomCode.trim().toUpperCase();
+    return '$baseUrl/samen-spelen/$code/lobby'
+        '?$inviteSourceParam=$inviteSourceValue';
+  }
+
+  /// The message that goes with it.
+  ///
+  /// Kept line for line in step with `buildRoomInviteMessage` on the website so
+  /// an invite reads the same whichever half of the product sent it. The code
+  /// stays visible for clients that strip links.
+  static String roomInviteMessage(String roomCode, String quizTitle) {
+    final code = roomCode.trim().toUpperCase();
+    final title = quizTitle.trim().isEmpty ? 'een bijbelquiz' : quizTitle.trim();
+
+    return [
+      'Doe je mee met $title op BijbelQuiz?',
+      '',
+      roomInviteUrl(code),
+      '',
+      'Of vul de code in: $code',
+    ].join('\n');
+  }
 }

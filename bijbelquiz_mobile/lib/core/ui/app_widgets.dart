@@ -196,7 +196,7 @@ class SectionHeader extends StatelessWidget {
   }
 }
 
-/// A 1px hairline — `border-rule`.
+/// A 1px hairline - `border-rule`.
 class RuleLine extends StatelessWidget {
   const RuleLine({super.key, this.color});
 
@@ -208,7 +208,7 @@ class RuleLine extends StatelessWidget {
   }
 }
 
-/// `bg-paper-raised rounded-lg border border-rule` — no shadow, ever.
+/// `bg-paper-raised rounded-lg border border-rule` - no shadow, ever.
 class AppCard extends StatelessWidget {
   const AppCard({
     super.key,
@@ -268,7 +268,7 @@ class AppCard extends StatelessWidget {
 }
 
 /// The site's "hairline grid": a bordered container whose children are
-/// separated by 1px rules — `grid gap-px rounded-lg border border-rule bg-rule`.
+/// separated by 1px rules - `grid gap-px rounded-lg border border-rule bg-rule`.
 class RuleGrid extends StatelessWidget {
   const RuleGrid({super.key, required this.children});
 
@@ -305,7 +305,7 @@ class StatItem {
   final Color? ruleColor;
 }
 
-/// `border-y border-rule py-5 … divide-x divide-rule` — the stat band under
+/// `border-y border-rule py-5 … divide-x divide-rule` - the stat band under
 /// the hero and above the leaderboard table.
 class StatStrip extends StatelessWidget {
   const StatStrip({super.key, required this.items, this.stacked = false});
@@ -467,7 +467,7 @@ class SiteBadge extends StatelessWidget {
   }
 }
 
-/// Primary action — `bg-ink text-ink-inverted rounded-md`.
+/// Primary action - `bg-ink text-ink-inverted rounded-md`.
 class SiteButton extends StatelessWidget {
   const SiteButton({
     super.key,
@@ -528,7 +528,7 @@ class SiteButton extends StatelessWidget {
   }
 }
 
-/// Secondary action — `border border-rule bg-paper-raised text-ink`.
+/// Secondary action - `border border-rule bg-paper-raised text-ink`.
 class SiteOutlineButton extends StatelessWidget {
   const SiteOutlineButton({
     super.key,
@@ -643,7 +643,7 @@ class AppLoader extends StatelessWidget {
   }
 }
 
-/// Empty / error state — centred serif title with a muted lead paragraph.
+/// Empty / error state - centred serif title with a muted lead paragraph.
 class AppEmptyState extends StatelessWidget {
   const AppEmptyState({
     super.key,

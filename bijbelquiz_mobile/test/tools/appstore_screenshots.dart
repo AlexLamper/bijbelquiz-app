@@ -56,7 +56,7 @@ class Device {
   );
 }
 
-/// iPhone 11 Pro Max / 6.5" — 1242 x 2688. This is the size App Store Connect
+/// iPhone 11 Pro Max / 6.5" - 1242 x 2688. This is the size App Store Connect
 /// accepts for this app record's iPhone slot (it also takes 1284 x 2778).
 const iphone65 = Device(
   folder: 'iphone-6.5',
@@ -67,7 +67,7 @@ const iphone65 = Device(
   statusBarHeight: 44,
 );
 
-/// iPhone 12/13 Pro Max — 1284 x 2778, the other size the same slot accepts.
+/// iPhone 12/13 Pro Max - 1284 x 2778, the other size the same slot accepts.
 const iphone65Alt = Device(
   folder: 'iphone-6.5-alt-1284x2778',
   logical: Size(428, 926),
@@ -77,7 +77,7 @@ const iphone65Alt = Device(
   statusBarHeight: 47,
 );
 
-/// iPhone 16 Pro Max / 6.9" — 1290 x 2796. Only usable on app records that
+/// iPhone 16 Pro Max / 6.9" - 1290 x 2796. Only usable on app records that
 /// expose the newer 6.9" slot.
 const iphone69 = Device(
   folder: 'iphone-6.9',
@@ -88,7 +88,7 @@ const iphone69 = Device(
   statusBarHeight: 59,
 );
 
-/// iPad Pro 13" — 2064 x 2752. Required because the target device family is
+/// iPad Pro 13" - 2064 x 2752. Required because the target device family is
 /// "1,2" (iPhone + iPad).
 const ipad13 = Device(
   folder: 'ipad-13',
@@ -149,7 +149,7 @@ void main() {
 
       testWidgets('05 quiz player answered', (tester) async {
         // Premium profile, otherwise the explanation card is blurred behind an
-        // upgrade prompt — a poor shot for the store listing.
+        // upgrade prompt - a poor shot for the store listing.
         final app = await _boot(tester, device, premium: true);
         await app.go(tester, '/quiz/genesis/play');
 
@@ -213,10 +213,14 @@ final _premiumProfile = ProfileModel(
   xp: PreviewData.profile.xp,
   level: PreviewData.profile.level,
   levelTitle: PreviewData.profile.levelTitle,
+  levelProgress: PreviewData.profile.levelProgress,
+  nextLevelXp: PreviewData.profile.nextLevelXp,
   isPremium: true,
   streak: PreviewData.profile.streak,
   bestStreak: PreviewData.profile.bestStreak,
   badges: PreviewData.profile.badges,
+  quizzesPlayed: PreviewData.profile.quizzesPlayed,
+  averageScore: PreviewData.profile.averageScore,
   recentProgress: PreviewData.profile.recentProgress,
 );
 
@@ -396,7 +400,7 @@ Future<void> _seedQuizImages(WidgetTester tester) async {
   final source = Directory('../public/images/quizzes');
   if (!source.existsSync()) {
     // ignore: avoid_print
-    print('WARN: ${source.path} not found — quiz art will be blank.');
+    print('WARN: ${source.path} not found - quiz art will be blank.');
     return;
   }
 

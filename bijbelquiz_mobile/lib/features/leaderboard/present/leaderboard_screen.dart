@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/avatar/mascot_avatar.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/app_widgets.dart';
-import '../../../core/ui/server_image.dart';
+import '../../groups/data/player_group_repository.dart';
+import '../../groups/domain/player_group.dart';
 import '../data/leaderboard_repository.dart';
 import '../domain/leaderboard_entry.dart';
 
@@ -21,16 +23,51 @@ class LeaderboardScreen extends ConsumerStatefulWidget {
 class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
   LeaderboardPeriod _selectedRange = LeaderboardPeriod.all;
 
+  /// Null means the global board. Otherwise the saved group being viewed.
+  String? _selectedGroupId;
+
   Future<void> _refreshData() async {
-    ref.invalidate(leaderboardByPeriodProvider(_selectedRange));
-    await ref.read(leaderboardByPeriodProvider(_selectedRange).future);
+    ref.invalidate(playerGroupsProvider);
+
+    final groupId = _selectedGroupId;
+    if (groupId == null) {
+      ref.invalidate(leaderboardByPeriodProvider(_selectedRange));
+      await ref.read(leaderboardByPeriodProvider(_selectedRange).future);
+      return;
+    }
+
+    final key = (groupId: groupId, period: _selectedRange);
+    ref.invalidate(playerGroupLeaderboardProvider(key));
+    await ref.read(playerGroupLeaderboardProvider(key).future);
   }
 
   @override
   Widget build(BuildContext context) {
-    final leaderboardAsync = ref.watch(
-      leaderboardByPeriodProvider(_selectedRange),
-    );
+    final groups =
+        ref.watch(playerGroupsProvider).asData?.value ?? const <PlayerGroup>[];
+
+    // A group deleted from another device leaves a dead selection behind; fall
+    // back to the global board rather than showing an error for a tab that is
+    // no longer on screen.
+    final activeGroup = _selectedGroupId == null
+        ? null
+        : groups.where((group) => group.id == _selectedGroupId).firstOrNull;
+    if (_selectedGroupId != null && activeGroup == null && groups.isNotEmpty) {
+      _selectedGroupId = null;
+    }
+
+    // Watched through an explicit branch rather than a stored provider: the
+    // two families have different argument types, and giving them a common
+    // static type costs more than the six lines it saves.
+    final AsyncValue<List<LeaderboardEntry>> leaderboardAsync =
+        _selectedGroupId == null
+        ? ref.watch(leaderboardByPeriodProvider(_selectedRange))
+        : ref.watch(
+            playerGroupLeaderboardProvider((
+              groupId: _selectedGroupId!,
+              period: _selectedRange,
+            )),
+          );
 
     return Scaffold(
       backgroundColor: AppTheme.paper,
@@ -49,14 +86,28 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
                 children: [
-                  const GradientHeader(
+                  GradientHeader(
                     eyebrow: 'Ranglijst',
-                    title: 'Top spelers',
-                    subtitle:
-                        'Verdien XP door quizzen te spelen en stijg in de '
-                        'ranglijst.',
+                    title: activeGroup?.name ?? 'Top spelers',
+                    subtitle: activeGroup == null
+                        ? 'Verdien XP door quizzen te spelen en stijg in de '
+                              'ranglijst.'
+                        : 'De stand binnen je groep van '
+                              '${activeGroup.memberCount} spelers.',
                   ),
                   const SizedBox(height: 28),
+                  if (groups.isNotEmpty) ...[
+                    _ScopeSelector(
+                      groups: groups,
+                      selectedGroupId: _selectedGroupId,
+                      onSelect: (value) {
+                        setState(() {
+                          _selectedGroupId = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   _RangeSelector(
                     selectedRange: _selectedRange,
                     onSelect: (value) {
@@ -86,8 +137,8 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                     const _EmptyLeaderboardState()
                   else
                     _LeaderboardTable(
-                      // Collapse again when the player switches period.
-                      key: ValueKey(_selectedRange),
+                      // Collapse again when the player switches board.
+                      key: ValueKey('${_selectedGroupId ?? 'all'}-$_selectedRange'),
                       entries: sortedEntries,
                     ),
                 ],
@@ -108,6 +159,90 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                   description: '$err',
                 ),
               ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Global board, or one of the saved groups.
+///
+/// Hidden entirely when the player has no groups, so the default screen keeps
+/// exactly one row of buttons.
+class _ScopeSelector extends StatelessWidget {
+  const _ScopeSelector({
+    required this.groups,
+    required this.selectedGroupId,
+    required this.onSelect,
+  });
+
+  final List<PlayerGroup> groups;
+  final String? selectedGroupId;
+  final ValueChanged<String?> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 36,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          _ScopeChip(
+            label: 'Iedereen',
+            active: selectedGroupId == null,
+            onTap: () => onSelect(null),
+          ),
+          for (final group in groups)
+            _ScopeChip(
+              label: group.name,
+              active: selectedGroupId == group.id,
+              onTap: () => onSelect(group.id),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ScopeChip extends StatelessWidget {
+  const _ScopeChip({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: Material(
+        color: active ? AppTheme.ink : AppTheme.paperRaised,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          onTap: onTap,
+          child: Container(
+            height: 36,
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+              border: Border.all(color: active ? AppTheme.ink : AppTheme.rule),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontFamily: AppTheme.sansFontName,
+                color: active ? AppTheme.inkInverted : AppTheme.ink,
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+              ),
             ),
           ),
         ),
@@ -246,7 +381,7 @@ class _LeaderboardTableState extends State<_LeaderboardTable> {
   }
 }
 
-/// Footer row of the table — `border-t border-rule` with a centred label, so
+/// Footer row of the table - `border-t border-rule` with a centred label, so
 /// expanding reads as part of the table rather than as a floating button.
 class _ShowMoreRow extends StatelessWidget {
   const _ShowMoreRow({
@@ -309,7 +444,7 @@ class _LeaderboardRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // `inline-flex h-8 min-w-8 items-center justify-center border px-1
-    //  text-xs font-semibold` — deliberately square, no radius.
+    //  text-xs font-semibold` - deliberately square, no radius.
     final isLeader = rank == 1;
     final badgeBg = isLeader ? AppTheme.lapisTint : AppTheme.paperSunken;
     final badgeBorder = isLeader
@@ -347,7 +482,7 @@ class _LeaderboardRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          _Avatar(imageUrl: entry.image, name: entry.name, radius: 16),
+          MascotAvatar(avatar: entry.avatar, size: 32, bordered: true),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -378,66 +513,6 @@ extension on LeaderboardPeriod {
       case LeaderboardPeriod.all:
         return 'Altijd';
     }
-  }
-}
-
-/// Square-ish avatar with a hairline border — the site never uses drop shadows
-/// and keeps photos inside a `ring-1 ring-rule` frame.
-class _Avatar extends StatelessWidget {
-  const _Avatar({
-    required this.imageUrl,
-    required this.name,
-    required this.radius,
-  });
-
-  final String? imageUrl;
-  final String name;
-  final double radius;
-
-  @override
-  Widget build(BuildContext context) {
-    final size = radius * 2;
-
-    final fallback = Container(
-      width: size,
-      height: size,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: AppTheme.paperSunken,
-        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-        border: Border.all(color: AppTheme.rule),
-      ),
-      child: Text(
-        name.isEmpty ? '?' : name.characters.first.toUpperCase(),
-        style: TextStyle(
-          fontFamily: AppTheme.displayFontName,
-          color: AppTheme.inkSoft,
-          fontSize: radius * 0.85,
-        ),
-      ),
-    );
-
-    if (imageUrl == null || imageUrl!.isEmpty || imageUrl == 'null') {
-      return fallback;
-    }
-
-    return Container(
-      width: size,
-      height: size,
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: AppTheme.paperSunken,
-        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-        border: Border.all(color: AppTheme.rule),
-      ),
-      child: Image.network(
-        ServerImage.getFullUrl(imageUrl!),
-        width: size,
-        height: size,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => fallback,
-      ),
-    );
   }
 }
 

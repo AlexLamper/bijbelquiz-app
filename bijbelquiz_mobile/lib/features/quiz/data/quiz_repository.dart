@@ -4,6 +4,7 @@ import '../../../core/api/api_client.dart';
 import '../../../core/config/app_config.dart';
 import '../domain/category.dart';
 import '../domain/quiz.dart';
+import '../domain/quiz_submission_result.dart';
 
 final quizRepositoryProvider = Provider<QuizRepository>((ref) {
   final apiClient = ref.watch(apiClientProvider);
@@ -78,12 +79,11 @@ class QuizRepository {
   /// Catalogue used by the library, the home screen and the multiplayer
   /// quickstart.
   ///
-  /// `/api/mobile/quizzes` returns a trimmed document: it hard-codes
-  /// `xpReward` to 50 for every quiz and omits `difficulty` and `isPremium`
-  /// entirely. `/api/quizzes` — the endpoint the website itself reads — carries
-  /// the real `rewardXp`, `difficulty` and `isPremium`, so it is the primary
-  /// source and the mobile route is only a fallback. Both are parsed by
-  /// [Quiz.fromJson], which already understands either field spelling.
+  /// `/api/mobile/quizzes` now reports the real `rewardXp` and `isPremium`,
+  /// but still omits `difficulty`. `/api/quizzes` - the endpoint the website
+  /// itself reads - carries the full document, so it stays the primary source
+  /// and the mobile route is the fallback. Both are parsed by [Quiz.fromJson],
+  /// which already understands either field spelling.
   Future<List<Quiz>> getQuizzes({
     int? limit,
     String? categoryId,
@@ -175,15 +175,16 @@ class QuizRepository {
   /// Reports a finished solo attempt so the server can award XP, update the
   /// streak and unlock badges.
   ///
-  /// The backend does not expose this route yet — `POST /api/mobile/progress`
-  /// currently answers 404 — so a failure is swallowed on purpose: the player
-  /// still gets their result screen, and the call starts counting the moment
-  /// the endpoint ships. Returns the XP the server awarded, or null when it
-  /// could not be reached.
-  Future<int?> submitQuizResult({
+  /// `POST /api/mobile/progress` runs the same submission logic as the
+  /// website, so the answers are re-graded server-side and the returned totals
+  /// are authoritative. A failure is swallowed on purpose - the player still
+  /// gets their result screen - and returns null, which the UI shows as an
+  /// unconfirmed result rather than inventing an XP number.
+  Future<QuizSubmissionResult?> submitQuizResult({
     required String quizId,
     required int correctAnswers,
     required int totalQuestions,
+    List<int?> selectedAnswerIndexes = const <int?>[],
   }) async {
     try {
       final response = await _apiClient.dio.post(
@@ -191,16 +192,17 @@ class QuizRepository {
         data: {
           'quizId': quizId,
           'correctAnswers': correctAnswers,
-          'totalQuestions': totalQuestions,
           'score': correctAnswers,
-          'isCompleted': true,
+          'totalQuestions': totalQuestions,
+          'answers': selectedAnswerIndexes
+              .map((index) => {'selectedAnswerIndex': index})
+              .toList(),
         },
       );
 
       final data = response.data?['data'] ?? response.data;
       if (data is Map) {
-        return (data['xpEarned'] as num?)?.toInt() ??
-            (data['xpAwarded'] as num?)?.toInt();
+        return QuizSubmissionResult.fromJson(Map<String, dynamic>.from(data));
       }
       return null;
     } catch (_) {

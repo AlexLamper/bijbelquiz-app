@@ -81,13 +81,16 @@ class PremiumController extends Notifier<PremiumState> {
   }
 
   Future<void> purchaseMonthly() => _purchase(kRcMonthlyProductId);
+  Future<void> purchaseYearly() => _purchase(kRcYearlyProductId);
   Future<void> purchaseLifetime() => _purchase(kRcLifetimeProductId);
 
   Future<void> _purchase(String productId) async {
     _log('Purchase requested for product="$productId"');
-    final package = productId == kRcMonthlyProductId
-        ? _svc.findMonthlyPackage(state.packages)
-        : _svc.findLifetimePackage(state.packages);
+    final package = switch (productId) {
+      kRcMonthlyProductId => _svc.findMonthlyPackage(state.packages),
+      kRcYearlyProductId => _svc.findYearlyPackage(state.packages),
+      _ => _svc.findLifetimePackage(state.packages),
+    };
     state = state.copyWith(status: PurchaseStatus.loading);
     try {
       final info = package != null

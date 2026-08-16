@@ -2,13 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 
+import '../../../core/analytics/analytics.dart';
+import '../../../core/config/app_config.dart';
+import '../../../core/avatar/mascot_avatar.dart';
 import '../../../core/errors/app_error.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/app_notice.dart';
 import '../../../core/ui/app_widgets.dart';
+import '../../premium/present/premium_upgrade_sheet.dart';
 import '../../profile/present/profile_provider.dart';
+import '../data/multiplayer_repository.dart';
 import '../domain/multiplayer_models.dart';
+import 'multiplayer_action_controller.dart';
 import 'multiplayer_session_controller.dart';
 
 class MultiplayerLobbyScreen extends ConsumerStatefulWidget {
@@ -70,6 +77,31 @@ class _MultiplayerLobbyScreenState
     );
   }
 
+  /// Starts the game, and on a spent quota offers the upgrade right here.
+  ///
+  /// The host is standing in front of the group at this point. Navigating them
+  /// out to a paywall - and then back through the lobby list to find their own
+  /// room again - is where the evening, and the sale, is lost.
+  Future<void> _startMatch(MultiplayerSessionController controller) async {
+    final errorCode = await controller.startMatch();
+    if (errorCode != 'PREMIUM_REQUIRED' || !mounted) return;
+
+    final upgraded = await showPremiumUpgradeSheet(
+      context,
+      trigger: PaywallTrigger.hostQuotaExhausted,
+      title: 'Je gratis spellen zijn op',
+      message:
+          'Met Premium host je onbeperkt spellen, met tot 20 spelers tegelijk. '
+          'Je groep blijft gewoon in de kamer wachten.',
+    );
+
+    if (!upgraded || !mounted) return;
+
+    // Straight back into the same room, which is still open and still full.
+    ref.invalidate(multiplayerCapabilityProvider);
+    await controller.startMatch();
+  }
+
   Widget _buildContent(BuildContext context, MultiplayerSessionState session) {
     final room = session.room;
     final controller = ref.read(
@@ -82,8 +114,11 @@ class _MultiplayerLobbyScreenState
       orElse: () => '',
     );
 
-    final isHost = currentUserId.isNotEmpty && currentUserId == room.hostUserId;
-    final canStart = isHost && room.players.length >= 2;
+    final isHost = room.isHost(currentUserId);
+    final minPlayers =
+        ref.watch(multiplayerConfigProvider).asData?.value.minPlayersToStart ??
+        MultiplayerConfig.fallback.minPlayersToStart;
+    final canStart = isHost && room.players.length >= minPlayers;
 
     return RefreshIndicator(
       color: AppTheme.ink,
@@ -121,9 +156,11 @@ class _MultiplayerLobbyScreenState
           const SizedBox(height: 28),
           if (isHost)
             SiteButton(
-              label: canStart ? 'Start quiz' : 'Minimaal 2 spelers nodig',
+              label: canStart
+                  ? 'Start quiz'
+                  : 'Minimaal $minPlayers spelers nodig',
               trailingIcon: canStart ? Icons.arrow_forward : null,
-              onPressed: canStart ? () => controller.startMatch() : null,
+              onPressed: canStart ? () => _startMatch(controller) : null,
             )
           else
             AppCard(
@@ -161,7 +198,7 @@ class _MultiplayerLobbyScreenState
   Widget _buildRoomInfo(MultiplayerRoom room) {
     final questionCount = room.totalQuestions > 0
         ? '${room.totalQuestions}'
-        : '—';
+        : '-';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -177,7 +214,10 @@ class _MultiplayerLobbyScreenState
           stacked: true,
           items: [
             StatItem(value: questionCount, label: 'Vragen'),
-            StatItem(value: '${room.xpReward}', label: 'XP'),
+            // The room snapshot carries no XP figure - multiplayer scores are
+            // points per question, not the quiz's solo reward - so showing one
+            // here meant showing a hardcoded 50 that nobody ever earned.
+            StatItem(value: room.code, label: 'Code'),
             StatItem(
               value: '${room.players.length}/${room.maxPlayers}',
               label: 'Spelers',
@@ -186,7 +226,7 @@ class _MultiplayerLobbyScreenState
           ],
         ),
         const SizedBox(height: 28),
-        // The room code is the page's data centrepiece — serif, tracked out.
+        // The room code is the page's data centrepiece - serif, tracked out.
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(20),
@@ -231,6 +271,16 @@ class _MultiplayerLobbyScreenState
                   ),
                 ],
               ),
+              const SizedBox(height: 16),
+              // The share sheet, not the code, is what actually fills a room:
+              // the host taps once and the whole group chat gets a link. The
+              // code stays above it for the people sitting in the same room,
+              // who never needed a link.
+              SiteButton(
+                label: 'Uitnodiging delen',
+                icon: Icons.ios_share,
+                onPressed: () => _shareInvite(room),
+              ),
             ],
           ),
         ),
@@ -238,11 +288,32 @@ class _MultiplayerLobbyScreenState
     );
   }
 
+  Future<void> _shareInvite(MultiplayerRoom room) async {
+    ref
+        .read(analyticsProvider)
+        .track(
+          AnalyticsEvents.roomInviteShared,
+          props: {'roomCode': room.code, 'method': 'share_sheet'},
+        );
+
+    try {
+      await SharePlus.instance.share(
+        ShareParams(
+          text: AppConfig.roomInviteMessage(room.code, room.quizTitle),
+          subject: 'Doe mee met mijn BijbelQuiz',
+        ),
+      );
+    } catch (_) {
+      // No share target, or the sheet was killed mid-flight. The code is still
+      // on screen, so there is nothing to recover from and nothing worth
+      // interrupting the host with.
+    }
+  }
+
   Widget _buildPlayerList(MultiplayerRoom room) {
     return RuleGrid(
       children: [
-        for (var i = 0; i < room.players.length; i++)
-          _PlayerRow(player: room.players[i], rank: i + 1),
+        for (final player in room.players) _PlayerRow(player: player),
       ],
     );
   }
@@ -271,10 +342,9 @@ class _MultiplayerLobbyScreenState
 
 /// Player row, matching the leaderboard row: square rank badge, hairline rule.
 class _PlayerRow extends StatelessWidget {
-  const _PlayerRow({required this.player, required this.rank});
+  const _PlayerRow({required this.player});
 
   final MultiplayerPlayer player;
-  final int rank;
 
   @override
   Widget build(BuildContext context) {
@@ -284,23 +354,11 @@ class _PlayerRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
         children: [
-          Container(
-            height: 32,
-            constraints: const BoxConstraints(minWidth: 32),
-            alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            decoration: BoxDecoration(
-              color: AppTheme.paperSunken,
-              border: Border.all(color: AppTheme.rule),
-            ),
-            child: Text(
-              player.name.isNotEmpty ? player.name[0].toUpperCase() : '?',
-              style: const TextStyle(
-                fontFamily: AppTheme.displayFontName,
-                fontSize: 14,
-                color: AppTheme.inkSoft,
-              ),
-            ),
+          // The mascot is what makes a lobby of five names readable at a
+          // glance, so it replaces the initial-letter tile that was here.
+          Opacity(
+            opacity: isOffline ? 0.45 : 1,
+            child: MascotAvatar(avatar: player.avatar, size: 38, bordered: true),
           ),
           const SizedBox(width: 14),
           Expanded(

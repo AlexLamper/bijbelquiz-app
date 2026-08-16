@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/avatar/mascot_avatar.dart';
+import '../../../core/notifications/streak_reminder.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/app_notice.dart';
 import '../../../core/ui/app_widgets.dart';
 import '../../leaderboard/data/leaderboard_repository.dart';
 import '../../leaderboard/domain/leaderboard_entry.dart';
@@ -38,6 +41,9 @@ class ProfileScreen extends ConsumerWidget {
             onOpenSettings: () => _openSettingsSheet(context, ref, profile),
             onViewAllAchievements: () {
               context.push('/profile/achievements');
+            },
+            onEditIdentity: () {
+              context.push('/profile/edit');
             },
           ),
           loading: () => ListView(
@@ -125,6 +131,7 @@ class ProfileScreen extends ConsumerWidget {
                     context.push('/premium');
                   },
                 ),
+              _StreakReminderTile(profile: profile),
               _SheetTile(
                 icon: Icons.refresh,
                 label: 'Profiel vernieuwen',
@@ -156,6 +163,73 @@ class ProfileScreen extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// The evening reminder switch.
+///
+/// Off until switched on here or accepted in the prompt after a quiz. Flipping
+/// it on is what triggers the OS permission dialog, and a refusal there puts
+/// the switch straight back to off rather than pretending it worked.
+class _StreakReminderTile extends ConsumerWidget {
+  const _StreakReminderTile({required this.profile});
+
+  final ProfileModel profile;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final enabled = ref.watch(streakReminderEnabledProvider).asData?.value ?? false;
+
+    Future<void> toggle(bool value) async {
+      final result = await StreakReminder.instance.setEnabled(
+        value,
+        streak: profile.streak,
+        lastPlayedAt: profile.lastPlayedAt,
+      );
+
+      ref.invalidate(streakReminderEnabledProvider);
+
+      if (!context.mounted) return;
+      if (value && !result) {
+        AppNotice.info(
+          context,
+          'Meldingen staan uit voor BijbelQuiz. Zet ze aan in de '
+          'instellingen van je telefoon.',
+        );
+      }
+    }
+
+    return RuleListTile(
+      onTap: () => toggle(!enabled),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.notifications_none,
+            size: 18,
+            color: AppTheme.ink,
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Reeksherinnering', style: AppTheme.bodyStrong),
+                const SizedBox(height: 2),
+                Text('Elke avond om 19:00, alleen als je nog niet '
+                    'gespeeld hebt.', style: AppTheme.bodyMuted),
+              ],
+            ),
+          ),
+          Switch(
+            value: enabled,
+            activeColor: AppTheme.paper,
+            activeTrackColor: AppTheme.ink,
+            onChanged: toggle,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -204,21 +278,24 @@ class _ProfileContent extends StatelessWidget {
     required this.rank,
     required this.onOpenSettings,
     required this.onViewAllAchievements,
+    required this.onEditIdentity,
   });
 
   final ProfileModel profile;
   final int? rank;
   final VoidCallback onOpenSettings;
   final VoidCallback onViewAllAchievements;
+  final VoidCallback onEditIdentity;
 
   @override
   Widget build(BuildContext context) {
-    final averageScore = _calculateAverageScore(profile.recentProgress);
-
-    const levelSpan = 1000;
-    final currentXpInLevel = profile.xp % levelSpan;
-    final progress = (currentXpInLevel / levelSpan).clamp(0.0, 1.0);
-    final xpRemaining = (levelSpan - currentXpInLevel).clamp(0, levelSpan);
+    // Every figure below is the server's, not ours. The XP ladder is not
+    // linear (500, 1000, 1500, ... per level), so any local band arithmetic
+    // would disagree with both the website and the level shown right here.
+    final averageScore = profile.averageScore;
+    final progress = profile.levelFraction;
+    final xpRemaining = profile.xpToNextLevel;
+    final isMaxLevel = xpRemaining == 0;
 
     return SafeArea(
       child: ListView(
@@ -237,6 +314,35 @@ class _ProfileContent extends StatelessWidget {
                     Text(profile.name, style: AppTheme.displayLarge),
                     const SizedBox(height: 10),
                     Text(profile.email, style: AppTheme.bodyLead),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Tapping the mascot is the primary way into the customiser;
+              // the pencil below it is there for anyone who does not read a
+              // picture as a button.
+              GestureDetector(
+                onTap: onEditIdentity,
+                child: Column(
+                  children: [
+                    MascotAvatar(
+                      avatar: profile.avatar,
+                      size: 72,
+                      bordered: true,
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(
+                          Icons.edit_outlined,
+                          size: 12,
+                          color: AppTheme.inkMuted,
+                        ),
+                        SizedBox(width: 4),
+                        Text('Bewerken', style: AppTheme.caption),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -271,7 +377,7 @@ class _ProfileContent extends StatelessWidget {
             runSpacing: 8,
             children: [
               SiteBadge.neutral('Level ${profile.level}'),
-              SiteBadge.lapis(rank == null ? 'Rang —' : 'Rang #$rank'),
+              SiteBadge.lapis(rank == null ? 'Rang -' : 'Rang #$rank'),
               if (profile.isPremium) SiteBadge.vermilion('Premium'),
             ],
           ),
@@ -280,7 +386,7 @@ class _ProfileContent extends StatelessWidget {
             stacked: true,
             items: [
               StatItem(
-                value: '${profile.recentProgress.length}',
+                value: '${profile.quizzesPlayed}',
                 label: 'Quizzen',
               ),
               StatItem(
@@ -299,10 +405,12 @@ class _ProfileContent extends StatelessWidget {
           const SizedBox(height: 24),
           _ProgressCard(
             level: profile.level,
-            currentXpInLevel: currentXpInLevel,
-            levelSpan: levelSpan,
+            levelTitle: profile.levelTitle,
+            xp: profile.xp,
+            nextLevelXp: profile.nextLevelXp,
             xpRemaining: xpRemaining,
             progress: progress,
+            isMaxLevel: isMaxLevel,
           ),
           const SizedBox(height: 40),
           const SectionHeader(eyebrow: 'Statistieken', title: 'Jouw cijfers'),
@@ -311,7 +419,7 @@ class _ProfileContent extends StatelessWidget {
             children: [
               _StatRow(
                 label: 'Quizzen gespeeld',
-                value: '${profile.recentProgress.length}',
+                value: '${profile.quizzesPlayed}',
               ),
               _StatRow(label: 'Nauwkeurigheid', value: '$averageScore%'),
               _StatRow(
@@ -340,34 +448,28 @@ class _ProfileContent extends StatelessWidget {
     );
   }
 
-  int _calculateAverageScore(List<RecentProgressModel> recentProgress) {
-    if (recentProgress.isEmpty) return 0;
-
-    final totalScore = recentProgress.fold<int>(
-      0,
-      (sum, item) => sum + item.score,
-    );
-
-    return (totalScore / recentProgress.length).round().clamp(0, 100);
-  }
 }
 
 /// `rounded-lg border border-rule bg-paper-raised p-5` with a 2px progress
-/// rule — the site never rounds or thickens its bars.
+/// rule - the site never rounds or thickens its bars.
 class _ProgressCard extends StatelessWidget {
   const _ProgressCard({
     required this.level,
-    required this.currentXpInLevel,
-    required this.levelSpan,
+    required this.levelTitle,
+    required this.xp,
+    required this.nextLevelXp,
     required this.xpRemaining,
     required this.progress,
+    required this.isMaxLevel,
   });
 
   final int level;
-  final int currentXpInLevel;
-  final int levelSpan;
+  final String levelTitle;
+  final int xp;
+  final int nextLevelXp;
   final int xpRemaining;
   final double progress;
+  final bool isMaxLevel;
 
   @override
   Widget build(BuildContext context) {
@@ -379,10 +481,15 @@ class _ProgressCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Expanded(
-                child: Text('Level $level', style: AppTheme.displayBase),
+                child: Text(
+                  'Level $level - $levelTitle',
+                  style: AppTheme.displayBase,
+                ),
               ),
               Text(
-                '${_formatNumber(currentXpInLevel)} / ${_formatNumber(levelSpan)} XP',
+                isMaxLevel
+                    ? '${_formatNumber(xp)} XP'
+                    : '${_formatNumber(xp)} / ${_formatNumber(nextLevelXp)} XP',
                 style: AppTheme.caption.copyWith(
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
@@ -402,7 +509,9 @@ class _ProgressCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            '${_formatNumber(xpRemaining)} XP tot level ${level + 1}',
+            isMaxLevel
+                ? 'Hoogste level bereikt.'
+                : '${_formatNumber(xpRemaining)} XP tot level ${level + 1}',
             style: AppTheme.caption,
           ),
         ],
@@ -531,7 +640,9 @@ class _RecentActivityList extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        item.isCompleted ? 'VOLTOOID' : 'IN VOORTGANG',
+                        item.totalQuestions > 0
+                            ? '${item.score}/${item.totalQuestions} GOED'
+                            : 'VOLTOOID',
                         style: AppTheme.overline,
                       ),
                       const SizedBox(height: 6),
@@ -546,7 +657,8 @@ class _RecentActivityList extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  '${item.score}%',
+                  // `score` is a correct-answer count, not a percentage.
+                  '${(item.accuracy * 100).round()}%',
                   style: AppTheme.statNumber.copyWith(fontSize: 18),
                 ),
               ],

@@ -6,7 +6,7 @@ import 'profile_repository.dart';
 /// One achievement, as the backend defines it.
 ///
 /// `/api/mobile/profile` hands back a plain list of badge codes such as
-/// `FIRST_STEPS`. Those codes are storage keys, never labels, so every screen
+/// `first_steps`. Those codes are storage keys, never labels, so every screen
 /// resolves them through this catalogue before showing them.
 @immutable
 class BadgeDefinition {
@@ -18,7 +18,7 @@ class BadgeDefinition {
     this.aliases = const <String>[],
   });
 
-  /// Storage key, e.g. `FIRST_STEPS`.
+  /// Storage key, e.g. `first_steps`.
   final String code;
 
   /// Dutch label shown to the player, e.g. `Eerste quiz`.
@@ -71,7 +71,7 @@ String normalizeBadge(String value) {
       .trim();
 }
 
-/// Last-resort label for a code this build does not know yet: `FIRST_STEPS`
+/// Last-resort label for a code this build does not know yet: `first_steps`
 /// becomes `First steps` rather than leaking the raw constant into the UI.
 String prettifyBadgeCode(String code) {
   final words = normalizeBadge(code);
@@ -96,44 +96,64 @@ IconData iconForBadge(String codeOrLabel) {
   return Icons.auto_awesome_outlined;
 }
 
-/// Used until `GET /api/mobile/badges` exists. `FIRST_STEPS` is the one code
-/// confirmed against live profile data; the rest carry both a code and a Dutch
-/// alias so they match whichever spelling the backend settles on.
+/// Offline mirror of the server catalogue in `src/lib/gamification.ts`.
+///
+/// `GET /api/mobile/badges` is the source of truth; this list only covers the
+/// case where that call fails. Codes, labels, and descriptions are copied from
+/// the server verbatim - an entry the server never awards would be a badge the
+/// player can never unlock, so nothing is invented here.
 const List<BadgeDefinition> kFallbackBadgeCatalog = <BadgeDefinition>[
   BadgeDefinition(
-    code: 'FIRST_STEPS',
-    label: 'Eerste quiz',
+    code: 'first_steps',
+    label: 'Eerste Stappen',
     icon: Icons.star_border,
-    description: 'Rond je eerste quiz af.',
-    aliases: <String>['first quiz', 'eerste quiz', 'eerste stappen'],
+    description: 'Voltooi je eerste quiz.',
+    aliases: <String>['eerste quiz', 'first quiz'],
   ),
   BadgeDefinition(
-    code: 'STREAK_7',
-    label: '7-dagen reeks',
-    icon: Icons.local_fire_department_outlined,
-    description: 'Speel zeven dagen achter elkaar.',
-    aliases: <String>['seven day streak', '7 dagen reeks', 'week streak'],
+    code: 'knowledge_seeker',
+    label: 'Kenniszoeker',
+    icon: Icons.search,
+    description: 'Speel 10 verschillende quizzen.',
   ),
   BadgeDefinition(
-    code: 'QUIZ_MASTER',
-    label: 'Quiz meester',
-    icon: Icons.emoji_events_outlined,
-    description: 'Sluit tien quizzen succesvol af.',
-    aliases: <String>['quiz meester', 'master'],
-  ),
-  BadgeDefinition(
-    code: 'PERFECT_SCORE',
-    label: 'Perfecte score',
+    code: 'perfect_score',
+    label: 'Foutloos',
     icon: Icons.gps_fixed,
-    description: 'Beantwoord elke vraag van een quiz goed.',
-    aliases: <String>['perfecte score', 'perfectionist'],
+    description: 'Haal een 100% score op een quiz.',
+    aliases: <String>['perfecte score'],
   ),
   BadgeDefinition(
-    code: 'HUNDRED_QUIZZES',
-    label: '100 quizzen',
-    icon: Icons.auto_awesome_outlined,
-    description: 'Speel honderd quizzen.',
-    aliases: <String>['100 quizzen', '100 quizzes'],
+    code: 'streak_3',
+    label: 'Op Dreef',
+    icon: Icons.local_fire_department_outlined,
+    description: 'Bouw een streak van 3 dagen op.',
+  ),
+  BadgeDefinition(
+    code: 'streak_7',
+    label: 'Toegewijd',
+    icon: Icons.local_fire_department_outlined,
+    description: 'Speel 7 dagen op rij.',
+    aliases: <String>['7 dagen reeks', 'week streak'],
+  ),
+  BadgeDefinition(
+    code: 'scholar',
+    label: 'Geleerde',
+    icon: Icons.school_outlined,
+    description: 'Behaal niveau 5.',
+  ),
+  BadgeDefinition(
+    code: 'master',
+    label: 'Meester',
+    icon: Icons.emoji_events_outlined,
+    description: 'Behaal niveau 10.',
+    aliases: <String>['quiz meester'],
+  ),
+  BadgeDefinition(
+    code: 'all_rounder',
+    label: 'Allrounder',
+    icon: Icons.public,
+    description: 'Speel een brede selectie quizzen.',
   ),
 ];
 

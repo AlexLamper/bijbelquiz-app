@@ -308,7 +308,7 @@ class _CategoryChip extends StatelessWidget {
   }
 }
 
-/// Dropdown trigger — `h-9 w-full justify-start rounded-md border-rule px-3`.
+/// Dropdown trigger - `h-9 w-full justify-start rounded-md border-rule px-3`.
 class _SortSelector extends StatelessWidget {
   const _SortSelector({required this.selectedSort, required this.onChanged});
 

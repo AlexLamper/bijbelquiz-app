@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/analytics/analytics.dart';
+import '../../../core/notifications/streak_reminder.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/app_widgets.dart';
+import '../../profile/data/profile_model.dart';
 import '../../profile/present/profile_provider.dart';
 import '../data/quiz_repository.dart';
 import '../domain/answer.dart';
@@ -25,15 +28,23 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
   bool _isAnswered = false;
   int _correctCount = 0;
 
+  /// Which option index was picked per question index, so the server can
+  /// re-grade the attempt instead of trusting a client-side tally.
+  final Map<int, int> _selectedIndexes = <int, int>{};
+
   /// XP the server actually awarded, once the attempt has been reported.
   int? _awardedXp;
+
+  /// True once the server has answered, whatever the awarded amount was.
+  bool _resultConfirmed = false;
   bool _resultSubmitted = false;
 
-  void _handleOptionSelected(Answer answer) {
+  void _handleOptionSelected(Answer answer, int index) {
     if (_isAnswered) return;
     setState(() {
       _selectedAnswer = answer;
       _isAnswered = true;
+      _selectedIndexes[_currentIndex] = index;
       if (answer.isCorrect) _correctCount++;
     });
   }
@@ -59,19 +70,100 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
     if (_resultSubmitted) return;
     _resultSubmitted = true;
 
-    final awarded = await ref
+    final totalQuestions = quiz.questions.length;
+    final answers = List<int?>.generate(
+      totalQuestions,
+      (index) => _selectedIndexes[index],
+    );
+
+    final result = await ref
         .read(quizRepositoryProvider)
         .submitQuizResult(
           quizId: quiz.id,
           correctAnswers: _correctCount,
-          totalQuestions: quiz.questions.length,
+          totalQuestions: totalQuestions,
+          selectedAnswerIndexes: answers,
         );
 
     if (!mounted) return;
-    setState(() => _awardedXp = awarded);
+    setState(() {
+      _awardedXp = result?.xpEarned;
+      _resultConfirmed = result != null;
+    });
 
     // The profile header, streak and badges all move on a finished quiz.
     ref.invalidate(profileProvider);
+
+    await _handleStreakReminder();
+  }
+
+  /// The one place the streak reminder is offered.
+  ///
+  /// After a finished quiz, not on launch: the permission prompt then lands on
+  /// somebody who has used the app, and the streak it protects actually
+  /// exists. Asked once ever, and only from a streak of two, because a player
+  /// on day one has nothing to lose tonight.
+  Future<void> _handleStreakReminder() async {
+    final ProfileModel profile;
+    try {
+      // The refreshed profile, so the streak read here is the one the quiz
+      // just changed rather than the pre-submit value.
+      profile = await ref.read(profileProvider.future);
+    } catch (_) {
+      // A profile that will not load is not worth a prompt about.
+      return;
+    }
+
+    if (!mounted) return;
+
+    final reminder = StreakReminder.instance;
+
+    if (await reminder.isEnabled()) {
+      await reminder.sync(
+        streak: profile.streak,
+        lastPlayedAt: profile.lastPlayedAt,
+      );
+      return;
+    }
+
+    if (profile.streak < 2 || await reminder.hasBeenOffered() || !mounted) {
+      return;
+    }
+
+    await reminder.markOffered();
+    if (!mounted) return;
+
+    final wantsIt = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppTheme.paperRaised,
+        title: const Text('Je reeks vasthouden?'),
+        content: Text(
+          'Je hebt ${profile.streak} dagen op rij gespeeld. Zullen we je om '
+          '19:00 een seintje geven op een dag dat je nog niet gespeeld hebt?',
+          style: AppTheme.bodyMuted,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Nee, bedankt'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Ja, graag'),
+          ),
+        ],
+      ),
+    );
+
+    if (wantsIt != true) return;
+
+    await reminder.setEnabled(
+      true,
+      streak: profile.streak,
+      lastPlayedAt: profile.lastPlayedAt,
+    );
+    ref.invalidate(streakReminderEnabledProvider);
   }
 
   @override
@@ -102,7 +194,7 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
 
             return Column(
               children: [
-                // Header rail — close button + `text-[10px] uppercase
+                // Header rail - close button + `text-[10px] uppercase
                 // tracking-[0.16em]` counter.
                 Padding(
                   padding: const EdgeInsets.fromLTRB(8, 4, 20, 4),
@@ -127,7 +219,7 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
                     ],
                   ),
                 ),
-                // Hairline progress track — the site keeps bars at 2px.
+                // Hairline progress track - the site keeps bars at 2px.
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Container(
@@ -236,7 +328,7 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
         color: background,
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
         child: InkWell(
-          onTap: () => _handleOptionSelected(answer),
+          onTap: () => _handleOptionSelected(answer, index),
           borderRadius: BorderRadius.circular(AppTheme.radiusMd),
           splashColor: AppTheme.paperSunken,
           highlightColor: AppTheme.paperSunken,
@@ -369,9 +461,26 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
               if (!isPremium && (hasExplanation || hasReference)) ...[
                 const SizedBox(height: 18),
                 SiteOutlineButton(
-                  label: 'Ontgrendel Premium voor uitleg',
+                  // A player who just got it wrong wants to know why more than
+                  // at any other moment, so the ask names that instead of the
+                  // product.
+                  label: gotItRight
+                      ? 'Ontgrendel Premium voor uitleg'
+                      : 'Lees waarom dit fout was',
                   height: 40,
-                  onPressed: () => context.push('/premium'),
+                  onPressed: () {
+                    ref
+                        .read(analyticsProvider)
+                        .track(
+                          AnalyticsEvents.paywallShown,
+                          props: {
+                            'trigger': PaywallTrigger.explanationLocked,
+                            'surface': 'quiz_explanation',
+                            'afterWrongAnswer': !gotItRight,
+                          },
+                        );
+                    context.push('/premium?reden=explanation_locked');
+                  },
                 ),
               ],
             ],
@@ -500,16 +609,19 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
   /// eyebrow -> `font-display text-[26px]` -> lead -> rule-divided stats.
   Widget _buildFinishedScreen(Quiz quiz) {
     final totalQuestions = quiz.questions.length;
-    // XP scales with how much you got right, exactly like the quiz's own
-    // reward value implies. The server's number wins whenever it answers.
-    final earnedXp =
-        _awardedXp ??
-        (totalQuestions == 0
-            ? 0
-            : (quiz.xpReward * _correctCount / totalQuestions).round());
+    // Only the server awards XP, and a replay that beats no earlier attempt
+    // awards none. Estimating here would promise XP the account never gets.
+    final earnedXp = _awardedXp;
     final percentage = totalQuestions == 0
         ? 0
         : (_correctCount * 100 / totalQuestions).round();
+
+    final xpSentence = _resultConfirmed
+        ? (earnedXp == null || earnedXp == 0
+              ? 'Je verdiende deze keer geen extra XP - een herhaling telt '
+                    'alleen mee als je jezelf verbetert.'
+              : 'Je verdiende $earnedXp XP.')
+        : 'Je resultaat wordt opgeslagen zodra je weer verbinding hebt.';
 
     return Center(
       child: SingleChildScrollView(
@@ -527,9 +639,9 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
             ),
             const SizedBox(height: 14),
             Text(
-              'Je had $_correctCount van de $totalQuestions vragen goed en '
-              'verdiende $earnedXp XP. Ga door om je reeks in stand te houden '
-              'en verder te stijgen op de ranglijst.',
+              'Je had $_correctCount van de $totalQuestions vragen goed. '
+              '$xpSentence Ga door om je reeks in stand te houden en verder '
+              'te stijgen op de ranglijst.',
               textAlign: TextAlign.center,
               style: AppTheme.bodyLead,
             ),
@@ -543,7 +655,7 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
                 ),
                 StatItem(value: '$percentage%', label: 'Score'),
                 StatItem(
-                  value: '$earnedXp',
+                  value: earnedXp == null ? '-' : '$earnedXp',
                   label: 'XP',
                   ruleColor: AppTheme.positive,
                 ),

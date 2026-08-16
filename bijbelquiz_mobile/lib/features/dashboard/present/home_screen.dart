@@ -7,6 +7,8 @@ import '../../../core/ui/app_widgets.dart';
 import '../../../core/ui/server_image.dart';
 import '../../profile/present/profile_provider.dart';
 import '../../quiz/data/quiz_repository.dart';
+import '../../seasons/data/season_repository.dart';
+import '../../seasons/domain/season.dart';
 import '../../quiz/domain/category.dart';
 import '../../quiz/domain/quiz.dart';
 
@@ -41,6 +43,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Future<void> _refreshData() async {
     ref.invalidate(profileProvider);
     ref.invalidate(categoriesProvider);
+    ref.invalidate(currentSeasonProvider);
     ref.invalidate(quizzesProvider(const QuizQuery(includePremium: true)));
     await ref.read(
       quizzesProvider(const QuizQuery(includePremium: true)).future,
@@ -150,6 +153,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     )
                   else
                     const _EmptyFeaturedCard(),
+                  // The seasonal pack, when one is running. Absent for most of
+                  // the year, so it renders nothing rather than an empty
+                  // section with a heading.
+                  ...(() {
+                    final season = ref
+                        .watch(currentSeasonProvider)
+                        .asData
+                        ?.value;
+                    if (season == null || !season.hasQuizzes) {
+                      return const <Widget>[];
+                    }
+
+                    return [
+                      const SizedBox(height: 44),
+                      SectionHeader(
+                        eyebrow: 'Seizoen',
+                        title: season.title,
+                        description: season.description,
+                      ),
+                      const SizedBox(height: 24),
+                      _SeasonCard(
+                        season: season,
+                        onOpenQuiz: (quiz) {
+                          if (quiz.isPremium && !isPremiumUser) {
+                            context.push('/premium');
+                            return;
+                          }
+                          context.push('/quiz/${quiz.routeKey}/play');
+                        },
+                      ),
+                    ];
+                  })(),
                   const SizedBox(height: 44),
                   const SectionHeader(
                     eyebrow: 'Bibliotheek',
@@ -697,7 +732,7 @@ class _ImageBadge extends StatelessWidget {
   }
 }
 
-/// Row inside the hairline list — mirrors the site's rule-separated rows.
+/// Row inside the hairline list - mirrors the site's rule-separated rows.
 class _PopularQuizTile extends StatelessWidget {
   const _PopularQuizTile({
     required this.quiz,
@@ -795,6 +830,82 @@ class _NoQuizState extends StatelessWidget {
       child: Text(
         'Geen quizzen gevonden voor deze filters.',
         style: AppTheme.bodyMuted,
+      ),
+    );
+  }
+}
+
+/// The seasonal pack, with a real countdown to its last day.
+///
+/// The countdown is the point: "Nog 9 dagen" is a reason to open a quiz
+/// tonight in a way that a permanent category never is.
+class _SeasonCard extends StatelessWidget {
+  const _SeasonCard({required this.season, required this.onOpenQuiz});
+
+  final SeasonPack season;
+  final ValueChanged<SeasonQuiz> onOpenQuiz;
+
+  @override
+  Widget build(BuildContext context) {
+    final quizzes = season.quizzes.take(4).toList();
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppTheme.lapisTint,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: AppTheme.lapis.withValues(alpha: 0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.calendar_today_outlined,
+                size: 14,
+                color: AppTheme.lapis,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                season.countdownLabel.toUpperCase(),
+                style: AppTheme.overline.copyWith(color: AppTheme.lapis),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          for (var i = 0; i < quizzes.length; i++) ...[
+            if (i > 0) const RuleLine(),
+            RuleListTile(
+              showRule: false,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              onTap: () => onOpenQuiz(quizzes[i]),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      quizzes[i].title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTheme.bodyStrong,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    '${quizzes[i].questionCount} VRAGEN',
+                    style: AppTheme.overline,
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(
+                    Icons.arrow_forward,
+                    size: 13,
+                    color: AppTheme.inkMuted,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

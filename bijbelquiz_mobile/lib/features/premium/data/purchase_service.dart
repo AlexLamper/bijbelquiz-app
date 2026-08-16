@@ -5,10 +5,23 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 // ─── RevenueCat identifiers ──────────────────────────────────────────────────
 // Product IDs must match App Store Connect / Play exactly.
 const kRcMonthlyProductId = 'bijbelquiz_premium_monthly';
+const kRcYearlyProductId = 'bijbelquiz_premium_yearly';
 const kRcLifetimeProductId = 'bijbelquiz_premium_lifetime';
-// RevenueCat package IDs are usually stable ($rc_monthly / $rc_lifetime).
+// RevenueCat package IDs are usually stable ($rc_monthly / $rc_annual / ...).
 const kRcMonthlyPackageId = '\$rc_monthly';
+const kRcYearlyPackageId = '\$rc_annual';
 const kRcLifetimePackageId = '\$rc_lifetime';
+
+/// Plan labels the funnel reports on. Must match `PURCHASE_PLANS` on the
+/// server, which is what the payment webhook writes.
+String planLabelForProduct(String productId) {
+  final id = productId.toLowerCase();
+  if (id.contains('year') || id.contains('annual') || id.contains('jaar')) {
+    return 'yearly';
+  }
+  if (id.contains('life') || id.contains('levenslang')) return 'lifetime';
+  return 'monthly';
+}
 
 // RevenueCat entitlement identifier (configured in RC dashboard)
 const kRcPremiumEntitlement = 'premium';
@@ -18,6 +31,26 @@ const kRcPremiumEntitlement = 'premium';
 final purchaseServiceProvider = Provider<PurchaseService>((ref) {
   return PurchaseService();
 });
+
+/// A free introductory period offered by the store.
+class TrialOffer {
+  const TrialOffer({required this.periodUnit, required this.periodCount});
+
+  final PeriodUnit periodUnit;
+  final int periodCount;
+
+  /// Dutch label, e.g. "7 dagen gratis".
+  String get label {
+    final unit = switch (periodUnit) {
+      PeriodUnit.day => periodCount == 1 ? 'dag' : 'dagen',
+      PeriodUnit.week => periodCount == 1 ? 'week' : 'weken',
+      PeriodUnit.month => periodCount == 1 ? 'maand' : 'maanden',
+      PeriodUnit.year => periodCount == 1 ? 'jaar' : 'jaar',
+      PeriodUnit.unknown => 'dagen',
+    };
+    return '$periodCount $unit gratis';
+  }
+}
 
 class PurchaseService {
   void _log(String message) {
@@ -53,22 +86,26 @@ class PurchaseService {
       );
     }
 
-    // Keep a stable package order in UI (monthly first, then lifetime).
-    packages.sort((a, b) {
-      final aId = a.storeProduct.identifier;
-      final bId = b.storeProduct.identifier;
-      final aRank = aId == kRcMonthlyProductId
-          ? 0
-          : aId == kRcLifetimeProductId
-          ? 1
-          : 99;
-      final bRank = bId == kRcMonthlyProductId
-          ? 0
-          : bId == kRcLifetimeProductId
-          ? 1
-          : 99;
-      return aRank.compareTo(bRank);
-    });
+    // Stable order in the UI: yearly first because it is the plan the paywall
+    // recommends, then monthly, then the one-off.
+    int rank(String productId) {
+      switch (planLabelForProduct(productId)) {
+        case 'yearly':
+          return 0;
+        case 'monthly':
+          return 1;
+        case 'lifetime':
+          return 2;
+        default:
+          return 99;
+      }
+    }
+
+    packages.sort(
+      (a, b) => rank(
+        a.storeProduct.identifier,
+      ).compareTo(rank(b.storeProduct.identifier)),
+    );
 
     return packages;
   }
@@ -78,6 +115,14 @@ class PurchaseService {
       packages,
       packageId: kRcMonthlyPackageId,
       productId: kRcMonthlyProductId,
+    );
+  }
+
+  Package? findYearlyPackage(List<Package> packages) {
+    return _findPackage(
+      packages,
+      packageId: kRcYearlyPackageId,
+      productId: kRcYearlyProductId,
     );
   }
 
@@ -101,6 +146,25 @@ class PurchaseService {
       }
     }
     return null;
+  }
+
+  /// The free trial attached to a package, or null when there is none.
+  ///
+  /// Read from the store rather than hardcoded: the trial is configured in App
+  /// Store Connect, and a paywall that promises one the store will not honour
+  /// is a rejected review at best.
+  static TrialOffer? trialOffer(Package? package) {
+    final intro = package?.storeProduct.introductoryPrice;
+    if (intro == null) return null;
+
+    // A discounted intro price is not a free trial, and must not be sold as
+    // one.
+    if (intro.price > 0) return null;
+
+    return TrialOffer(
+      periodUnit: intro.periodUnit,
+      periodCount: intro.periodNumberOfUnits,
+    );
   }
 
   /// Purchase a RevenueCat package from current offering.
