@@ -102,12 +102,41 @@ jobs:
             exit 1
           fi
 
+          # Associated Domains is optional for review, so it is recorded rather
+          # than enforced; the next step reconciles the app entitlements with it.
+          if /usr/libexec/PlistBuddy -c 'Print Entitlements:com.apple.developer.associated-domains' "$PP_PLIST" >/dev/null 2>&1; then
+            echo "PROFILE_HAS_ASSOCIATED_DOMAINS=1" >> $GITHUB_ENV
+          else
+            echo "PROFILE_HAS_ASSOCIATED_DOMAINS=0" >> $GITHUB_ENV
+          fi
+
           echo "PP_UUID=$PP_UUID" >> $GITHUB_ENV
           echo "PP_NAME=$PP_NAME" >> $GITHUB_ENV
           echo "APP_BUNDLE_ID=$APP_BUNDLE_ID" >> $GITHUB_ENV
 
           echo "Using provisioning profile: $PP_NAME ($PP_UUID)"
           echo "Provisioning profile app id: $APP_BUNDLE_ID"
+
+      # ── 3a. Reconcile entitlements with the profile ──────────────────────────
+      # exportArchive refuses to sign an app that claims an entitlement the
+      # provisioning profile does not grant. Universal links are a nice-to-have,
+      # so a profile without Associated Domains costs the deep links rather than
+      # the whole upload; invite URLs then open the website, as they did before.
+      - name: Reconcile entitlements with provisioning profile
+        working-directory: bijbelquiz_mobile
+        run: |
+          if [ "${PROFILE_HAS_ASSOCIATED_DOMAINS:-0}" = "1" ]; then
+            echo "Provisioning profile grants Associated Domains; universal links stay enabled."
+            exit 0
+          fi
+
+          echo "::warning::Provisioning profile has no com.apple.developer.associated-domains entitlement."
+          echo "::warning::Building without Associated Domains so the export can still be signed. Website invite links will open Safari instead of the app."
+          echo "::warning::To enable them: Apple Developer -> Certificates, Identifiers & Profiles -> Identifiers -> com.bijbelquiz.app -> enable Associated Domains, regenerate the App Store provisioning profile, then update the BUILD_PROVISION_PROFILE_BASE64 secret."
+
+          /usr/libexec/PlistBuddy -c 'Delete :com.apple.developer.associated-domains' \
+            ios/Runner/Runner.entitlements || true
+          /usr/libexec/PlistBuddy -c 'Print' ios/Runner/Runner.entitlements
 
       # ── 3b. Resolve version ──────────────────────────────────────────────────
       # Asks App Store Connect which version/build numbers already exist and picks
