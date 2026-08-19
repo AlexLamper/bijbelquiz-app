@@ -24,6 +24,7 @@ import '../../features/multiplayer/present/multiplayer_lobby_screen.dart';
 import '../../features/multiplayer/present/multiplayer_game_screen.dart';
 import '../../features/multiplayer/present/multiplayer_results_screen.dart';
 import '../../features/quiz/present/quiz_detail_screen.dart';
+import '../../features/quiz/present/quiz_passage_screen.dart';
 import '../../features/quiz/present/quiz_player_screen.dart';
 
 // Main Scaffold representing the Bottom Navigation persistence
@@ -290,6 +291,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/quiz/:id',
         builder: (context, state) =>
             QuizDetailScreen(idOrSlug: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/quiz/:id/lezen',
+        builder: (context, state) =>
+            QuizPassageScreen(idOrSlug: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/quiz/:id/play',

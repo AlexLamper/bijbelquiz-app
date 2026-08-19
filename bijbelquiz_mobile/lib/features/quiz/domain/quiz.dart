@@ -1,5 +1,6 @@
 import 'category.dart';
 import 'question.dart';
+import 'quiz_passage.dart';
 
 class Quiz {
   final String id;
@@ -15,6 +16,10 @@ class Quiz {
   final bool isPremium;
   final List<Question> questions;
 
+  /// The chapter this quiz is about, when the server could work one out from
+  /// the question references. Null for quizzes that span several books.
+  final QuizPassage? passage;
+
   Quiz({
     required this.id,
     required this.title,
@@ -28,6 +33,7 @@ class Quiz {
     this.questionCount = 0,
     this.isPremium = false,
     this.questions = const [],
+    this.passage,
   });
 
   factory Quiz.fromJson(Map<String, dynamic> json) {
@@ -67,6 +73,7 @@ class Quiz {
           json['requiresPremium'] == true ||
           json['premium'] == true,
       questions: parsedQuestions,
+      passage: QuizPassage.fromJson(json['passage']),
     );
   }
 

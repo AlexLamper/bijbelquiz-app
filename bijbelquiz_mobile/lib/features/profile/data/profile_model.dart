@@ -105,6 +105,12 @@ class ProfileModel {
 
   final List<RecentProgressModel> recentProgress;
 
+  /// Ids of every quiz this account has finished at least once.
+  ///
+  /// Ids rather than attempts: the library only needs "done or not", and a full
+  /// attempt history would grow without bound on an account that plays a lot.
+  final Set<String> playedQuizIds;
+
   ProfileModel({
     required this.id,
     required this.name,
@@ -125,6 +131,7 @@ class ProfileModel {
     required this.quizzesPlayed,
     required this.averageScore,
     required this.recentProgress,
+    this.playedQuizIds = const {},
   });
 
   /// XP still needed to reach the next level. Zero at max level.
@@ -155,6 +162,7 @@ class ProfileModel {
       quizzesPlayed: quizzesPlayed,
       averageScore: averageScore,
       recentProgress: recentProgress,
+      playedQuizIds: playedQuizIds,
     );
   }
 
@@ -197,6 +205,12 @@ class ProfileModel {
               )
               .toList() ??
           [],
+      playedQuizIds:
+          (json['playedQuizIds'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .where((id) => id.isNotEmpty)
+              .toSet() ??
+          const {},
     );
   }
 

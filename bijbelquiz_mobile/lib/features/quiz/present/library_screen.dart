@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/app_widgets.dart';
 import '../../../core/ui/server_image.dart';
+import '../../profile/present/profile_provider.dart';
 import '../data/quiz_repository.dart';
 import '../domain/category.dart';
 import '../domain/quiz.dart';
@@ -45,7 +46,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     await ref.read(quizzesProvider(const QuizQuery()).future);
   }
 
-  List<Quiz> _buildVisibleQuizzes(List<Quiz> quizzes) {
+  List<Quiz> _buildVisibleQuizzes(List<Quiz> quizzes, Set<String> playedIds) {
     final filtered = quizzes.where((quiz) {
       final matchesCategory =
           _selectedCategory == 'all' ||
@@ -62,6 +63,13 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     }).toList();
 
     filtered.sort((a, b) {
+      // Quizzes still to play always come first. A library that opens on the
+      // ones you already finished gets the same few replayed while the rest is
+      // never found.
+      final aPlayed = playedIds.contains(a.id);
+      final bPlayed = playedIds.contains(b.id);
+      if (aPlayed != bPlayed) return aPlayed ? 1 : -1;
+
       switch (_selectedSort) {
         case 'short':
           return a.questionCount.compareTo(b.questionCount);
@@ -82,6 +90,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   Widget build(BuildContext context) {
     final categoriesAsync = ref.watch(categoriesProvider);
     final quizzesAsync = ref.watch(quizzesProvider(const QuizQuery()));
+    // Signed-out readers simply see no "afgerond" marks.
+    final playedQuizIds = ref
+        .watch(profileProvider)
+        .maybeWhen(data: (profile) => profile.playedQuizIds, orElse: () => const <String>{});
 
     return Scaffold(
       backgroundColor: AppTheme.paper,
@@ -92,7 +104,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           onRefresh: _refreshData,
           child: quizzesAsync.when(
             data: (quizzes) {
-              final visibleQuizzes = _buildVisibleQuizzes(quizzes);
+              final visibleQuizzes = _buildVisibleQuizzes(
+                quizzes,
+                playedQuizIds,
+              );
 
               return ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -193,6 +208,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                       if (i > 0) const SizedBox(height: 36),
                       _QuizListCard(
                         quiz: visibleQuizzes[i],
+                        played: playedQuizIds.contains(visibleQuizzes[i].id),
                         onTap: () => context.push(
                           '/quiz/${visibleQuizzes[i].slug.isNotEmpty ? visibleQuizzes[i].slug : visibleQuizzes[i].id}',
                         ),
@@ -383,10 +399,17 @@ class _SortSelector extends StatelessWidget {
 
 /// The site's quiz card, one per row on mobile.
 class _QuizListCard extends StatelessWidget {
-  const _QuizListCard({required this.quiz, required this.onTap});
+  const _QuizListCard({
+    required this.quiz,
+    required this.onTap,
+    this.played = false,
+  });
 
   final Quiz quiz;
   final VoidCallback onTap;
+
+  /// Already finished at least once by this account.
+  final bool played;
 
   @override
   Widget build(BuildContext context) {
@@ -422,6 +445,43 @@ class _QuizListCard extends StatelessWidget {
                     )
                   else
                     ServerImage(imagePath: quiz.image, fit: BoxFit.cover),
+                  // A finished quiz says so at full strength: somebody
+                  // scanning the list should never have to open a quiz to find
+                  // out they already did it.
+                  if (played)
+                    Positioned(
+                      right: 12,
+                      top: 12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppTheme.positive,
+                          borderRadius: BorderRadius.circular(
+                            AppTheme.radiusSm,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.check,
+                              size: 12,
+                              color: AppTheme.inkInverted,
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              'AFGEROND',
+                              style: AppTheme.overline.copyWith(
+                                color: AppTheme.inkInverted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   if (quiz.isPremium)
                     Positioned(
                       left: 12,

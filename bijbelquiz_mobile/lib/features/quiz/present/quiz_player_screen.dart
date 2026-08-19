@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,6 +14,7 @@ import '../data/quiz_repository.dart';
 import '../domain/answer.dart';
 import '../domain/question.dart';
 import '../domain/quiz.dart';
+import '../../settings/data/quiz_preferences_controller.dart';
 
 class QuizPlayerScreen extends ConsumerStatefulWidget {
   final String idOrSlug;
@@ -39,8 +42,85 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
   bool _resultConfirmed = false;
   bool _resultSubmitted = false;
 
+  // ── Per-question timer ──────────────────────────────────────────────────
+  // Off unless the reader switched it on from the quiz overview. Shown as one
+  // number and a thin depleting rule in the row that is already there: on a
+  // phone there is no room for a clock, and a Bible quiz should not feel like
+  // an exam unless somebody asked for that.
+  /// The answer list scrolls, and after reading an explanation the reader is
+  /// somewhere down it. Without resetting, the next question opens halfway
+  /// through itself - once per question, for a whole quiz.
+  final ScrollController _answersScrollController = ScrollController();
+
+  Timer? _ticker;
+  int _secondsLeft = 0;
+  int _timerSeconds = 0;
+  bool _timedOut = false;
+
+  void _syncTimer(int seconds) {
+    if (_timerSeconds == seconds) return;
+    _timerSeconds = seconds;
+    _restartTimer();
+  }
+
+  void _restartTimer() {
+    _ticker?.cancel();
+    _timedOut = false;
+    _secondsLeft = _timerSeconds;
+
+    if (_timerSeconds <= 0 || _isAnswered) return;
+
+    _ticker = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      setState(() {
+        if (_secondsLeft > 1) {
+          _secondsLeft--;
+          return;
+        }
+
+        // Running out locks the question in as unanswered rather than skipping
+        // it: the correct answer and its explanation still appear, which is the
+        // whole point of getting one wrong.
+        _secondsLeft = 0;
+        _timedOut = true;
+        _isAnswered = true;
+        _selectedAnswer = null;
+        timer.cancel();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    _answersScrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollAnswersToTop() {
+    if (!_answersScrollController.hasClients) return;
+    _answersScrollController.jumpTo(0);
+  }
+
+  /// "1:05" / "0:24" - minutes only appear once there are any.
+  String _formatSeconds(int total) {
+    final safe = total < 0 ? 0 : total;
+    final minutes = safe ~/ 60;
+    final seconds = safe % 60;
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
+  }
+
   void _handleOptionSelected(Answer answer, int index) {
     if (_isAnswered) return;
+
+    // The clock stops the moment the question is answered: what follows is the
+    // explanation, and that is the part worth lingering on.
+    _ticker?.cancel();
+
     setState(() {
       _selectedAnswer = answer;
       _isAnswered = true;
@@ -60,6 +140,13 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
         _currentIndex++;
       }
     });
+
+    if (_currentIndex < totalQuestions) {
+      _scrollAnswersToTop();
+      _restartTimer();
+    } else {
+      _ticker?.cancel();
+    }
 
     if (_currentIndex >= totalQuestions) {
       _submitResult(quiz);
@@ -169,6 +256,7 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
   @override
   Widget build(BuildContext context) {
     final quizAsync = ref.watch(quizDetailProvider(widget.idOrSlug));
+    final preferences = ref.watch(quizPreferencesProvider);
     final profileAsync = ref.watch(profileProvider);
     final isPremium = profileAsync.maybeWhen(
       data: (profile) => profile.isPremium,
@@ -191,6 +279,14 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
             final question = quiz.questions[_currentIndex];
             final totalQuestions = quiz.questions.length;
             final progress = (_currentIndex + 1) / totalQuestions;
+
+            // Adopting during build rather than in initState: the preference
+            // arrives from the account a beat after the first frame, and
+            // starting a clock the reader switched off would be worse than
+            // starting one a moment late.
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) _syncTimer(preferences.questionTimerSeconds);
+            });
 
             return Column(
               children: [
@@ -216,9 +312,55 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
                           ),
                         ),
                       ),
+
+                      // The countdown lives in the row that already exists.
+                      if (_timerSeconds > 0)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.timer_outlined,
+                              size: 14,
+                              color: _timedOut || _secondsLeft <= 5
+                                  ? AppTheme.vermilion
+                                  : AppTheme.inkMuted,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              _timedOut ? 'TIJD OM' : _formatSeconds(_secondsLeft),
+                              style: AppTheme.overline.copyWith(
+                                color: _timedOut || _secondsLeft <= 5
+                                    ? AppTheme.vermilion
+                                    : AppTheme.ink,
+                                fontFeatures: const [
+                                  FontFeature.tabularFigures(),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                     ],
                   ),
                 ),
+
+                // A hairline that empties as the seconds run out. Sits directly
+                // under the counter so it reads as one piece of information
+                // rather than a second widget competing for attention.
+                if (_timerSeconds > 0)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 2, 20, 0),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(1),
+                      child: LinearProgressIndicator(
+                        value: _secondsLeft / _timerSeconds,
+                        minHeight: 2,
+                        backgroundColor: AppTheme.rule,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          _secondsLeft <= 5 ? AppTheme.vermilion : AppTheme.lapis,
+                        ),
+                      ),
+                    ),
+                  ),
                 // Hairline progress track - the site keeps bars at 2px.
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -256,6 +398,7 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: SingleChildScrollView(
+                      controller: _answersScrollController,
                       child: Column(
                         children: [
                           for (var i = 0; i < question.answers.length; i++)
