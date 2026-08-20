@@ -12,6 +12,7 @@ import 'package:bijbelquiz_mobile/features/leaderboard/data/leaderboard_reposito
 import 'package:bijbelquiz_mobile/features/leaderboard/domain/leaderboard_entry.dart';
 import 'package:bijbelquiz_mobile/features/leaderboard/present/leaderboard_screen.dart';
 import 'package:bijbelquiz_mobile/features/onboarding/present/onboarding_screen.dart';
+import 'package:bijbelquiz_mobile/features/premium/present/premium_screen.dart';
 import 'package:bijbelquiz_mobile/features/profile/data/profile_model.dart';
 import 'package:bijbelquiz_mobile/features/profile/present/profile_achievements_screen.dart';
 import 'package:bijbelquiz_mobile/features/profile/present/profile_provider.dart';
@@ -292,6 +293,22 @@ void main() {
 
     await scrollThrough(tester);
     expect(find.text('Bas Graveland'), findsOneWidget);
+  });
+
+  testWidgets('premium paywall renders the plan ladder', (tester) async {
+    // No store in a test, so every price falls back to its hardcoded label -
+    // which is exactly the state the per-week figures have to survive.
+    await pumpAtPhoneSize(tester, const PremiumScreen());
+
+    expectNoLayoutError(tester);
+    expect(find.text('Kies je plan'), findsOneWidget);
+    // 39,99 / (12 * 4.345), quoted next to the amount actually charged.
+    expect(find.text('€0,77'), findsWidgets);
+    // Once on the plan row, once in the order summary underneath it.
+    expect(find.text('€39,99 per jaar'), findsWidgets);
+
+    await scrollThrough(tester);
+    expect(find.text('JOUW KEUZE'), findsOneWidget);
   });
 
   testWidgets('quiz detail renders without layout errors', (tester) async {

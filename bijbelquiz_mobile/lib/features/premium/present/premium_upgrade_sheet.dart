@@ -8,6 +8,7 @@ import '../../../core/ui/app_notice.dart';
 import '../../../core/ui/app_widgets.dart';
 import '../../profile/present/profile_provider.dart';
 import '../data/purchase_service.dart';
+import '../domain/plan_pricing.dart';
 import 'premium_controller.dart';
 
 /// A compact paywall that opens over whatever the player was doing.
@@ -32,11 +33,8 @@ Future<bool> showPremiumUpgradeSheet(
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
     ),
-    builder: (_) => _PremiumUpgradeSheet(
-      trigger: trigger,
-      title: title,
-      message: message,
-    ),
+    builder: (_) =>
+        _PremiumUpgradeSheet(trigger: trigger, title: title, message: message),
   );
 
   return result ?? false;
@@ -128,6 +126,12 @@ class _PremiumUpgradeSheetState extends ConsumerState<_PremiumUpgradeSheet> {
     final monthlyPrice = monthlyPackage?.storeProduct.priceString ?? '€5,99';
     final yearlyPrice = yearlyPackage?.storeProduct.priceString ?? '€39,99';
 
+    // Same framing as the full paywall: the week leads, the billed amount
+    // follows. A sheet that quotes per year and a screen that quotes per week
+    // read as two different prices for the same plan.
+    final yearlyPerWeek = pricePerWeek(yearlyPrice, months: 12);
+    final monthlyPerWeek = pricePerWeek(monthlyPrice, months: 1);
+
     final trial = PurchaseService.trialOffer(
       _plan == _SheetPlan.yearly ? yearlyPackage : monthlyPackage,
     );
@@ -161,8 +165,11 @@ class _PremiumUpgradeSheetState extends ConsumerState<_PremiumUpgradeSheet> {
                 Expanded(
                   child: _SheetPlanTile(
                     label: 'Per jaar',
-                    price: yearlyPrice,
-                    caption: 'Laagste maandprijs',
+                    price: yearlyPerWeek ?? yearlyPrice,
+                    priceNote: yearlyPerWeek == null ? null : 'per week',
+                    caption: yearlyPerWeek == null
+                        ? 'Laagste maandprijs'
+                        : '$yearlyPrice per jaar',
                     selected: _plan == _SheetPlan.yearly,
                     onTap: () => setState(() => _plan = _SheetPlan.yearly),
                   ),
@@ -171,8 +178,11 @@ class _PremiumUpgradeSheetState extends ConsumerState<_PremiumUpgradeSheet> {
                 Expanded(
                   child: _SheetPlanTile(
                     label: 'Per maand',
-                    price: monthlyPrice,
-                    caption: 'Flexibel opzegbaar',
+                    price: monthlyPerWeek ?? monthlyPrice,
+                    priceNote: monthlyPerWeek == null ? null : 'per week',
+                    caption: monthlyPerWeek == null
+                        ? 'Flexibel opzegbaar'
+                        : '$monthlyPrice per maand',
                     selected: _plan == _SheetPlan.monthly,
                     onTap: () => setState(() => _plan = _SheetPlan.monthly),
                   ),
@@ -227,6 +237,7 @@ class _SheetPlanTile extends StatelessWidget {
     required this.caption,
     required this.selected,
     required this.onTap,
+    this.priceNote,
   });
 
   final String label;
@@ -234,6 +245,9 @@ class _SheetPlanTile extends StatelessWidget {
   final String caption;
   final bool selected;
   final VoidCallback onTap;
+
+  /// Unit the headline figure is in, when it is a derived one ("per week").
+  final String? priceNote;
 
   @override
   Widget build(BuildContext context) {
@@ -258,6 +272,13 @@ class _SheetPlanTile extends StatelessWidget {
               Text(label.toUpperCase(), style: AppTheme.overline),
               const SizedBox(height: 8),
               Text(price, style: AppTheme.displaySmall),
+              if (priceNote != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  priceNote!.toUpperCase(),
+                  style: AppTheme.overline.copyWith(color: AppTheme.lapis),
+                ),
+              ],
               const SizedBox(height: 4),
               Text(caption, style: AppTheme.caption),
             ],

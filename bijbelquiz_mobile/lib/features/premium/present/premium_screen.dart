@@ -10,6 +10,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/app_notice.dart';
 import '../../../core/ui/app_widgets.dart';
 import '../data/purchase_service.dart';
+import '../domain/plan_pricing.dart';
 import 'premium_controller.dart';
 
 enum _PremiumPlan { yearly, monthly, lifetime }
@@ -193,10 +194,39 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
     );
     final hasTrial = trial != null && _selectedPlan != _PremiumPlan.lifetime;
 
-    final savings = _savingsPercent(monthlyPrice, yearlyPrice);
-    final yearlyPerMonth = _perMonthLabel(yearlyPrice);
+    final savings = yearlySavingsPercent(monthlyPrice, yearlyPrice);
+    final yearlyPerMonth = monthlyEquivalentOfYearly(yearlyPrice);
+
+    // Every plan is also quoted per week. Three billing rhythms cannot be
+    // weighed against each other in their own periods, and the week is the
+    // unit a buyer already prices small things in.
+    final yearlyPerWeek = pricePerWeek(yearlyPrice, months: 12);
+    final monthlyPerWeek = pricePerWeek(monthlyPrice, months: 1);
+    final lifetimePerWeek = lifetimePricePerWeek(lifetimePrice);
 
     final isSubscription = _selectedPlan != _PremiumPlan.lifetime;
+
+    final selectedTitle = switch (_selectedPlan) {
+      _PremiumPlan.yearly => 'Jaarlijks',
+      _PremiumPlan.monthly => 'Maandelijks',
+      _PremiumPlan.lifetime => 'Levenslang',
+    };
+    final selectedPrice = switch (_selectedPlan) {
+      _PremiumPlan.yearly => yearlyPrice,
+      _PremiumPlan.monthly => monthlyPrice,
+      _PremiumPlan.lifetime => lifetimePrice,
+    };
+    final selectedBilling = switch (_selectedPlan) {
+      _PremiumPlan.yearly => 'per jaar',
+      _PremiumPlan.monthly => 'per maand',
+      _PremiumPlan.lifetime => 'eenmalig',
+    };
+    final selectedPerWeek = switch (_selectedPlan) {
+      _PremiumPlan.yearly => yearlyPerWeek,
+      _PremiumPlan.monthly => monthlyPerWeek,
+      _PremiumPlan.lifetime => lifetimePerWeek,
+    };
+
     final selectedPlanDetails = switch (_selectedPlan) {
       _PremiumPlan.yearly =>
         'Abonnementdetails: Bijbelquiz Premium Jaarlijks - $yearlyPrice per jaar.',
@@ -252,9 +282,6 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                 ],
               ),
             ),
-            // `<section id="premium" class="bg-ink">` - the site's inverted
-            // premium panel, reproduced 1:1.
-            const _PremiumInkPanel(),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 36, 20, 40),
               child: Column(
@@ -262,11 +289,22 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                 children: [
                   SectionHeader(
                     eyebrow: 'Premium',
-                    title:
-                        _triggerHeadlines[widget.trigger] ?? 'Kies je plan',
+                    title: _triggerHeadlines[widget.trigger] ?? 'Kies je plan',
                     description: _triggerLeads[widget.trigger],
                   ),
                   const SizedBox(height: 24),
+                  // The saving is the most persuasive number on the screen, so
+                  // it is said out loud once rather than only as a chip on one
+                  // row.
+                  if (savings != null) ...[
+                    _SavingsBanner(
+                      savings: savings,
+                      yearlyPrice: yearlyPrice,
+                      monthlyPrice: monthlyPrice,
+                      yearlyPerWeek: yearlyPerWeek,
+                    ),
+                    const SizedBox(height: 20),
+                  ],
                   RuleGrid(
                     children: [
                       // Yearly leads: it is the rung that catches the player
@@ -279,6 +317,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                             : 'Dat is $yearlyPerMonth per maand',
                         price: yearlyPrice,
                         billingLabel: 'per jaar',
+                        perWeek: yearlyPerWeek,
                         badge: savings == null
                             ? 'Aanbevolen'
                             : 'Bespaar $savings%',
@@ -292,6 +331,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                         subtitle: 'Flexibel opzegbaar, volledige toegang',
                         price: monthlyPrice,
                         billingLabel: 'per maand',
+                        perWeek: monthlyPerWeek,
                         selected: _selectedPlan == _PremiumPlan.monthly,
                         onTap: () => setState(
                           () => _selectedPlan = _PremiumPlan.monthly,
@@ -300,9 +340,13 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                       _PlanRow(
                         index: '03',
                         title: 'Levenslang',
-                        subtitle: 'Eenmalig betalen, altijd premium',
+                        subtitle: lifetimePerWeek == null
+                            ? 'Eenmalig betalen, altijd premium'
+                            : 'Eenmalig betalen - per week gerekend over '
+                                  '$lifetimeHorizonYears jaar',
                         price: lifetimePrice,
                         billingLabel: 'eenmalig',
+                        perWeek: lifetimePerWeek,
                         selected: _selectedPlan == _PremiumPlan.lifetime,
                         onTap: () => setState(
                           () => _selectedPlan = _PremiumPlan.lifetime,
@@ -345,6 +389,18 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                         : () => ref
                               .read(premiumControllerProvider.notifier)
                               .restorePurchases(),
+                  ),
+                  const SizedBox(height: 24),
+                  // What is about to be bought, not a second copy of the
+                  // promise list above: the number, when it is taken, and how
+                  // to stop it.
+                  _OrderSummary(
+                    planTitle: selectedTitle,
+                    price: selectedPrice,
+                    billingLabel: selectedBilling,
+                    perWeek: selectedPerWeek,
+                    isSubscription: isSubscription,
+                    trialLabel: hasTrial ? trial.label : null,
                   ),
                   const SizedBox(height: 28),
                   const RuleLine(),
@@ -396,40 +452,6 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
   }
 }
 
-/// Pull a number out of a localized store price like "€39,99" or "US$39.99".
-///
-/// The store decides the currency and the formatting, so anything that does
-/// not parse simply means the derived claims below are omitted rather than
-/// printed wrong.
-double? _parsePrice(String label) {
-  final match = RegExp(r'(\d+(?:[.,]\d+)?)').firstMatch(label);
-  if (match == null) return null;
-  final value = double.tryParse(match.group(1)!.replaceAll(',', '.'));
-  return (value != null && value > 0) ? value : null;
-}
-
-/// What the yearly plan saves against twelve monthly payments, or null when
-/// either price is unreadable or the year plan is not actually cheaper.
-int? _savingsPercent(String monthlyLabel, String yearlyLabel) {
-  final monthly = _parsePrice(monthlyLabel);
-  final yearly = _parsePrice(yearlyLabel);
-  if (monthly == null || yearly == null) return null;
-
-  final twelveMonths = monthly * 12;
-  if (yearly >= twelveMonths) return null;
-
-  return (((twelveMonths - yearly) / twelveMonths) * 100).round();
-}
-
-/// Monthly equivalent of a yearly price, formatted in the Dutch convention.
-String? _perMonthLabel(String yearlyLabel) {
-  final yearly = _parsePrice(yearlyLabel);
-  if (yearly == null) return null;
-
-  final perMonth = (yearly / 12).toStringAsFixed(2).replaceAll('.', ',');
-  return '€$perMonth';
-}
-
 class _LegalLink extends StatelessWidget {
   const _LegalLink({required this.label, required this.onTap});
 
@@ -448,112 +470,6 @@ class _LegalLink extends StatelessWidget {
   }
 }
 
-/// The site's premium block:
-///
-/// ```html
-/// <section id="premium" class="bg-ink">
-///   <span class="eyebrow text-ink-inverted/70">Premium</span>
-///   <h2 class="font-display text-[26px] leading-[1.12] tracking-[-0.025em]
-///              text-ink-inverted">…</h2>
-///   <p class="text-[15px] text-ink-inverted/70">…</p>
-///   <ul class="border-t border-ink-inverted/15 pt-6">…</ul>
-/// </section>
-/// ```
-class _PremiumInkPanel extends StatelessWidget {
-  const _PremiumInkPanel();
-
-  static const List<String> _benefits = [
-    'Onbeperkt rooms hosten en tot 20 spelers samen spelen',
-    'Uitleg en bijbelverwijzing bij elke vraag, ook na de game',
-    'Voortgangsinzichten per boek, streakbescherming en alle premium quizzen',
-    'Toegang tot nieuwe seizoenspakketten en thema-quizzen',
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    const inverted = AppTheme.inkInverted;
-
-    return Container(
-      width: double.infinity,
-      color: AppTheme.ink,
-      padding: const EdgeInsets.fromLTRB(20, 40, 20, 40),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 24,
-                height: 1,
-                color: inverted.withValues(alpha: 0.5),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                'PREMIUM',
-                style: AppTheme.eyebrow.copyWith(
-                  color: inverted.withValues(alpha: 0.7),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'Speel onbeperkt samen - en verdiep je kennis bij elke vraag.',
-            style: TextStyle(
-              fontFamily: AppTheme.displayFontName,
-              fontSize: 26,
-              fontWeight: FontWeight.w400,
-              height: 1.12,
-              letterSpacing: -0.65,
-              color: inverted,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Met Premium host je multiplayer-rooms tot 20 spelers, krijg je '
-            'uitleg en bijbelverwijzingen bij elke vraag, en volg je je '
-            'voortgang per boek.',
-            style: AppTheme.bodyLead.copyWith(
-              color: inverted.withValues(alpha: 0.7),
-            ),
-          ),
-          const SizedBox(height: 28),
-          Container(height: 1, color: inverted.withValues(alpha: 0.15)),
-          const SizedBox(height: 24),
-          ..._benefits.map(
-            (text) => Padding(
-              padding: const EdgeInsets.only(bottom: 14),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(top: 3),
-                    child: Icon(
-                      Icons.check,
-                      size: 14,
-                      color: inverted.withValues(alpha: 0.85),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      text,
-                      style: AppTheme.bodyMuted.copyWith(
-                        color: inverted.withValues(alpha: 0.85),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 /// Plan row inside the hairline grid. Selected state uses a solid ink radio
 /// mark - the site never tints a selected row.
 class _PlanRow extends StatelessWidget {
@@ -565,6 +481,7 @@ class _PlanRow extends StatelessWidget {
     required this.billingLabel,
     required this.selected,
     required this.onTap,
+    this.perWeek,
     this.badge,
   });
 
@@ -575,6 +492,10 @@ class _PlanRow extends StatelessWidget {
   final String billingLabel;
   final bool selected;
   final VoidCallback onTap;
+
+  /// Per-week equivalent, when the store price could be read. Null falls back
+  /// to quoting the billed amount alone rather than printing a guess.
+  final String? perWeek;
   final String? badge;
 
   @override
@@ -607,20 +528,16 @@ class _PlanRow extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    // Wraps rather than truncates: a badge is the reason to
+                    // pick this row, so it drops to its own line before the
+                    // plan name loses characters.
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Flexible(
-                          child: Text(
-                            title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTheme.displayBase,
-                          ),
-                        ),
-                        if (badge != null) ...[
-                          const SizedBox(width: 10),
-                          SiteBadge.lapis(badge!),
-                        ],
+                        Text(title, style: AppTheme.displayBase),
+                        if (badge != null) SiteBadge.lapis(badge!),
                       ],
                     ),
                     const SizedBox(height: 6),
@@ -629,16 +546,47 @@ class _PlanRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    price,
-                    style: AppTheme.statNumber.copyWith(fontSize: 20),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(billingLabel.toUpperCase(), style: AppTheme.overline),
-                ],
+              // The per-week figure leads and the amount actually charged sits
+              // under it - never the other way around, and never without it.
+              // Bounded so the price column cannot squeeze the plan name off
+              // the row on a narrow phone.
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 116),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: perWeek == null
+                      ? [
+                          Text(
+                            price,
+                            style: AppTheme.statNumber.copyWith(fontSize: 20),
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            billingLabel.toUpperCase(),
+                            style: AppTheme.overline,
+                          ),
+                        ]
+                      : [
+                          Text(
+                            perWeek!,
+                            style: AppTheme.statNumber.copyWith(fontSize: 24),
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            'PER WEEK',
+                            textAlign: TextAlign.right,
+                            style: AppTheme.overline.copyWith(
+                              color: AppTheme.lapis,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '$price $billingLabel',
+                            textAlign: TextAlign.right,
+                            style: AppTheme.caption,
+                          ),
+                        ],
+                ),
               ),
               const SizedBox(width: 14),
               // Selection mark: square, hairline - matching the rank badge.
@@ -664,6 +612,150 @@ class _PlanRow extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The year plan's saving, said in a full sentence above the ladder.
+class _SavingsBanner extends StatelessWidget {
+  const _SavingsBanner({
+    required this.savings,
+    required this.yearlyPrice,
+    required this.monthlyPrice,
+    required this.yearlyPerWeek,
+  });
+
+  final int savings;
+  final String yearlyPrice;
+  final String monthlyPrice;
+  final String? yearlyPerWeek;
+
+  @override
+  Widget build(BuildContext context) {
+    final perWeek = yearlyPerWeek;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      decoration: BoxDecoration(
+        color: AppTheme.lapisTint,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: AppTheme.lapis.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SiteBadge.lapis('Bespaar $savings%'),
+          const SizedBox(height: 10),
+          Text(
+            'Het jaarplan kost $yearlyPrice in plaats van $monthlyPrice per '
+            'maand'
+            '${perWeek == null ? '' : ' - $perWeek per week'}.',
+            style: AppTheme.bodyMuted.copyWith(color: AppTheme.ink),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// What the selected plan actually costs, when it is taken, and how it ends.
+///
+/// The ladder sells; this settles. It repeats no benefit - by the time a buyer
+/// reads it they have decided, and what they need is the number and the exit.
+class _OrderSummary extends StatelessWidget {
+  const _OrderSummary({
+    required this.planTitle,
+    required this.price,
+    required this.billingLabel,
+    required this.perWeek,
+    required this.isSubscription,
+    required this.trialLabel,
+  });
+
+  final String planTitle;
+  final String price;
+  final String billingLabel;
+  final String? perWeek;
+  final bool isSubscription;
+
+  /// "14 dagen gratis" when the store offers an introductory free period on
+  /// the selected plan; null means the first charge is today.
+  final String? trialLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final trial = trialLabel;
+    final week = perWeek;
+
+    return AppCard(
+      borderColor: AppTheme.lapis.withValues(alpha: 0.45),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('JOUW KEUZE', style: AppTheme.overline),
+          const SizedBox(height: 10),
+          Text(
+            'Premium ${planTitle.toLowerCase()}',
+            style: AppTheme.displayBase,
+          ),
+          const SizedBox(height: 16),
+          const RuleLine(),
+          const SizedBox(height: 14),
+          if (week != null) ...[
+            _SummaryRow(label: 'Per week', value: week, emphasised: true),
+            const SizedBox(height: 12),
+          ],
+          _SummaryRow(
+            label: trial == null ? 'Je betaalt' : 'Na de proefperiode',
+            value: '$price $billingLabel',
+          ),
+          const SizedBox(height: 12),
+          _SummaryRow(label: 'Vandaag', value: trial ?? price),
+          const SizedBox(height: 12),
+          _SummaryRow(
+            label: 'Verlenging',
+            value: isSubscription ? 'Automatisch, $billingLabel' : 'Geen',
+          ),
+          const SizedBox(height: 12),
+          _SummaryRow(
+            label: 'Opzeggen',
+            value: isSubscription ? 'Wanneer je wilt' : 'Niet nodig',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SummaryRow extends StatelessWidget {
+  const _SummaryRow({
+    required this.label,
+    required this.value,
+    this.emphasised = false,
+  });
+
+  final String label;
+  final String value;
+  final bool emphasised;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: Text(label, style: AppTheme.caption)),
+        const SizedBox(width: 12),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: emphasised
+                ? AppTheme.displayBase
+                : AppTheme.bodyStrong.copyWith(fontWeight: FontWeight.w400),
+          ),
+        ),
+      ],
     );
   }
 }
