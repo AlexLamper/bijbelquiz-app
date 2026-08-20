@@ -307,7 +307,17 @@ jobs:
           set -e
 
           if [ "$ALTOOL_EXIT" -ne 0 ] || grep -qiE "UPLOAD FAILED|Failed to upload package|ERROR:" "$UPLOAD_LOG"; then
-            echo "::error::TestFlight upload failed. Common cause: the version string is already approved/closed — bump the version (e.g. 1.0.2 → 1.0.3)."
+            # Print what Apple actually said. The generic "bump the version"
+            # advice used to stand in for every failure, which sent the reader
+            # editing version numbers over problems that had nothing to do with
+            # them.
+            REASON=$(awk -F'"' '/description/ {print $(NF-1)}' "$UPLOAD_LOG" | sort -u | head -5)
+            echo "::error::TestFlight upload failed as $BUILD_NAME ($BUILD_NUMBER)."
+            if [ -n "${REASON:-}" ]; then
+              echo "$REASON" | while read -r line; do echo "::error::$line"; done
+            else
+              echo "::error::No error description in the altool output; see the full log above."
+            fi
             exit 1
           fi
           echo "Upload accepted by App Store Connect."

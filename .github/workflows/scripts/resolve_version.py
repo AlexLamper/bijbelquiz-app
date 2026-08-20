@@ -2,9 +2,15 @@
 """Resolve the version name and build number to use for this TestFlight upload.
 
 App Store Connect rejects an upload (error 90062) when CFBundleShortVersionString
-is not higher than the last approved version, and rejects duplicate build numbers
-(error 90360). This script asks App Store Connect what already exists and picks
-the next free pair, so a stale pubspec.yaml version can never fail the workflow.
+is not higher than the last approved version, rejects a version whose TestFlight
+train is closed (error 90186), and rejects duplicate build numbers (error 90360).
+This script asks App Store Connect what already exists and picks the next free
+pair, so a stale pubspec.yaml version can never fail the workflow.
+
+A version is "taken" if it exists as an App Store version *or* as a pre-release
+(TestFlight) train. Only asking about the former is how this script used to hand
+back a train that had already shipped to testers: those trains close, and a
+closed train rejects every further build.
 
 Inputs (environment):
   APP_STORE_CONNECT_KEY_ID, APP_STORE_CONNECT_ISSUER_ID, APP_STORE_CONNECT_API_KEY_P8
@@ -103,6 +109,15 @@ def main():
         versions = get(f"apps/{app_id}/appStoreVersions?limit=200", token)["data"]
         remote_versions = [v["attributes"]["versionString"] for v in versions]
 
+        # TestFlight trains. A build uploaded here never becomes an App Store
+        # version until it is released, so this is the list that actually says
+        # which version strings are spent.
+        trains = get(
+            f"apps/{app_id}/preReleaseVersions?limit=200&filter[platform]=IOS",
+            token,
+        )["data"]
+        remote_trains = [t["attributes"]["version"] for t in trains]
+
         builds = get(f"builds?filter[app]={app_id}&limit=200", token)["data"]
         remote_builds = [int(b["attributes"]["version"]) for b in builds
                          if str(b["attributes"]["version"]).isdigit()]
@@ -112,15 +127,27 @@ def main():
         emit(local_name, manual_number or os.environ.get("GITHUB_RUN_NUMBER", "1"))
         return
 
-    log(f"Existing versions on App Store Connect: {sorted(remote_versions) or 'none'}")
+    log(f"App Store versions: {sorted(remote_versions) or 'none'}")
+    log(f"TestFlight trains: {sorted(remote_trains) or 'none'}")
     log(f"Highest existing build number: {max(remote_builds) if remote_builds else 'none'}")
 
-    highest = max((parse_version(v) for v in remote_versions), default=(0, 0, 0))
+    taken = {parse_version(v) for v in remote_versions + remote_trains}
+    highest = max(taken, default=(0, 0, 0))
     candidate = parse_version(local_name)
     if candidate <= highest:
         candidate = (highest[0], highest[1], highest[2] + 1)
         log(f"Local version {local_name} is not higher than {format_version(highest)}; "
             f"bumping to {format_version(candidate)}.")
+
+    # Guard against a gap in what the API reports: walk past anything already
+    # taken rather than handing back a version that will be rejected.
+    while candidate in taken:
+        candidate = (candidate[0], candidate[1], candidate[2] + 1)
+        log(f"Version {format_version(candidate)} chosen; the previous one is taken.")
+
+    if manual_name and parse_version(manual_name) != candidate:
+        log(f"::warning::Requested version {manual_name} is not free; "
+            f"uploading as {format_version(candidate)} instead.")
 
     build_number = manual_number or str(
         max(remote_builds + [int(os.environ.get("GITHUB_RUN_NUMBER", "0"))]) + 1
