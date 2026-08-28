@@ -18,6 +18,10 @@ import 'multiplayer_action_controller.dart';
 
 enum _PlayMode { create, join }
 
+/// Room sizes offered, matching `PLAYER_OPTIONS` on the website. The last rung
+/// is replaced by whatever ceiling the server reports for Premium.
+const List<int> _basePlayerOptions = [2, 3, 4, 6, 8, 10, 12];
+
 class PlayTogetherScreen extends ConsumerStatefulWidget {
   const PlayTogetherScreen({super.key});
 
@@ -31,6 +35,10 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
   String? _selectedQuizId;
   _PlayMode _mode = _PlayMode.create;
 
+  /// Room size the host picked. Starts at the free cap, so the first thing a
+  /// new host sees is a number they can actually use.
+  int _maxPlayers = 4;
+
   @override
   void dispose() {
     _roomCodeController.dispose();
@@ -43,10 +51,15 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
       return;
     }
 
+    if (_playerCapExceeded()) {
+      _openPlayerCapPaywall();
+      return;
+    }
+
     try {
       final room = await ref
           .read(multiplayerActionControllerProvider.notifier)
-          .createRoom(quizId: _selectedQuizId!);
+          .createRoom(quizId: _selectedQuizId!, maxPlayers: _maxPlayers);
       if (!mounted) return;
 
       // Starting the game spends a credit, so the remaining count on this
@@ -132,10 +145,15 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
       return;
     }
 
+    if (_playerCapExceeded()) {
+      _openPlayerCapPaywall();
+      return;
+    }
+
     try {
       final room = await ref
           .read(multiplayerActionControllerProvider.notifier)
-          .createRoom(quizId: quizId);
+          .createRoom(quizId: quizId, maxPlayers: _maxPlayers);
       if (!mounted) return;
 
       ref.invalidate(multiplayerCapabilityProvider);
@@ -190,6 +208,9 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
     final hostingLocked = capability?.canCreateRoom == false;
     final freeGamesLeft = capability?.freeRoomsRemaining;
     final onMonthlyAllowance = capability?.onMonthlyAllowance ?? false;
+    final isPremiumHost = capability?.isPremium ?? false;
+    final maxPlayersFree = capability?.maxPlayersFree ?? 4;
+    final maxPlayersPremium = capability?.maxPlayersPremium ?? 20;
 
     return Scaffold(
       backgroundColor: AppTheme.paper,
@@ -251,11 +272,22 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
                       hasPremiumAccess: !hostingLocked,
                       freeGamesLeft: freeGamesLeft,
                       onMonthlyAllowance: onMonthlyAllowance,
+                      isPremiumHost: isPremiumHost,
+                      maxPlayers: _maxPlayers,
+                      maxPlayersFree: maxPlayersFree,
+                      maxPlayersPremium: maxPlayersPremium,
                       onSelectQuiz: (id) {
                         setState(() {
                           _selectedQuizId = id;
                         });
                       },
+                      onSelectMaxPlayers: (count) {
+                        if (count == null) return;
+                        setState(() {
+                          _maxPlayers = count;
+                        });
+                      },
+                      onPlayerCapUpgrade: _openPlayerCapPaywall,
                       onCreateRoom: _createRoom,
                       onUpgrade: () {
                         context.push('/premium?reden=host_quota_exhausted');
@@ -327,6 +359,30 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
         ),
       ),
     );
+  }
+
+  /// Whether the picked room size is above what this account may host.
+  ///
+  /// The server refuses it anyway with its own Dutch message; checking here
+  /// means the host meets the wall while choosing rather than after tapping.
+  bool _playerCapExceeded() {
+    final capability = ref.read(multiplayerCapabilityProvider).asData?.value;
+    if (capability == null || capability.isPremium) return false;
+    return _maxPlayers > capability.maxPlayersFree;
+  }
+
+  void _openPlayerCapPaywall() {
+    ref
+        .read(analyticsProvider)
+        .track(
+          AnalyticsEvents.paywallShown,
+          props: {
+            'trigger': PaywallTrigger.hostPlayerCap,
+            'surface': 'play_together',
+            'requestedPlayers': _maxPlayers,
+          },
+        );
+    context.push('/premium?reden=host_player_cap');
   }
 
   void _showMessage(String message) {
@@ -573,7 +629,13 @@ class _CreateRoomForm extends StatelessWidget {
     required this.hasPremiumAccess,
     required this.freeGamesLeft,
     required this.onMonthlyAllowance,
+    required this.isPremiumHost,
+    required this.maxPlayers,
+    required this.maxPlayersFree,
+    required this.maxPlayersPremium,
     required this.onSelectQuiz,
+    required this.onSelectMaxPlayers,
+    required this.onPlayerCapUpgrade,
     required this.onCreateRoom,
     required this.onUpgrade,
   });
@@ -591,12 +653,33 @@ class _CreateRoomForm extends StatelessWidget {
   /// month rather than a lifetime allowance.
   final bool onMonthlyAllowance;
 
+  /// Whether this account may host at the premium ceiling. Separate from
+  /// [hasPremiumAccess], which is about the free-game quota: an account with
+  /// games left still only gets four seats.
+  final bool isPremiumHost;
+
+  /// Room size the host picked, and the two ceilings it is judged against.
+  final int maxPlayers;
+  final int maxPlayersFree;
+  final int maxPlayersPremium;
+
   final ValueChanged<String?> onSelectQuiz;
+  final ValueChanged<int?> onSelectMaxPlayers;
+  final VoidCallback onPlayerCapUpgrade;
   final Future<void> Function() onCreateRoom;
   final VoidCallback onUpgrade;
 
   @override
   Widget build(BuildContext context) {
+    // The premium ceiling replaces the last rung rather than being appended,
+    // so a server that lowers it never leaves an unreachable option behind.
+    final playerOptions =
+        <int>{
+          ..._basePlayerOptions.where((count) => count < maxPlayersPremium),
+          maxPlayersPremium,
+        }.toList()..sort();
+    final playerCapExceeded = !isPremiumHost && maxPlayers > maxPlayersFree;
+
     if (!hasPremiumAccess) {
       // `dark:bg-lapis/10 border-lapis/35` - the site's accent notice block.
       return Container(
@@ -634,6 +717,15 @@ class _CreateRoomForm extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Text('NIEUWE KAMER', style: AppTheme.overline),
+          const SizedBox(height: 8),
+          Text(
+            isPremiumHost
+                ? 'Jij bent spelleider en kunt tot $maxPlayersPremium spelers '
+                      'uitnodigen.'
+                : 'Gratis tot $maxPlayersFree spelers. Een gratis spel telt '
+                      'pas mee als je het spel echt start.',
+            style: AppTheme.caption,
+          ),
           const SizedBox(height: 16),
           // Two games out, the counter stops being a footnote and becomes a
           // notice. Meeting the wall for the first time in a lobby full of
@@ -731,6 +823,79 @@ class _CreateRoomForm extends StatelessWidget {
                     },
                     onChanged: isBusy ? null : onSelectQuiz,
                   ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'MAXIMAAL AANTAL SPELERS',
+                    style: AppTheme.overline,
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<int>(
+                    value: playerOptions.contains(maxPlayers)
+                        ? maxPlayers
+                        : maxPlayersFree,
+                    isExpanded: true,
+                    icon: const Icon(
+                      Icons.keyboard_arrow_down,
+                      size: 18,
+                      color: AppTheme.inkMuted,
+                    ),
+                    dropdownColor: AppTheme.paperRaised,
+                    borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+                    style: const TextStyle(
+                      fontFamily: AppTheme.sansFontName,
+                      fontSize: 15,
+                      color: AppTheme.ink,
+                    ),
+                    decoration: const InputDecoration(
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 15,
+                      ),
+                    ),
+                    items: [
+                      for (final count in playerOptions)
+                        DropdownMenuItem<int>(
+                          value: count,
+                          child: Row(
+                            children: [
+                              Text('$count spelers'),
+                              if (!isPremiumHost && count > maxPlayersFree) ...[
+                                const SizedBox(width: 10),
+                                const SiteBadge.lapis('PREMIUM'),
+                              ],
+                            ],
+                          ),
+                        ),
+                    ],
+                    // The closed field never carries the badge: it would sit
+                    // there claiming the account has Premium.
+                    selectedItemBuilder: (context) => [
+                      for (final count in playerOptions)
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text('$count spelers'),
+                        ),
+                    ],
+                    onChanged: isBusy ? null : onSelectMaxPlayers,
+                  ),
+                  // One line, not a second paywall block: the host only needs
+                  // to know this number is out of reach and what buys it.
+                  if (playerCapExceeded) ...[
+                    const SizedBox(height: 10),
+                    InkWell(
+                      onTap: onPlayerCapUpgrade,
+                      child: Text(
+                        '$maxPlayers spelers vraagt om Premium. Gratis speel '
+                        'je tot $maxPlayersFree spelers.',
+                        style: AppTheme.caption.copyWith(
+                          color: AppTheme.lapis,
+                          decoration: TextDecoration.underline,
+                          decorationColor: AppTheme.lapis,
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 20),
                   SiteButton(
                     label: 'Start kamer',

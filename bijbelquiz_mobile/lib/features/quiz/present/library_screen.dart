@@ -43,6 +43,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   Future<void> _refreshData() async {
     ref.invalidate(categoriesProvider);
     ref.invalidate(quizzesProvider(const QuizQuery()));
+    // The "afgerond" marks and the order they impose come off the profile, so
+    // a pull that leaves it stale refreshes everything except the one thing
+    // the reader just played a quiz to change.
+    ref.invalidate(profileProvider);
     await ref.read(quizzesProvider(const QuizQuery()).future);
   }
 

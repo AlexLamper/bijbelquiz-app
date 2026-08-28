@@ -15,6 +15,12 @@ import 'premium_controller.dart';
 
 enum _PremiumPlan { yearly, monthly, lifetime }
 
+/// What the one-time purchase is called on screen.
+///
+/// The store product is still the lifetime one; "Onbeperkt" names the access
+/// the buyer gets instead of making a promise about their lifespan.
+const String _lifetimeLabel = 'Onbeperkt';
+
 /// Headline naming what the player was just stopped from doing.
 ///
 /// A paywall that opens on "Premium" sells a product; one that opens on "je
@@ -40,8 +46,8 @@ const Map<String, String> _triggerLeads = {
       'Gratis spelen jullie met vier. Met Premium passen er 20 spelers in een '
       'kamer, genoeg voor een hele jeugdgroep of klas.',
   PaywallTrigger.explanationLocked:
-      'Bij elke vraag hoort een uitleg en een bijbelverwijzing. Met Premium '
-      'lees je ze allemaal, ook na afloop.',
+      'Met Premium lees je bij elke vraag de uitleg, speel je alle premium '
+      'quizzen en host je spellen tot 20 spelers.',
   PaywallTrigger.premiumQuizLocked:
       'Deze quiz hoort bij de premium collectie. Met Premium speel je alle '
       'quizzen, nu en in de toekomst.',
@@ -209,7 +215,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
     final selectedTitle = switch (_selectedPlan) {
       _PremiumPlan.yearly => 'Jaarlijks',
       _PremiumPlan.monthly => 'Maandelijks',
-      _PremiumPlan.lifetime => 'Levenslang',
+      _PremiumPlan.lifetime => _lifetimeLabel,
     };
     final selectedPrice = switch (_selectedPlan) {
       _PremiumPlan.yearly => yearlyPrice,
@@ -233,11 +239,12 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
       _PremiumPlan.monthly =>
         'Abonnementdetails: Bijbelquiz Premium Maandelijks - $monthlyPrice per maand.',
       _PremiumPlan.lifetime =>
-        'Abonnementdetails: Bijbelquiz Premium Levenslang - $lifetimePrice eenmalig.',
+        'Abonnementdetails: Bijbelquiz Premium $_lifetimeLabel - $lifetimePrice '
+            'eenmalig.',
     };
     final billingInfoText = isSubscription
         ? 'Abonnementen worden via je App Store-account beheerd en verlengen automatisch, tenzij je minimaal 24 uur voor het einde van de lopende periode opzegt.'
-        : 'Levenslang is een eenmalige aankoop via je App Store-account en verlengt niet automatisch.';
+        : '$_lifetimeLabel is een eenmalige aankoop via je App Store-account en verlengt niet automatisch.';
     final trialInfoText = hasTrial
         ? 'Je proefperiode van ${trial.label.replaceAll(' gratis', '')} is gratis. '
               'Daarna gaat het abonnement door tenzij je minimaal 24 uur voor '
@@ -251,7 +258,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
         : switch (_selectedPlan) {
             _PremiumPlan.yearly => 'Ga verder met Jaarlijks',
             _PremiumPlan.monthly => 'Ga verder met Maandelijks',
-            _PremiumPlan.lifetime => 'Ga verder met Levenslang',
+            _PremiumPlan.lifetime => 'Ga verder met $_lifetimeLabel',
           };
 
     return Scaffold(
@@ -293,18 +300,6 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                     description: _triggerLeads[widget.trigger],
                   ),
                   const SizedBox(height: 24),
-                  // The saving is the most persuasive number on the screen, so
-                  // it is said out loud once rather than only as a chip on one
-                  // row.
-                  if (savings != null) ...[
-                    _SavingsBanner(
-                      savings: savings,
-                      yearlyPrice: yearlyPrice,
-                      monthlyPrice: monthlyPrice,
-                      yearlyPerWeek: yearlyPerWeek,
-                    ),
-                    const SizedBox(height: 20),
-                  ],
                   RuleGrid(
                     children: [
                       // Yearly leads: it is the rung that catches the player
@@ -339,7 +334,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                       ),
                       _PlanRow(
                         index: '03',
-                        title: 'Levenslang',
+                        title: _lifetimeLabel,
                         subtitle: lifetimePerWeek == null
                             ? 'Eenmalig betalen, altijd premium'
                             : 'Eenmalig betalen - per week gerekend over '
@@ -611,49 +606,6 @@ class _PlanRow extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// The year plan's saving, said in a full sentence above the ladder.
-class _SavingsBanner extends StatelessWidget {
-  const _SavingsBanner({
-    required this.savings,
-    required this.yearlyPrice,
-    required this.monthlyPrice,
-    required this.yearlyPerWeek,
-  });
-
-  final int savings;
-  final String yearlyPrice;
-  final String monthlyPrice;
-  final String? yearlyPerWeek;
-
-  @override
-  Widget build(BuildContext context) {
-    final perWeek = yearlyPerWeek;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      decoration: BoxDecoration(
-        color: AppTheme.lapisTint,
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(color: AppTheme.lapis.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SiteBadge.lapis('Bespaar $savings%'),
-          const SizedBox(height: 10),
-          Text(
-            'Het jaarplan kost $yearlyPrice in plaats van $monthlyPrice per '
-            'maand'
-            '${perWeek == null ? '' : ' - $perWeek per week'}.',
-            style: AppTheme.bodyMuted.copyWith(color: AppTheme.ink),
-          ),
-        ],
       ),
     );
   }

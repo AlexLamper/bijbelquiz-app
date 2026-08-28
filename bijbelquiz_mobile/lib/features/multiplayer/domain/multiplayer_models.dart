@@ -121,6 +121,8 @@ class MultiplayerCapability {
     required this.freeRoomsRemaining,
     required this.freeRoomsQuota,
     required this.maxPlayersForUser,
+    this.maxPlayersFree = 4,
+    this.maxPlayersPremium = 20,
     this.onMonthlyAllowance = false,
     this.monthlyRoomsQuota = 1,
   });
@@ -132,6 +134,12 @@ class MultiplayerCapability {
   final int? freeRoomsRemaining;
   final int freeRoomsQuota;
   final int maxPlayersForUser;
+
+  /// Room size a free account may pick, and the ceiling Premium unlocks. Read
+  /// from the server rather than hardcoded, so raising the cap on the website
+  /// does not need an app release to be told about it.
+  final int maxPlayersFree;
+  final int maxPlayersPremium;
 
   /// True once the one-off discovery pack is gone and the account runs on the
   /// monthly allowance. [freeRoomsRemaining] then counts this month, not the
@@ -158,6 +166,8 @@ class MultiplayerCapability {
           : _asInt(json['freeRoomsRemaining']),
       freeRoomsQuota: _asInt(json['freeRoomsQuota'], fallback: 5),
       maxPlayersForUser: _asInt(json['maxPlayersForUser'], fallback: 4),
+      maxPlayersFree: _asInt(json['maxPlayersFree'], fallback: 4),
+      maxPlayersPremium: _asInt(json['maxPlayersPremium'], fallback: 20),
       onMonthlyAllowance: _asBool(json['onMonthlyAllowance']),
       monthlyRoomsQuota: _asInt(json['monthlyRoomsQuota'], fallback: 1),
     );

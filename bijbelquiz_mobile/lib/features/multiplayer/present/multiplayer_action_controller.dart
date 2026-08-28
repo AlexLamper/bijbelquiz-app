@@ -35,10 +35,16 @@ class MultiplayerActionController extends AsyncNotifier<void> {
   /// game. The server returns `PREMIUM_REQUIRED` with its own Dutch message
   /// when the caller has nothing left, and that message is what the player
   /// sees, so there is no second copy of the rule here.
-  Future<MultiplayerRoom> createRoom({required String quizId}) async {
+  Future<MultiplayerRoom> createRoom({
+    required String quizId,
+    int maxPlayers = 4,
+  }) async {
     state = const AsyncValue.loading();
     try {
-      final room = await _repository.createRoom(quizId: quizId);
+      final room = await _repository.createRoom(
+        quizId: quizId,
+        maxPlayers: maxPlayers,
+      );
       state = const AsyncValue.data(null);
       return room;
     } catch (e, st) {

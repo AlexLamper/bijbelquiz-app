@@ -10,6 +10,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/app_widgets.dart';
 import '../../profile/data/profile_model.dart';
 import '../../profile/present/profile_provider.dart';
+import '../data/bible_verse_repository.dart';
 import '../data/quiz_repository.dart';
 import '../domain/answer.dart';
 import '../domain/question.dart';
@@ -540,7 +541,6 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
     final bool hasReference =
         question.bibleReference.isNotEmpty && question.bibleReference != '-';
     final teasedExplanation = _teaseExplanation(question.explanation);
-    final teasedReference = _teaseReference(question.bibleReference);
 
     final accent = gotItRight ? AppTheme.positive : AppTheme.destructive;
 
@@ -573,35 +573,18 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
                     style: AppTheme.bodyMuted,
                   ),
               ],
+              // Free for everyone, as on the website: looking up what the
+              // Bible actually says is the point of the quiz, not a paid
+              // extra. Only the written uitleg above sits behind Premium.
               if (hasReference) ...[
                 const SizedBox(height: 18),
                 const RuleLine(),
                 const SizedBox(height: 18),
                 const Text('REFERENTIE', style: AppTheme.overline),
                 const SizedBox(height: 8),
-                if (isPremium)
-                  Text(
-                    question.bibleReference,
-                    style: const TextStyle(
-                      fontFamily: AppTheme.displayFontName,
-                      fontSize: 16,
-                      fontStyle: FontStyle.italic,
-                      color: AppTheme.ink,
-                    ),
-                  )
-                else
-                  _buildFadedPreviewText(
-                    teasedReference,
-                    maxLines: 1,
-                    style: const TextStyle(
-                      fontFamily: AppTheme.displayFontName,
-                      fontSize: 16,
-                      fontStyle: FontStyle.italic,
-                      color: AppTheme.ink,
-                    ),
-                  ),
+                _BibleReferenceBlock(reference: question.bibleReference),
               ],
-              if (!isPremium && (hasExplanation || hasReference)) ...[
+              if (!isPremium && hasExplanation) ...[
                 const SizedBox(height: 18),
                 SiteOutlineButton(
                   // A player who just got it wrong wants to know why more than
@@ -690,28 +673,6 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
 
       final cutIndex = (normalized.length * 0.4).round().clamp(
         10,
-        normalized.length - 1,
-      );
-      return '${normalized.substring(0, cutIndex).trimRight()}...';
-    }
-
-    return '${normalized.substring(0, maxChars).trimRight()}...';
-  }
-
-  String _teaseReference(String reference) {
-    final normalized = reference.trim().replaceAll(RegExp(r'\s+'), ' ');
-    if (normalized.isEmpty) {
-      return '';
-    }
-
-    const maxChars = 26;
-    if (normalized.length <= maxChars) {
-      if (normalized.length <= 6) {
-        return '${normalized.substring(0, 1)}...';
-      }
-
-      final cutIndex = (normalized.length * 0.6).round().clamp(
-        6,
         normalized.length - 1,
       );
       return '${normalized.substring(0, cutIndex).trimRight()}...';
@@ -817,6 +778,116 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// The question's reference, with the verse text one tap away.
+///
+/// Collapsed by default: a reader who already knows the passage should not have
+/// to scroll past it to reach the next question, and the lookup is a network
+/// call that only pays for itself when somebody actually wants to read.
+class _BibleReferenceBlock extends ConsumerStatefulWidget {
+  const _BibleReferenceBlock({required this.reference});
+
+  final String reference;
+
+  @override
+  ConsumerState<_BibleReferenceBlock> createState() =>
+      _BibleReferenceBlockState();
+}
+
+class _BibleReferenceBlockState extends ConsumerState<_BibleReferenceBlock> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          widget.reference,
+          style: const TextStyle(
+            fontFamily: AppTheme.displayFontName,
+            fontSize: 16,
+            fontStyle: FontStyle.italic,
+            color: AppTheme.ink,
+          ),
+        ),
+        const SizedBox(height: 10),
+        SiteOutlineButton(
+          label: _expanded ? 'Verberg de tekst' : 'Lees de tekst',
+          icon: _expanded ? Icons.expand_less : Icons.menu_book_outlined,
+          expand: false,
+          height: 36,
+          onPressed: () => setState(() => _expanded = !_expanded),
+        ),
+        if (_expanded) ...[
+          const SizedBox(height: 12),
+          _VerseText(reference: widget.reference),
+        ],
+      ],
+    );
+  }
+}
+
+/// The looked-up verse, or a quiet line saying it could not be fetched.
+///
+/// A failed lookup is never an error state here: the reference itself is
+/// already on screen above, which is the part the reader came for.
+class _VerseText extends ConsumerWidget {
+  const _VerseText({required this.reference});
+
+  final String reference;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.paperSunken,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        border: Border.all(color: AppTheme.rule),
+      ),
+      child: ref
+          .watch(bibleVerseProvider(reference))
+          .when(
+            loading: () => const Center(child: AppLoader(size: 18)),
+            error: (_, __) => const Text(
+              'De tekst kon niet worden opgehaald.',
+              style: AppTheme.caption,
+            ),
+            data: (verse) {
+              if (verse == null) {
+                return const Text(
+                  'De tekst kon niet worden opgehaald.',
+                  style: AppTheme.caption,
+                );
+              }
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '“${verse.text}”',
+                    style: const TextStyle(
+                      fontFamily: AppTheme.displayFontName,
+                      fontSize: 15,
+                      height: 1.55,
+                      fontStyle: FontStyle.italic,
+                      color: AppTheme.ink,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    '${verse.reference} - Statenvertaling',
+                    style: AppTheme.caption,
+                  ),
+                ],
+              );
+            },
+          ),
     );
   }
 }
