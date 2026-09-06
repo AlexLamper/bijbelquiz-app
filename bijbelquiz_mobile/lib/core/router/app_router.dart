@@ -19,6 +19,7 @@ import '../../features/profile/present/profile_achievements_screen.dart';
 import '../../features/profile/present/profile_identity_screen.dart';
 import '../../features/premium/present/group_license_screen.dart';
 import '../../features/premium/present/premium_screen.dart';
+import '../../features/premium/present/premium_intro_screen.dart';
 import '../../features/multiplayer/present/play_together_screen.dart';
 import '../../features/multiplayer/present/multiplayer_lobby_screen.dart';
 import '../../features/multiplayer/present/multiplayer_game_screen.dart';
@@ -26,6 +27,7 @@ import '../../features/multiplayer/present/multiplayer_results_screen.dart';
 import '../../features/quiz/present/quiz_detail_screen.dart';
 import '../../features/quiz/present/quiz_passage_screen.dart';
 import '../../features/quiz/present/quiz_player_screen.dart';
+import '../../features/admin/present/admin_screen.dart';
 
 // Main Scaffold representing the Bottom Navigation persistence
 class MainScaffold extends StatelessWidget {
@@ -263,11 +265,23 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const GroupLicenseScreen(),
       ),
       GoRoute(
+        // Admin-only; the screen itself checks the profile role and the
+        // server returns 403 to non-admins, so no router guard is needed.
+        path: '/beheer',
+        builder: (context, state) => const AdminScreen(),
+      ),
+      GoRoute(
         path: '/premium',
         // `?reden=` names the surface that raised the paywall, so the screen
         // can open on what the player was stopped from doing and the funnel
         // can attribute the sale to it.
         builder: (context, state) => PremiumScreen(
+          trigger: state.uri.queryParameters['reden'] ?? PaywallTrigger.direct,
+        ),
+      ),
+      GoRoute(
+        path: '/premium-intro',
+        builder: (context, state) => PremiumIntroScreen(
           trigger: state.uri.queryParameters['reden'] ?? PaywallTrigger.direct,
         ),
       ),

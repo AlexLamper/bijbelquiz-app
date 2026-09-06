@@ -38,12 +38,16 @@ class MultiplayerActionController extends AsyncNotifier<void> {
   Future<MultiplayerRoom> createRoom({
     required String quizId,
     int maxPlayers = 4,
+    bool readChapterFirst = false,
+    int questionTimerSeconds = 0,
   }) async {
     state = const AsyncValue.loading();
     try {
       final room = await _repository.createRoom(
         quizId: quizId,
         maxPlayers: maxPlayers,
+        readChapterFirst: readChapterFirst,
+        questionTimerSeconds: questionTimerSeconds,
       );
       state = const AsyncValue.data(null);
       return room;

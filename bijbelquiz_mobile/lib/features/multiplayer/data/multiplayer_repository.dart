@@ -58,13 +58,20 @@ class MultiplayerRepository {
   Future<MultiplayerRoom> createRoom({
     required String quizId,
     int maxPlayers = 4,
+    bool readChapterFirst = false,
+    int questionTimerSeconds = 0,
   }) {
     return _guard(
       fallbackMessage: 'Kon geen kamer maken.',
       request: () async {
         final response = await _apiClient.dio.post(
           '/multiplayer/rooms',
-          data: {'quizId': quizId, 'maxPlayers': maxPlayers},
+          data: {
+            'quizId': quizId,
+            'maxPlayers': maxPlayers,
+            'readChapterFirst': readChapterFirst,
+            'questionTimerSeconds': questionTimerSeconds,
+          },
         );
         return _extractRoom(response.data);
       },

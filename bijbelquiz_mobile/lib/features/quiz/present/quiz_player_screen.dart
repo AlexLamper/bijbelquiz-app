@@ -32,6 +32,10 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
   bool _isAnswered = false;
   int _correctCount = 0;
 
+  /// Set once we have bounced a non-premium player off a premium quiz, so the
+  /// redirect fires exactly once even though `build` runs many times.
+  bool _paywallRedirected = false;
+
   /// Which option index was picked per question index, so the server can
   /// re-grade the attempt instead of trusting a client-side tally.
   final Map<int, int> _selectedIndexes = <int, int>{};
@@ -269,6 +273,29 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
       body: SafeArea(
         child: quizAsync.when(
           data: (quiz) {
+            // Hard gate: a premium quiz reached by deep link, the library, or
+            // the multiplayer picker must not simply play. Bounce to the
+            // paywall the same way the website redirects.
+            if (quiz.isPremium && !isPremium) {
+              if (!_paywallRedirected) {
+                _paywallRedirected = true;
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!mounted) return;
+                  ref.read(analyticsProvider).track(
+                    AnalyticsEvents.paywallShown,
+                    props: {
+                      'trigger': PaywallTrigger.premiumQuizLocked,
+                      'surface': 'quiz_player',
+                    },
+                  );
+                  context.pushReplacement(
+                    '/premium?reden=${PaywallTrigger.premiumQuizLocked}',
+                  );
+                });
+              }
+              return const Center(child: AppLoader());
+            }
+
             if (quiz.questions.isEmpty) {
               return _buildEmptyState();
             }
@@ -765,7 +792,9 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 28),
+            _QuizReviewSection(quiz: quiz, picks: Map.of(_selectedIndexes)),
+            const SizedBox(height: 28),
             SiteButton(
               label: 'Terug naar home',
               onPressed: () => context.go('/home'),
@@ -888,6 +917,229 @@ class _VerseText extends ConsumerWidget {
               );
             },
           ),
+    );
+  }
+}
+
+/// Post-quiz answer review.
+///
+/// Premium: a per-question breakdown - your answer, the correct one, and the
+/// explanation. Free: the same right/wrong list, but the explanations are
+/// blurred behind one Premium CTA. This is a deliberate, late-in-the-loop
+/// paywall - the player just spent five minutes and wants to know which ones
+/// they missed.
+class _QuizReviewSection extends ConsumerStatefulWidget {
+  const _QuizReviewSection({required this.quiz, required this.picks});
+
+  final Quiz quiz;
+
+  /// Question index -> the answer index the player picked.
+  final Map<int, int> picks;
+
+  @override
+  ConsumerState<_QuizReviewSection> createState() => _QuizReviewSectionState();
+}
+
+class _QuizReviewSectionState extends ConsumerState<_QuizReviewSection> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final isPremium = ref
+        .watch(profileProvider)
+        .maybeWhen(data: (p) => p.isPremium, orElse: () => false);
+    final questions = widget.quiz.questions;
+    if (questions.isEmpty) return const SizedBox.shrink();
+
+    final wrong = <int>[];
+    for (var i = 0; i < questions.length; i++) {
+      final picked = widget.picks[i];
+      final correct =
+          picked != null &&
+          picked >= 0 &&
+          picked < questions[i].answers.length &&
+          questions[i].answers[picked].isCorrect;
+      if (!correct) wrong.add(i);
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.paperRaised,
+        border: Border.all(color: AppTheme.rule),
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('JOUW ANTWOORDEN', style: AppTheme.overline),
+                const SizedBox(height: 6),
+                Text(
+                  wrong.isEmpty
+                      ? 'Alles goed. Bekijk de uitleg bij elke vraag.'
+                      : '${wrong.length} van de ${questions.length} vragen fout.',
+                  style: AppTheme.bodyMuted,
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: AppTheme.rule),
+          if (!_expanded)
+            SiteOutlineButton(
+              label: 'Bekijk je antwoorden',
+              icon: Icons.expand_more,
+              height: 46,
+              onPressed: () => setState(() => _expanded = true),
+            )
+          else ...[
+            for (var i = 0; i < questions.length; i++)
+              _ReviewRow(
+                index: i + 1,
+                question: questions[i],
+                pickedIndex: widget.picks[i],
+                showExplanation: isPremium,
+              ),
+            if (!isPremium)
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'De volledige uitleg bij elke vraag is onderdeel van Premium.',
+                      style: AppTheme.caption.copyWith(color: AppTheme.inkSoft),
+                    ),
+                    const SizedBox(height: 12),
+                    SiteButton(
+                      label: 'Ontgrendel de volledige review',
+                      trailingIcon: Icons.lock_open_outlined,
+                      onPressed: () {
+                        ref
+                            .read(analyticsProvider)
+                            .track(
+                              AnalyticsEvents.paywallShown,
+                              props: {
+                                'trigger': PaywallTrigger.reviewLocked,
+                                'surface': 'quiz_review',
+                              },
+                            );
+                        context.push(
+                          '/premium-intro?reden=${PaywallTrigger.reviewLocked}',
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ReviewRow extends StatelessWidget {
+  const _ReviewRow({
+    required this.index,
+    required this.question,
+    required this.pickedIndex,
+    required this.showExplanation,
+  });
+
+  final int index;
+  final Question question;
+  final int? pickedIndex;
+  final bool showExplanation;
+
+  @override
+  Widget build(BuildContext context) {
+    final answers = question.answers;
+    final picked = (pickedIndex != null && pickedIndex! >= 0 && pickedIndex! < answers.length)
+        ? answers[pickedIndex!]
+        : null;
+    final wasCorrect = picked?.isCorrect ?? false;
+    final correctAnswer = answers.where((a) => a.isCorrect).isNotEmpty
+        ? answers.firstWhere((a) => a.isCorrect)
+        : null;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppTheme.rule)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                wasCorrect ? Icons.check_circle_outline : Icons.cancel_outlined,
+                size: 16,
+                color: wasCorrect ? AppTheme.positive : AppTheme.vermilion,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '$index. ${question.text}',
+                  style: AppTheme.bodyStrong,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Jouw antwoord: ${picked?.text ?? 'geen'}',
+            style: AppTheme.caption.copyWith(
+              color: wasCorrect ? AppTheme.positive : AppTheme.vermilion,
+            ),
+          ),
+          if (!wasCorrect && correctAnswer != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              'Goed antwoord: ${correctAnswer.text}',
+              style: AppTheme.caption.copyWith(color: AppTheme.inkSoft),
+            ),
+          ],
+          if (question.explanation.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            if (showExplanation)
+              Text(question.explanation, style: AppTheme.bodyMuted)
+            else
+              _BlurredLine(text: question.explanation),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// A teaser of locked text - the first line, faded out.
+class _BlurredLine extends StatelessWidget {
+  const _BlurredLine({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return ShaderMask(
+      shaderCallback: (rect) => const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [AppTheme.ink, Color(0x11000000)],
+      ).createShader(rect),
+      blendMode: BlendMode.srcIn,
+      child: Text(
+        text,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: AppTheme.bodyMuted,
+      ),
     );
   }
 }

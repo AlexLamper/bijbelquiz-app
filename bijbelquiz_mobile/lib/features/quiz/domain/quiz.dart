@@ -14,6 +14,11 @@ class Quiz {
   final int xpReward;
   final int questionCount;
   final bool isPremium;
+
+  /// ISO-8601 creation timestamp from the API, empty when the server did not
+  /// send one. Used only to offer a "nieuwste eerst" sort.
+  final String createdAt;
+
   final List<Question> questions;
 
   /// The chapter this quiz is about, when the server could work one out from
@@ -32,6 +37,7 @@ class Quiz {
     required this.xpReward,
     this.questionCount = 0,
     this.isPremium = false,
+    this.createdAt = '',
     this.questions = const [],
     this.passage,
   });
@@ -72,6 +78,10 @@ class Quiz {
           json['premiumOnly'] == true ||
           json['requiresPremium'] == true ||
           json['premium'] == true,
+      createdAt:
+          json['createdAt']?.toString() ??
+          json['created_at']?.toString() ??
+          '',
       questions: parsedQuestions,
       passage: QuizPassage.fromJson(json['passage']),
     );
@@ -90,25 +100,58 @@ class Quiz {
       'xpReward': xpReward,
       'questionCount': questionCount,
       'isPremium': isPremium,
+      'createdAt': createdAt,
       'questions': questions.map((q) => q.toJson()).toList(),
     };
   }
 }
 
+extension QuizImageFallback on Quiz {
+  /// A cover image that always resolves. The API now fills `image` for every
+  /// quiz, but offline cache and older payloads can still arrive blank - in
+  /// that case derive a stable file from the id so the card is never empty.
+  /// Mirrors the server's `resolveQuizImageUrl` fallback (img1..img12).
+  String get imageOrFallback {
+    if (image.trim().isNotEmpty) return image;
+    var hash = 0;
+    final source = id.isNotEmpty ? id : 'quiz';
+    for (final unit in source.codeUnits) {
+      hash = (hash * 31 + unit) & 0x7fffffff;
+    }
+    return '/images/quizzes/img${(hash % 12) + 1}.png';
+  }
+}
+
 extension QuizDifficultyLocalization on Quiz {
-  String get difficultyLabelNl {
+  /// Collapses every legacy spelling to one of `easy` / `medium` / `hard` so a
+  /// filter chip can match. Older seeds used `beginner/intermediate/advanced`.
+  String get difficultyBucket {
     switch (difficulty.trim().toLowerCase()) {
       case 'easy':
-        return 'MAKKELIJK';
+      case 'beginner':
+      case 'makkelijk':
+        return 'easy';
+      case 'hard':
+      case 'advanced':
+      case 'moeilijk':
+        return 'hard';
       case 'medium':
-        return 'GEMIDDELD';
+      case 'intermediate':
+      case 'gemiddeld':
+        return 'medium';
+      default:
+        return 'medium';
+    }
+  }
+
+  String get difficultyLabelNl {
+    switch (difficultyBucket) {
+      case 'easy':
+        return 'MAKKELIJK';
       case 'hard':
         return 'MOEILIJK';
       default:
-        if (difficulty.trim().isEmpty) {
-          return 'GEMIDDELD';
-        }
-        return difficulty.toUpperCase();
+        return 'GEMIDDELD';
     }
   }
 }

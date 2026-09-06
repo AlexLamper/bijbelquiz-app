@@ -6,6 +6,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/app_widgets.dart';
 import '../../groups/data/player_group_repository.dart';
 import '../../groups/domain/player_group.dart';
+import '../../profile/present/profile_provider.dart';
 import '../data/leaderboard_repository.dart';
 import '../domain/leaderboard_entry.dart';
 
@@ -82,6 +83,19 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                 ..sort((a, b) => b.xp.compareTo(a.xp));
               final topXp = sortedEntries.isEmpty ? 0 : sortedEntries.first.xp;
 
+              final profile = ref.watch(profileProvider).asData?.value;
+              final myId = profile?.id ?? '';
+              final myName = (profile?.name ?? '').trim().toLowerCase();
+              var myIndex = myId.isEmpty
+                  ? -1
+                  : sortedEntries.indexWhere((e) => e.id == myId);
+              if (myIndex < 0 && myName.isNotEmpty) {
+                myIndex = sortedEntries.indexWhere(
+                  (e) => e.name.trim().toLowerCase() == myName,
+                );
+              }
+              final myEntryId = myIndex >= 0 ? sortedEntries[myIndex].id : null;
+
               return ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
@@ -132,6 +146,14 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                       ),
                     ],
                   ),
+                  if (profile != null) ...[
+                    const SizedBox(height: 16),
+                    _MyPlacementCard(
+                      rank: myIndex >= 0 ? myIndex + 1 : null,
+                      total: sortedEntries.length,
+                      xp: myIndex >= 0 ? sortedEntries[myIndex].xp : profile.xp,
+                    ),
+                  ],
                   const SizedBox(height: 28),
                   if (sortedEntries.isEmpty)
                     const _EmptyLeaderboardState()
@@ -140,6 +162,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                       // Collapse again when the player switches board.
                       key: ValueKey('${_selectedGroupId ?? 'all'}-$_selectedRange'),
                       entries: sortedEntries,
+                      highlightEntryId: myEntryId,
                     ),
                 ],
               );
@@ -311,9 +334,16 @@ class _RangeSelector extends StatelessWidget {
 }
 
 class _LeaderboardTable extends StatefulWidget {
-  const _LeaderboardTable({super.key, required this.entries});
+  const _LeaderboardTable({
+    super.key,
+    required this.entries,
+    this.highlightEntryId,
+  });
 
   final List<LeaderboardEntry> entries;
+
+  /// Id of the current user's row, tinted so it stands out in a long board.
+  final String? highlightEntryId;
 
   /// Rows shown before the list has to be expanded. Keeps a 100-player board
   /// from turning the page into an endless scroll.
@@ -368,6 +398,9 @@ class _LeaderboardTableState extends State<_LeaderboardTable> {
               entry: visible[i],
               rank: i + 1,
               isLast: !canCollapse && i == visible.length - 1,
+              highlighted:
+                  widget.highlightEntryId != null &&
+                  visible[i].id == widget.highlightEntryId,
             ),
           if (canCollapse)
             _ShowMoreRow(
@@ -435,11 +468,15 @@ class _LeaderboardRow extends StatelessWidget {
     required this.entry,
     required this.rank,
     required this.isLast,
+    this.highlighted = false,
   });
 
   final LeaderboardEntry entry;
   final int rank;
   final bool isLast;
+
+  /// This row is the signed-in player - tinted so it is findable at a glance.
+  final bool highlighted;
 
   @override
   Widget build(BuildContext context) {
@@ -455,6 +492,7 @@ class _LeaderboardRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
+        color: highlighted ? AppTheme.lapisTint : null,
         border: isLast
             ? null
             : const Border(bottom: BorderSide(color: AppTheme.rule)),
@@ -486,10 +524,12 @@ class _LeaderboardRow extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              entry.name,
+              highlighted ? '${entry.name}  (jij)' : entry.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: AppTheme.bodyStrong,
+              style: AppTheme.bodyStrong.copyWith(
+                color: highlighted ? AppTheme.lapis : null,
+              ),
             ),
           ),
           const SizedBox(width: 10),
@@ -513,6 +553,78 @@ extension on LeaderboardPeriod {
       case LeaderboardPeriod.all:
         return 'Altijd';
     }
+  }
+}
+
+/// "Jouw plek" band shown above the table so the player never has to scan a
+/// 100-row list to find their own rank. Styled like the site's stat band.
+class _MyPlacementCard extends StatelessWidget {
+  const _MyPlacementCard({
+    required this.rank,
+    required this.total,
+    required this.xp,
+  });
+
+  /// Null when the player is not on this board yet (new account, or the
+  /// selected period has no entry for them).
+  final int? rank;
+  final int total;
+  final int xp;
+
+  @override
+  Widget build(BuildContext context) {
+    final onBoard = rank != null;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+      decoration: BoxDecoration(
+        color: AppTheme.lapisTint,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: AppTheme.lapis.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'JOUW PLEK',
+                  style: AppTheme.overline.copyWith(color: AppTheme.lapis),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  onBoard ? '#$rank' : 'Nog niet geplaatst',
+                  style: AppTheme.displayLarge.copyWith(
+                    color: AppTheme.ink,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  onBoard
+                      ? 'van $total spelers'
+                      : 'Speel een quiz om mee te doen',
+                  style: AppTheme.caption.copyWith(color: AppTheme.inkSoft),
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '$xp',
+                style: AppTheme.statNumber.copyWith(color: AppTheme.ink),
+              ),
+              Text(
+                'XP',
+                style: AppTheme.overline.copyWith(color: AppTheme.inkMuted),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
 

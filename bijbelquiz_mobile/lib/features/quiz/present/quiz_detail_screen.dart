@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../data/quiz_repository.dart';
 import '../domain/quiz.dart';
+import '../../../core/analytics/analytics.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/app_widgets.dart';
 import '../../../core/ui/server_image.dart';
+import '../../profile/present/profile_provider.dart';
 import '../../settings/data/quiz_preferences_controller.dart';
 import '../../settings/domain/quiz_preferences.dart';
 
@@ -18,6 +20,9 @@ class QuizDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final quizAsync = ref.watch(quizDetailProvider(idOrSlug));
     final preferences = ref.watch(quizPreferencesProvider);
+    final isPremiumUser = ref
+        .watch(profileProvider)
+        .maybeWhen(data: (p) => p.isPremium, orElse: () => false);
 
     return Scaffold(
       backgroundColor: AppTheme.paper,
@@ -39,6 +44,7 @@ class QuizDetailScreen extends ConsumerWidget {
                 ? quiz.questions.length
                 : quiz.questionCount;
             final minutes = (questionCount / 2).ceil().clamp(3, 25);
+            final locked = quiz.isPremium && !isPremiumUser;
 
             return Column(
               children: [
@@ -62,19 +68,10 @@ class QuizDetailScreen extends ConsumerWidget {
                           child: Stack(
                             fit: StackFit.expand,
                             children: [
-                              if (quiz.image.isNotEmpty)
-                                ServerImage(
-                                  imagePath: quiz.image,
-                                  fit: BoxFit.cover,
-                                )
-                              else
-                                const Center(
-                                  child: Icon(
-                                    Icons.menu_book_outlined,
-                                    size: 28,
-                                    color: AppTheme.inkMuted,
-                                  ),
-                                ),
+                              ServerImage(
+                                imagePath: quiz.imageOrFallback,
+                                fit: BoxFit.cover,
+                              ),
                               if (quiz.isPremium)
                                 Positioned(
                                   top: 12,
@@ -170,22 +167,42 @@ class QuizDetailScreen extends ConsumerWidget {
                     border: Border(top: BorderSide(color: AppTheme.rule)),
                   ),
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-                  child: SiteButton(
-                    label: preferences.readPassageFirst && quiz.passage != null
-                        ? 'Lees ${quiz.passage!.label} en start'
-                        : 'Start quiz',
-                    trailingIcon: Icons.arrow_forward,
-                    onPressed: () {
-                      final pathId = quiz.slug.isNotEmpty ? quiz.slug : quiz.id;
-                      final readFirst =
-                          preferences.readPassageFirst && quiz.passage != null;
-                      context.push(
-                        readFirst
-                            ? '/quiz/$pathId/lezen'
-                            : '/quiz/$pathId/play',
-                      );
-                    },
-                  ),
+                  child: locked
+                      ? SiteButton(
+                          label: 'Ontgrendel met Premium',
+                          trailingIcon: Icons.lock_open_outlined,
+                          onPressed: () {
+                            ref.read(analyticsProvider).track(
+                              AnalyticsEvents.paywallShown,
+                              props: {
+                                'trigger': PaywallTrigger.premiumQuizLocked,
+                                'surface': 'quiz_detail',
+                              },
+                            );
+                            context.push(
+                              '/premium-intro?reden=${PaywallTrigger.premiumQuizLocked}',
+                            );
+                          },
+                        )
+                      : SiteButton(
+                          label:
+                              preferences.readPassageFirst && quiz.passage != null
+                              ? 'Lees ${quiz.passage!.label} en start'
+                              : 'Start quiz',
+                          trailingIcon: Icons.arrow_forward,
+                          onPressed: () {
+                            final pathId = quiz.slug.isNotEmpty
+                                ? quiz.slug
+                                : quiz.id;
+                            final readFirst = preferences.readPassageFirst &&
+                                quiz.passage != null;
+                            context.push(
+                              readFirst
+                                  ? '/quiz/$pathId/lezen'
+                                  : '/quiz/$pathId/play',
+                            );
+                          },
+                        ),
                 ),
               ],
             );

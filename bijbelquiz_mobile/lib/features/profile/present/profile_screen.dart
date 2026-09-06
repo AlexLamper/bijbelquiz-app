@@ -128,7 +128,16 @@ class ProfileScreen extends ConsumerWidget {
                   label: 'Ontdek Premium',
                   onTap: () {
                     Navigator.of(sheetContext).pop();
-                    context.push('/premium');
+                    context.push('/premium-intro');
+                  },
+                ),
+              if (profile.isAdmin)
+                _SheetTile(
+                  icon: Icons.shield_outlined,
+                  label: 'Beheer',
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    context.push('/beheer');
                   },
                 ),
               _StreakReminderTile(profile: profile),

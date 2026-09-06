@@ -10,6 +10,8 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/app_notice.dart';
 import '../../../core/ui/app_widgets.dart';
 import '../../profile/present/profile_provider.dart';
+import '../../quiz/data/bible_chapter_repository.dart';
+import '../../quiz/domain/quiz_passage.dart';
 import '../data/multiplayer_api_exception.dart';
 import '../domain/multiplayer_models.dart';
 import 'multiplayer_session_controller.dart';
@@ -134,6 +136,20 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
     final roomMissing = _isRoomMissingError(session.lastError);
     final sortedPlayers = room.standings;
 
+    // The reading phase sits between the lobby and question 1: every device
+    // shows the chapter, the host presses on when the room is ready.
+    if (room.status == MultiplayerRoomStatus.reading) {
+      final controller = ref.read(
+        multiplayerSessionControllerProvider(widget.roomCode).notifier,
+      );
+      return _ReadingView(
+        room: room,
+        isHost: _isHost(room),
+        lastError: session.lastError,
+        onStart: controller.advance,
+      );
+    }
+
     // Only the server reveals. It withholds `correctAnswerId` while the room
     // is `in_progress` precisely so a client cannot show the answer early, and
     // guessing from "everyone has answered" produced a reveal card with
@@ -183,7 +199,7 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildQuestionHeader(question, session),
+          _buildQuestionHeader(question, session, room),
           const SizedBox(height: 28),
           Text(
             question.text,
@@ -245,6 +261,20 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
                 accent: AppTheme.positive,
                 label: 'Ingestuurd',
                 message: 'Wachten op de andere spelers…',
+              ),
+            ),
+          // Host-tempo mode: no timer runs, so the host ends the question by
+          // hand once the room has had long enough.
+          if (!showAnswerReveal &&
+              room.questionTimerSeconds == 0 &&
+              room.status == MultiplayerRoomStatus.inProgress &&
+              _isHost(room))
+            Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: SiteButton(
+                label: 'Toon antwoorden',
+                trailingIcon: Icons.arrow_forward,
+                onPressed: controller.advance,
               ),
             ),
           if (session.lastError != null)
@@ -406,10 +436,15 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
   Widget _buildQuestionHeader(
     MultiplayerQuestionState question,
     MultiplayerSessionState session,
+    MultiplayerRoom room,
   ) {
     final progress = question.totalQuestions == 0
         ? 0.0
         : question.questionNumber / question.totalQuestions;
+
+    // Host-tempo mode has no deadline on the wire, so there is nothing to count
+    // down: the host drives every step by hand.
+    final showTimer = room.questionTimerSeconds > 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -424,7 +459,7 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
                 ),
               ),
             ),
-            if (!question.isRevealed)
+            if (showTimer && !question.isRevealed)
               _Countdown(
                 remainingMs: () => session.questionRemainingMs,
                 fallbackSeconds: question.remainingSeconds,
@@ -641,6 +676,177 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
     // Polling has stopped, so nothing would move this screen on by itself.
     if (!mounted) return;
     context.go('/play-together');
+  }
+}
+
+/// The chapter every device reads before question 1, shown while the room is
+/// in the `reading` phase. Mirrors the single-player `_PassageBody` verse list.
+class _ReadingView extends ConsumerWidget {
+  const _ReadingView({
+    required this.room,
+    required this.isHost,
+    required this.lastError,
+    required this.onStart,
+  });
+
+  final MultiplayerRoom room;
+  final bool isHost;
+  final String? lastError;
+  final VoidCallback onStart;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final passage = room.passage;
+
+    if (passage == null) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: AppCard(
+            child: Text(
+              'Wachten tot de host de vragen start…',
+              textAlign: TextAlign.center,
+              style: AppTheme.bodyMuted,
+            ),
+          ),
+        ),
+      );
+    }
+
+    final quizPassage = QuizPassage(
+      book: passage.book,
+      chapter: passage.chapter,
+      label: passage.label,
+    );
+    final versesAsync = ref.watch(chapterVersesProvider(quizPassage));
+
+    return Column(
+      children: [
+        Expanded(
+          child: versesAsync.when(
+            data: (verses) => ListView.builder(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+              itemCount: verses.length + 2,
+              itemBuilder: (context, index) {
+                if (index == 0) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Eyebrow('Lees eerst'),
+                        const SizedBox(height: 14),
+                        Text(passage.label, style: AppTheme.displayLarge),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Neem dit hoofdstuk rustig door. De vragen hierna '
+                          'gaan hierover, dus lezen helpt echt.',
+                          style: AppTheme.bodyLead,
+                        ),
+                        const SizedBox(height: 20),
+                        const RuleLine(),
+                      ],
+                    ),
+                  );
+                }
+
+                if (index == verses.length + 1) {
+                  return const Padding(
+                    padding: EdgeInsets.only(top: 20),
+                    child: Text('STATENVERTALING', style: AppTheme.overline),
+                  );
+                }
+
+                final verse = verses[index - 1];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 14),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: 26,
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 4, right: 10),
+                          child: Text(
+                            '${verse.verse}',
+                            textAlign: TextAlign.right,
+                            style: AppTheme.caption.copyWith(
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          verse.text,
+                          style: const TextStyle(
+                            fontFamily: AppTheme.displayFontName,
+                            fontSize: 17,
+                            height: 1.7,
+                            color: AppTheme.ink,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+            loading: () => const AppLoader(),
+            // A chapter that will not load must never block the game.
+            error: (error, _) => AppEmptyState(
+              icon: Icons.menu_book_outlined,
+              title: 'Hoofdstuk niet geladen',
+              description:
+                  'Dit hoofdstuk kon nu niet opgehaald worden. De host kan '
+                  'gewoon met de vragen beginnen.',
+              action: SiteOutlineButton(
+                label: 'Opnieuw proberen',
+                expand: false,
+                height: 44,
+                onPressed: () =>
+                    ref.invalidate(chapterVersesProvider(quizPassage)),
+              ),
+            ),
+          ),
+        ),
+        Container(
+          decoration: const BoxDecoration(
+            color: AppTheme.paperRaised,
+            border: Border(top: BorderSide(color: AppTheme.rule)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (lastError != null) ...[
+                _NoticeBlock(
+                  accent: AppTheme.destructive,
+                  label: 'Foutmelding',
+                  message: lastError!,
+                ),
+                const SizedBox(height: 12),
+              ],
+              if (isHost)
+                SiteButton(
+                  label: 'Start de vragen',
+                  trailingIcon: Icons.arrow_forward,
+                  onPressed: onStart,
+                )
+              else
+                const AppCard(
+                  child: Text(
+                    'Wacht tot de host de vragen start.',
+                    style: AppTheme.bodyMuted,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }
 

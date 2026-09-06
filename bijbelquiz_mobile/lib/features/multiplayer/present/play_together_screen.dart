@@ -22,6 +22,9 @@ enum _PlayMode { create, join }
 /// is replaced by whatever ceiling the server reports for Premium.
 const List<int> _basePlayerOptions = [2, 3, 4, 6, 8, 10, 12];
 
+/// Seconds per question the host may pick. `0` hands every step to the host.
+const List<int> _tempoOptions = [0, 30, 60, 90];
+
 class PlayTogetherScreen extends ConsumerStatefulWidget {
   const PlayTogetherScreen({super.key});
 
@@ -38,6 +41,13 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
   /// Room size the host picked. Starts at the free cap, so the first thing a
   /// new host sees is a number they can actually use.
   int _maxPlayers = 4;
+
+  /// Show the Bible chapter before the first question. The server ignores this
+  /// when the quiz has no single resolvable chapter.
+  bool _readChapterFirst = false;
+
+  /// Seconds per question. `0` = the host advances every step by hand.
+  int _questionTimerSeconds = 0;
 
   @override
   void dispose() {
@@ -59,7 +69,12 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
     try {
       final room = await ref
           .read(multiplayerActionControllerProvider.notifier)
-          .createRoom(quizId: _selectedQuizId!, maxPlayers: _maxPlayers);
+          .createRoom(
+            quizId: _selectedQuizId!,
+            maxPlayers: _maxPlayers,
+            readChapterFirst: _readChapterFirst,
+            questionTimerSeconds: _questionTimerSeconds,
+          );
       if (!mounted) return;
 
       // Starting the game spends a credit, so the remaining count on this
@@ -111,6 +126,7 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
   void _openRoom(MultiplayerRoom room) {
     final base = '/play-together/room/${room.code}';
     switch (room.status) {
+      case MultiplayerRoomStatus.reading:
       case MultiplayerRoomStatus.inProgress:
       case MultiplayerRoomStatus.questionResult:
         context.push('$base/play');
@@ -153,7 +169,12 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
     try {
       final room = await ref
           .read(multiplayerActionControllerProvider.notifier)
-          .createRoom(quizId: quizId, maxPlayers: _maxPlayers);
+          .createRoom(
+            quizId: quizId,
+            maxPlayers: _maxPlayers,
+            readChapterFirst: _readChapterFirst,
+            questionTimerSeconds: _questionTimerSeconds,
+          );
       if (!mounted) return;
 
       ref.invalidate(multiplayerCapabilityProvider);
@@ -199,7 +220,11 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final quizzesAsync = ref.watch(quizzesProvider(const QuizQuery(limit: 25)));
+    // Premium quizzes are excluded from the multiplayer picker: a host must not
+    // be able to route a whole room past the premium-quiz gate.
+    final quizzesAsync = ref.watch(
+      quizzesProvider(const QuizQuery(limit: 25, includePremium: false)),
+    );
     final actionState = ref.watch(multiplayerActionControllerProvider);
     final capability = ref.watch(multiplayerCapabilityProvider).asData?.value;
 
@@ -276,6 +301,8 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
                       maxPlayers: _maxPlayers,
                       maxPlayersFree: maxPlayersFree,
                       maxPlayersPremium: maxPlayersPremium,
+                      readChapterFirst: _readChapterFirst,
+                      questionTimerSeconds: _questionTimerSeconds,
                       onSelectQuiz: (id) {
                         setState(() {
                           _selectedQuizId = id;
@@ -285,6 +312,16 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
                         if (count == null) return;
                         setState(() {
                           _maxPlayers = count;
+                        });
+                      },
+                      onToggleReadChapterFirst: (value) {
+                        setState(() {
+                          _readChapterFirst = value;
+                        });
+                      },
+                      onSelectTempo: (seconds) {
+                        setState(() {
+                          _questionTimerSeconds = seconds;
                         });
                       },
                       onPlayerCapUpgrade: _openPlayerCapPaywall,
@@ -633,8 +670,12 @@ class _CreateRoomForm extends StatelessWidget {
     required this.maxPlayers,
     required this.maxPlayersFree,
     required this.maxPlayersPremium,
+    required this.readChapterFirst,
+    required this.questionTimerSeconds,
     required this.onSelectQuiz,
     required this.onSelectMaxPlayers,
+    required this.onToggleReadChapterFirst,
+    required this.onSelectTempo,
     required this.onPlayerCapUpgrade,
     required this.onCreateRoom,
     required this.onUpgrade,
@@ -663,8 +704,15 @@ class _CreateRoomForm extends StatelessWidget {
   final int maxPlayersFree;
   final int maxPlayersPremium;
 
+  /// The two new host options: read the chapter first, and seconds per question
+  /// (`0` = the host advances every step by hand).
+  final bool readChapterFirst;
+  final int questionTimerSeconds;
+
   final ValueChanged<String?> onSelectQuiz;
   final ValueChanged<int?> onSelectMaxPlayers;
+  final ValueChanged<bool> onToggleReadChapterFirst;
+  final ValueChanged<int> onSelectTempo;
   final VoidCallback onPlayerCapUpgrade;
   final Future<void> Function() onCreateRoom;
   final VoidCallback onUpgrade;
@@ -896,6 +944,60 @@ class _CreateRoomForm extends StatelessWidget {
                       ),
                     ),
                   ],
+                  const SizedBox(height: 24),
+                  const RuleLine(),
+                  const SizedBox(height: 20),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'LEES EERST HET HOOFDSTUK',
+                              style: AppTheme.overline,
+                            ),
+                            SizedBox(height: 6),
+                            Text(
+                              'Werkt alleen bij quizzen over 1 hoofdstuk.',
+                              style: AppTheme.caption,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Switch.adaptive(
+                        value: readChapterFirst,
+                        activeTrackColor: AppTheme.ink,
+                        onChanged: isBusy ? null : onToggleReadChapterFirst,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  const Text('TEMPO PER VRAAG', style: AppTheme.overline),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      for (final seconds in _tempoOptions)
+                        Expanded(
+                          child: Padding(
+                            padding: EdgeInsets.only(
+                              right: seconds == _tempoOptions.last ? 0 : 8,
+                            ),
+                            child: _ChoiceChip(
+                              label: seconds == 0
+                                  ? 'Host bepaalt'
+                                  : '${seconds}s',
+                              selected: questionTimerSeconds == seconds,
+                              onTap: isBusy
+                                  ? null
+                                  : () => onSelectTempo(seconds),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                   const SizedBox(height: 20),
                   SiteButton(
                     label: 'Start kamer',
@@ -916,6 +1018,52 @@ class _CreateRoomForm extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Button-group chip, mirroring the single-player `_ChoiceChip` in
+/// `quiz_detail_screen.dart`. [onTap] is nullable so the chip greys out while
+/// the form is busy.
+class _ChoiceChip extends StatelessWidget {
+  const _ChoiceChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? AppTheme.ink : AppTheme.paper,
+      borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+        onTap: onTap,
+        child: Container(
+          height: 42,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+            border: Border.all(color: selected ? AppTheme.ink : AppTheme.rule),
+          ),
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: selected ? AppTheme.inkInverted : AppTheme.inkSoft,
+            ),
+          ),
+        ),
       ),
     );
   }
