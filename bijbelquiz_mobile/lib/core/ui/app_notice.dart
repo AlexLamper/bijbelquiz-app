@@ -45,6 +45,22 @@ class AppNotice {
     );
   }
 
+  /// [success] for code that has a messenger but no screen context - the app
+  /// root reacting to a sign-in, say - via `MaterialApp.scaffoldMessengerKey`.
+  static void successOn(
+    ScaffoldMessengerState messenger,
+    String message, {
+    String? title,
+  }) {
+    _showOn(
+      messenger,
+      title: title,
+      message: message,
+      icon: Icons.check,
+      accent: AppTheme.positive,
+    );
+  }
+
   static void _show(
     BuildContext context, {
     required String? title,
@@ -55,6 +71,22 @@ class AppNotice {
     final messenger = ScaffoldMessenger.maybeOf(context);
     if (messenger == null) return;
 
+    _showOn(
+      messenger,
+      title: title,
+      message: message,
+      icon: icon,
+      accent: accent,
+    );
+  }
+
+  static void _showOn(
+    ScaffoldMessengerState messenger, {
+    required String? title,
+    required String message,
+    required IconData icon,
+    required Color accent,
+  }) {
     messenger.hideCurrentSnackBar();
     messenger.showSnackBar(
       SnackBar(

@@ -89,6 +89,10 @@ class ProfileModel {
   final int nextLevelXp;
 
   final bool isPremium;
+
+  /// Server `role == 'admin'`. Gates the in-app admin screen only.
+  final bool isAdmin;
+
   final int streak;
   final int bestStreak;
 
@@ -124,6 +128,7 @@ class ProfileModel {
     required this.levelProgress,
     required this.nextLevelXp,
     required this.isPremium,
+    this.isAdmin = false,
     required this.streak,
     required this.bestStreak,
     this.lastPlayedAt,
@@ -188,6 +193,8 @@ class ProfileModel {
       levelProgress: _asInt(json['levelProgress']).clamp(0, 100),
       nextLevelXp: _asInt(json['nextLevelXp'], xp),
       isPremium: json['isPremium'] as bool? ?? false,
+      isAdmin:
+          json['isAdmin'] as bool? ?? (json['role']?.toString() == 'admin'),
       streak: _asInt(json['streak']),
       bestStreak: _asInt(json['bestStreak']),
       lastPlayedAt: DateTime.tryParse(json['lastPlayedAt']?.toString() ?? ''),
@@ -228,6 +235,7 @@ class ProfileModel {
       'levelProgress': levelProgress,
       'nextLevelXp': nextLevelXp,
       'isPremium': isPremium,
+      'isAdmin': isAdmin,
       'streak': streak,
       'bestStreak': bestStreak,
       'lastPlayedAt': lastPlayedAt?.toIso8601String(),

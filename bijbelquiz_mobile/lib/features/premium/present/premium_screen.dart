@@ -9,6 +9,7 @@ import '../../../core/errors/app_error.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/app_notice.dart';
 import '../../../core/ui/app_widgets.dart';
+import '../../auth/present/auth_controller.dart';
 import '../data/purchase_service.dart';
 import '../domain/plan_pricing.dart';
 import 'premium_controller.dart';
@@ -135,7 +136,23 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
     }
   }
 
-  void _onPurchase() {
+  Future<void> _onPurchase() async {
+    // A purchase has to land on an account: RevenueCat is linked to the user
+    // id at sign-in, and the store webhook grants Premium to that id. Bought
+    // signed out, it would hang off an anonymous RevenueCat id that no
+    // account can ever be matched to.
+    final hasSession = await ref.read(hasSessionProvider.future);
+    if (!hasSession) {
+      if (!mounted) return;
+      AppNotice.info(
+        context,
+        'Maak eerst een gratis account of log in, dan hoort Premium bij jou.',
+        title: 'Account nodig',
+      );
+      context.push('/login');
+      return;
+    }
+
     _startedPurchase = true;
 
     final notifier = ref.read(premiumControllerProvider.notifier);

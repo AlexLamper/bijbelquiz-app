@@ -8,9 +8,11 @@ import '../../../core/analytics/analytics.dart';
 import '../../../core/notifications/streak_reminder.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/app_widgets.dart';
+import '../../auth/present/auth_controller.dart';
 import '../../profile/data/profile_model.dart';
 import '../../profile/present/profile_provider.dart';
 import '../data/bible_verse_repository.dart';
+import '../data/pending_attempt_store.dart';
 import '../data/quiz_repository.dart';
 import '../domain/answer.dart';
 import '../domain/question.dart';
@@ -32,6 +34,10 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
   bool _isAnswered = false;
   int _correctCount = 0;
 
+  /// Set once we have bounced a non-premium player off a premium quiz, so the
+  /// redirect fires exactly once even though `build` runs many times.
+  bool _paywallRedirected = false;
+
   /// Which option index was picked per question index, so the server can
   /// re-grade the attempt instead of trusting a client-side tally.
   final Map<int, int> _selectedIndexes = <int, int>{};
@@ -42,6 +48,10 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
   /// True once the server has answered, whatever the awarded amount was.
   bool _resultConfirmed = false;
   bool _resultSubmitted = false;
+
+  /// Played signed out: the attempt is parked on the device rather than
+  /// reported, and the result screen offers an account to keep it.
+  bool _parkedForAccount = false;
 
   // ── Per-question timer ──────────────────────────────────────────────────
   // Off unless the reader switched it on from the quiz overview. Shown as one
@@ -164,6 +174,30 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
       (index) => _selectedIndexes[index],
     );
 
+    // Without an account the attempt is parked on this device. The result
+    // screen offers to keep it, and `PendingAttemptClaimer` writes it to
+    // whichever account signs in next, from wherever that happens.
+    final hasSession = await ref.read(hasSessionProvider.future);
+    if (!hasSession) {
+      await ref
+          .read(pendingAttemptStoreProvider)
+          .add(
+            PendingAttempt(
+              quizId: quiz.id,
+              quizTitle: quiz.title,
+              correctAnswers: _correctCount,
+              totalQuestions: totalQuestions,
+              selectedAnswerIndexes: answers,
+              completedAt: DateTime.now(),
+            ),
+          );
+      ref.invalidate(pendingAttemptsProvider);
+
+      if (!mounted) return;
+      setState(() => _parkedForAccount = true);
+      return;
+    }
+
     final result = await ref
         .read(quizRepositoryProvider)
         .submitQuizResult(
@@ -269,6 +303,31 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
       body: SafeArea(
         child: quizAsync.when(
           data: (quiz) {
+            // Hard gate: a premium quiz reached by deep link, the library, or
+            // the multiplayer picker must not simply play. Bounce to the
+            // paywall the same way the website redirects.
+            if (quiz.isPremium && !isPremium) {
+              if (!_paywallRedirected) {
+                _paywallRedirected = true;
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!mounted) return;
+                  ref
+                      .read(analyticsProvider)
+                      .track(
+                        AnalyticsEvents.paywallShown,
+                        props: {
+                          'trigger': PaywallTrigger.premiumQuizLocked,
+                          'surface': 'quiz_player',
+                        },
+                      );
+                  context.pushReplacement(
+                    '/premium?reden=${PaywallTrigger.premiumQuizLocked}',
+                  );
+                });
+              }
+              return const Center(child: AppLoader());
+            }
+
             if (quiz.questions.isEmpty) {
               return _buildEmptyState();
             }
@@ -328,7 +387,9 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              _timedOut ? 'TIJD OM' : _formatSeconds(_secondsLeft),
+                              _timedOut
+                                  ? 'TIJD OM'
+                                  : _formatSeconds(_secondsLeft),
                               style: AppTheme.overline.copyWith(
                                 color: _timedOut || _secondsLeft <= 5
                                     ? AppTheme.vermilion
@@ -357,7 +418,9 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
                         minHeight: 2,
                         backgroundColor: AppTheme.rule,
                         valueColor: AlwaysStoppedAnimation<Color>(
-                          _secondsLeft <= 5 ? AppTheme.vermilion : AppTheme.lapis,
+                          _secondsLeft <= 5
+                              ? AppTheme.vermilion
+                              : AppTheme.lapis,
                         ),
                       ),
                     ),
@@ -720,7 +783,19 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
         ? 0
         : (_correctCount * 100 / totalQuestions).round();
 
-    final xpSentence = _resultConfirmed
+    // Signed out: what a new account would get for this attempt, by the same
+    // rule the server applies (the quiz's reward scaled by the share correct).
+    // A first attempt on a quiz has no earlier best to beat, so unlike the
+    // signed-in case this is not a promise the account cannot keep.
+    final previewXp = _parkedForAccount
+        ? (totalQuestions == 0
+              ? 0
+              : (quiz.xpReward * _correctCount / totalQuestions).round())
+        : null;
+
+    final xpSentence = _parkedForAccount
+        ? 'Je speelt zonder account, dus deze score is nog niet opgeslagen.'
+        : _resultConfirmed
         ? (earnedXp == null || earnedXp == 0
               ? 'Je verdiende deze keer geen extra XP - een herhaling telt '
                     'alleen mee als je jezelf verbetert.'
@@ -759,13 +834,21 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
                 ),
                 StatItem(value: '$percentage%', label: 'Score'),
                 StatItem(
-                  value: earnedXp == null ? '-' : '$earnedXp',
+                  value: previewXp != null
+                      ? '$previewXp'
+                      : (earnedXp == null ? '-' : '$earnedXp'),
                   label: 'XP',
                   ruleColor: AppTheme.positive,
                 ),
               ],
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 28),
+            if (_parkedForAccount) ...[
+              _SaveScoreCard(previewXp: previewXp ?? 0),
+              const SizedBox(height: 28),
+            ],
+            _QuizReviewSection(quiz: quiz, picks: Map.of(_selectedIndexes)),
+            const SizedBox(height: 28),
             SiteButton(
               label: 'Terug naar home',
               onPressed: () => context.go('/home'),
@@ -777,6 +860,53 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// The offer to keep a signed-out score, in the website's result-screen card:
+/// `rounded-lg border border-lapis/45 bg-paper-raised p-5`.
+///
+/// Both buttons lead to the auth screens, which land on the profile tab on
+/// success; the parked attempt is written on the way (see
+/// `PendingAttemptClaimer`), so the XP named here is what appears there.
+class _SaveScoreCard extends StatelessWidget {
+  const _SaveScoreCard({required this.previewXp});
+
+  final int previewXp;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      borderColor: AppTheme.lapis.withValues(alpha: 0.45),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Eyebrow('Nog niet opgeslagen'),
+          const SizedBox(height: 12),
+          Text(
+            'Bewaar je score, $previewXp XP en je reeks',
+            style: AppTheme.displaySmall,
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Log in of maak een gratis account, dan wordt deze score direct '
+            'bijgeschreven. Je quizzen tellen dan mee voor je niveau en de '
+            'ranglijst.',
+            style: AppTheme.bodyMuted,
+          ),
+          const SizedBox(height: 16),
+          SiteButton(
+            label: 'Gratis account aanmaken',
+            onPressed: () => context.push('/register'),
+          ),
+          const SizedBox(height: 10),
+          SiteOutlineButton(
+            label: 'Inloggen',
+            onPressed: () => context.push('/login'),
+          ),
+        ],
       ),
     );
   }
@@ -888,6 +1018,232 @@ class _VerseText extends ConsumerWidget {
               );
             },
           ),
+    );
+  }
+}
+
+/// Post-quiz answer review.
+///
+/// Premium: a per-question breakdown - your answer, the correct one, and the
+/// explanation. Free: the same right/wrong list, but the explanations are
+/// blurred behind one Premium CTA. This is a deliberate, late-in-the-loop
+/// paywall - the player just spent five minutes and wants to know which ones
+/// they missed.
+class _QuizReviewSection extends ConsumerStatefulWidget {
+  const _QuizReviewSection({required this.quiz, required this.picks});
+
+  final Quiz quiz;
+
+  /// Question index -> the answer index the player picked.
+  final Map<int, int> picks;
+
+  @override
+  ConsumerState<_QuizReviewSection> createState() => _QuizReviewSectionState();
+}
+
+class _QuizReviewSectionState extends ConsumerState<_QuizReviewSection> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final isPremium = ref
+        .watch(profileProvider)
+        .maybeWhen(data: (p) => p.isPremium, orElse: () => false);
+    final questions = widget.quiz.questions;
+    if (questions.isEmpty) return const SizedBox.shrink();
+
+    final wrong = <int>[];
+    for (var i = 0; i < questions.length; i++) {
+      final picked = widget.picks[i];
+      final correct =
+          picked != null &&
+          picked >= 0 &&
+          picked < questions[i].answers.length &&
+          questions[i].answers[picked].isCorrect;
+      if (!correct) wrong.add(i);
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.paperRaised,
+        border: Border.all(color: AppTheme.rule),
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('JOUW ANTWOORDEN', style: AppTheme.overline),
+                const SizedBox(height: 6),
+                Text(
+                  wrong.isEmpty
+                      ? 'Alles goed. Bekijk de uitleg bij elke vraag.'
+                      : '${wrong.length} van de ${questions.length} vragen fout.',
+                  style: AppTheme.bodyMuted,
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: AppTheme.rule),
+          if (!_expanded)
+            SiteOutlineButton(
+              label: 'Bekijk je antwoorden',
+              icon: Icons.expand_more,
+              height: 46,
+              onPressed: () => setState(() => _expanded = true),
+            )
+          else ...[
+            for (var i = 0; i < questions.length; i++)
+              _ReviewRow(
+                index: i + 1,
+                question: questions[i],
+                pickedIndex: widget.picks[i],
+                showExplanation: isPremium,
+              ),
+            if (!isPremium)
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'De volledige uitleg bij elke vraag is onderdeel van Premium.',
+                      style: AppTheme.caption.copyWith(color: AppTheme.inkSoft),
+                    ),
+                    const SizedBox(height: 12),
+                    SiteButton(
+                      label: 'Ontgrendel de volledige review',
+                      trailingIcon: Icons.lock_open_outlined,
+                      onPressed: () {
+                        ref
+                            .read(analyticsProvider)
+                            .track(
+                              AnalyticsEvents.paywallShown,
+                              props: {
+                                'trigger': PaywallTrigger.reviewLocked,
+                                'surface': 'quiz_review',
+                              },
+                            );
+                        context.push(
+                          '/premium-intro?reden=${PaywallTrigger.reviewLocked}',
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ReviewRow extends StatelessWidget {
+  const _ReviewRow({
+    required this.index,
+    required this.question,
+    required this.pickedIndex,
+    required this.showExplanation,
+  });
+
+  final int index;
+  final Question question;
+  final int? pickedIndex;
+  final bool showExplanation;
+
+  @override
+  Widget build(BuildContext context) {
+    final answers = question.answers;
+    final picked =
+        (pickedIndex != null &&
+            pickedIndex! >= 0 &&
+            pickedIndex! < answers.length)
+        ? answers[pickedIndex!]
+        : null;
+    final wasCorrect = picked?.isCorrect ?? false;
+    final correctAnswer = answers.where((a) => a.isCorrect).isNotEmpty
+        ? answers.firstWhere((a) => a.isCorrect)
+        : null;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppTheme.rule)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                wasCorrect ? Icons.check_circle_outline : Icons.cancel_outlined,
+                size: 16,
+                color: wasCorrect ? AppTheme.positive : AppTheme.vermilion,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '$index. ${question.text}',
+                  style: AppTheme.bodyStrong,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Jouw antwoord: ${picked?.text ?? 'geen'}',
+            style: AppTheme.caption.copyWith(
+              color: wasCorrect ? AppTheme.positive : AppTheme.vermilion,
+            ),
+          ),
+          if (!wasCorrect && correctAnswer != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              'Goed antwoord: ${correctAnswer.text}',
+              style: AppTheme.caption.copyWith(color: AppTheme.inkSoft),
+            ),
+          ],
+          if (question.explanation.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            if (showExplanation)
+              Text(question.explanation, style: AppTheme.bodyMuted)
+            else
+              _BlurredLine(text: question.explanation),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// A teaser of locked text - the first line, faded out.
+class _BlurredLine extends StatelessWidget {
+  const _BlurredLine({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return ShaderMask(
+      shaderCallback: (rect) => const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [AppTheme.ink, Color(0x11000000)],
+      ).createShader(rect),
+      blendMode: BlendMode.srcIn,
+      child: Text(
+        text,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: AppTheme.bodyMuted,
+      ),
     );
   }
 }

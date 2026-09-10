@@ -42,7 +42,8 @@ class _MultiplayerLobbyScreenState
         final room = next.asData?.value.room;
         if (room == null || !mounted) return;
 
-        if (room.status == MultiplayerRoomStatus.inProgress ||
+        if (room.status == MultiplayerRoomStatus.reading ||
+            room.status == MultiplayerRoomStatus.inProgress ||
             room.status == MultiplayerRoomStatus.questionResult) {
           context.go('/play-together/room/${room.code}/play');
           return;

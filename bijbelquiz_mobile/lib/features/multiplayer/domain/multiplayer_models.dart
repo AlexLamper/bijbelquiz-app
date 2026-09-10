@@ -7,13 +7,22 @@ import '../../../core/avatar/avatar_catalog.dart';
 /// client polls `GET /rooms/:code`. Everything needed to render a round arrives
 /// in a single [MultiplayerRoom], including the absolute deadlines the app
 /// counts down against.
-enum MultiplayerRoomStatus { lobby, inProgress, questionResult, finished, unknown }
+enum MultiplayerRoomStatus {
+  lobby,
+  reading,
+  inProgress,
+  questionResult,
+  finished,
+  unknown,
+}
 
 extension MultiplayerRoomStatusX on MultiplayerRoomStatus {
   static MultiplayerRoomStatus fromRaw(String? raw) {
     switch (raw?.toLowerCase()) {
       case 'lobby':
         return MultiplayerRoomStatus.lobby;
+      case 'reading':
+        return MultiplayerRoomStatus.reading;
       case 'in_progress':
       case 'inprogress':
       case 'playing':
@@ -34,6 +43,8 @@ extension MultiplayerRoomStatusX on MultiplayerRoomStatus {
     switch (this) {
       case MultiplayerRoomStatus.lobby:
         return 'lobby';
+      case MultiplayerRoomStatus.reading:
+        return 'reading';
       case MultiplayerRoomStatus.inProgress:
         return 'in_progress';
       case MultiplayerRoomStatus.questionResult:
@@ -106,6 +117,7 @@ class MultiplayerConfig {
         return Duration(milliseconds: questionResultPollMs);
       case MultiplayerRoomStatus.finished:
         return Duration(milliseconds: finishedPollMs);
+      case MultiplayerRoomStatus.reading:
       case MultiplayerRoomStatus.lobby:
       case MultiplayerRoomStatus.unknown:
         return Duration(milliseconds: lobbyPollMs);
@@ -328,6 +340,40 @@ class MultiplayerQuestionState {
   }
 }
 
+/// The Bible chapter a room reads before the questions, when the host turned
+/// "lees eerst het hoofdstuk" on and the quiz resolves to a single chapter.
+/// Null when the quiz spans several books - the server then skips the reading
+/// phase regardless of the toggle.
+class MultiplayerPassage {
+  const MultiplayerPassage({
+    required this.book,
+    required this.chapter,
+    required this.label,
+  });
+
+  final String book;
+  final int chapter;
+
+  /// "Daniël 2" - what the reader is offered.
+  final String label;
+
+  static MultiplayerPassage? fromJson(Object? json) {
+    final map = _asMap(json);
+    if (map == null) return null;
+
+    final book = _asString(map['book']);
+    final chapter = _asInt(map['chapter']);
+    if (book.isEmpty || chapter < 1) return null;
+
+    final label = _asString(map['label']);
+    return MultiplayerPassage(
+      book: book,
+      chapter: chapter,
+      label: label.isNotEmpty ? label : '$book $chapter',
+    );
+  }
+}
+
 class MultiplayerRoom {
   const MultiplayerRoom({
     required this.id,
@@ -344,6 +390,9 @@ class MultiplayerRoom {
     required this.resultPhaseEndsAtMs,
     required this.serverTimeMs,
     required this.revision,
+    this.readChapterFirst = false,
+    this.questionTimerSeconds = 0,
+    this.passage,
   });
 
   final String id;
@@ -369,6 +418,16 @@ class MultiplayerRoom {
   /// Monotonic per write. A snapshot with a lower revision than the one on
   /// screen overtook a fresher response and must be dropped.
   final int revision;
+
+  /// Host chose "lees eerst het hoofdstuk" and the quiz resolved to a passage.
+  final bool readChapterFirst;
+
+  /// Seconds per question in effect for this room. `0` means the host advances
+  /// every step by hand; `> 0` is the usual auto-timed behaviour.
+  final int questionTimerSeconds;
+
+  /// The chapter shown during the `reading` phase, or null when there is none.
+  final MultiplayerPassage? passage;
 
   factory MultiplayerRoom.fromJson(Map<String, dynamic> json) {
     final rawPlayers = json['players'] as List<dynamic>? ?? const [];
@@ -400,6 +459,9 @@ class MultiplayerRoom {
         fallback: DateTime.now().millisecondsSinceEpoch,
       ),
       revision: _asInt(json['revision']),
+      readChapterFirst: _asBool(json['readChapterFirst']),
+      questionTimerSeconds: _asInt(json['questionTimerSeconds']),
+      passage: MultiplayerPassage.fromJson(json['passage']),
     );
   }
 
@@ -444,6 +506,9 @@ class MultiplayerRoom {
       resultPhaseEndsAtMs: null,
       serverTimeMs: serverTimeMs,
       revision: revision,
+      readChapterFirst: readChapterFirst,
+      questionTimerSeconds: questionTimerSeconds,
+      passage: passage,
     );
   }
 }

@@ -21,8 +21,16 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   String _selectedCategory = 'all';
+  String _selectedDifficulty = 'all';
   String _selectedSort = 'popular';
   String _searchQuery = '';
+
+  static const List<MapEntry<String, String>> _difficultyChips = [
+    MapEntry('all', 'Elk niveau'),
+    MapEntry('easy', 'Makkelijk'),
+    MapEntry('medium', 'Gemiddeld'),
+    MapEntry('hard', 'Moeilijk'),
+  ];
 
   @override
   void initState() {
@@ -63,7 +71,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           quiz.title.toLowerCase().contains(_searchQuery) ||
           quiz.description.toLowerCase().contains(_searchQuery);
 
-      return matchesCategory && matchesSearch;
+      final matchesDifficulty =
+          _selectedDifficulty == 'all' ||
+          quiz.difficultyBucket == _selectedDifficulty;
+
+      return matchesCategory && matchesSearch && matchesDifficulty;
     }).toList();
 
     filtered.sort((a, b) {
@@ -75,6 +87,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       if (aPlayed != bPlayed) return aPlayed ? 1 : -1;
 
       switch (_selectedSort) {
+        case 'newest':
+          // ObjectId hex is time-ordered, so it is a fine tie-breaker / fallback
+          // when the API did not send createdAt.
+          final aKey = a.createdAt.isNotEmpty ? a.createdAt : a.id;
+          final bKey = b.createdAt.isNotEmpty ? b.createdAt : b.id;
+          return bKey.compareTo(aKey);
+        case 'title':
+          return a.title.toLowerCase().compareTo(b.title.toLowerCase());
         case 'short':
           return a.questionCount.compareTo(b.questionCount);
         case 'reward':
@@ -174,6 +194,22 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                         _selectedCategory = value;
                       });
                     },
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    height: 36,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _difficultyChips.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      itemBuilder: (context, i) => _CategoryChip(
+                        label: _difficultyChips[i].value,
+                        active: _difficultyChips[i].key == _selectedDifficulty,
+                        onTap: () => setState(() {
+                          _selectedDifficulty = _difficultyChips[i].key;
+                        }),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 24),
                   // `border-y border-rule` result bar with the sort control.
@@ -337,6 +373,8 @@ class _SortSelector extends StatelessWidget {
 
   static const Map<String, String> _labels = {
     'popular': 'Meest populair',
+    'newest': 'Nieuwste eerst',
+    'title': 'Titel (A-Z)',
     'short': 'Kortste',
     'reward': 'Hoogste XP',
   };
@@ -439,16 +477,10 @@ class _QuizListCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  if (quiz.image.isEmpty)
-                    const Center(
-                      child: Icon(
-                        Icons.menu_book_outlined,
-                        color: AppTheme.inkMuted,
-                        size: 24,
-                      ),
-                    )
-                  else
-                    ServerImage(imagePath: quiz.image, fit: BoxFit.cover),
+                  ServerImage(
+                    imagePath: quiz.imageOrFallback,
+                    fit: BoxFit.cover,
+                  ),
                   // A finished quiz says so at full strength: somebody
                   // scanning the list should never have to open a quiz to find
                   // out they already did it.

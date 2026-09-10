@@ -41,6 +41,12 @@ class PaywallTrigger {
   static const String hostPlayerCap = 'host_player_cap';
   static const String explanationLocked = 'explanation_locked';
   static const String premiumQuizLocked = 'premium_quiz_locked';
+
+  /// Post-quiz "see which answers you missed" upsell. The website funnel still
+  /// needs the matching entry in `PAYWALL_TRIGGERS`; until then the server
+  /// attributes it as `direct`.
+  static const String reviewLocked = 'review_locked';
+
   static const String direct = 'direct';
 }
 

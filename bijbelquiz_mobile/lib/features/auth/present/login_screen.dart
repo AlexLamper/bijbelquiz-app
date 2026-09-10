@@ -8,7 +8,6 @@ import '../../../core/ui/app_widgets.dart';
 import '../../../core/ui/primary_button.dart';
 import '../../../core/ui/custom_text_field.dart';
 import 'auth_controller.dart';
-import 'splash_screen.dart' show BijbelQuizWordmark;
 import 'widgets/google_sign_in_button.dart';
 import 'widgets/user_data_info_link.dart';
 
@@ -37,7 +36,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     ref.listen(authControllerProvider, (previous, next) {
       if (next.hasValue && next.value != null) {
-        context.go('/home');
+        // The profile tab is where the account's progress shows up, including
+        // whatever was parked while playing signed out.
+        context.go('/profile');
       } else if (next.hasError) {
         AppNotice.error(context, next.error);
       }
@@ -52,14 +53,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         : true;
     final isLoading = state.isLoading || !isGoogleInit;
 
+    // Reached from inside the app - the profile tab or a finished quiz - so
+    // it is a pushed page with a way back, like the register screen, rather
+    // than the front door it used to be.
     return Scaffold(
       backgroundColor: AppTheme.paper,
+      appBar: AppBar(
+        backgroundColor: AppTheme.paper,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, size: 20),
+          color: AppTheme.inkSoft,
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/home'),
+        ),
+      ),
       body: SafeArea(
+        top: false,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(24, 40, 24, 32),
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
           children: [
-            const BijbelQuizWordmark(fontSize: 22),
-            const SizedBox(height: 44),
             const Eyebrow('Inloggen'),
             const SizedBox(height: 18),
             const Text('Welkom terug', style: AppTheme.displayLarge),

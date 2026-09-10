@@ -41,7 +41,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   Widget build(BuildContext context) {
     ref.listen(authControllerProvider, (previous, next) {
       if (next.hasValue && next.value != null) {
-        context.go('/home');
+        // The profile tab is where the new account's progress shows up,
+        // including whatever was parked while playing signed out.
+        context.go('/profile');
       } else if (next.hasError) {
         AppNotice.error(context, next.error);
       }
@@ -65,7 +67,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, size: 20),
           color: AppTheme.inkSoft,
-          onPressed: () => context.pop(),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/home'),
         ),
       ),
       body: SafeArea(

@@ -8,6 +8,7 @@ import '../../../core/config/app_config.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/app_notice.dart';
 import '../../../core/ui/app_widgets.dart';
+import '../../auth/present/auth_controller.dart';
 import '../../groups/data/player_group_repository.dart';
 import '../../groups/domain/player_group.dart';
 import '../../quiz/data/quiz_repository.dart';
@@ -21,6 +22,9 @@ enum _PlayMode { create, join }
 /// Room sizes offered, matching `PLAYER_OPTIONS` on the website. The last rung
 /// is replaced by whatever ceiling the server reports for Premium.
 const List<int> _basePlayerOptions = [2, 3, 4, 6, 8, 10, 12];
+
+/// Seconds per question the host may pick. `0` hands every step to the host.
+const List<int> _tempoOptions = [0, 30, 60, 90];
 
 class PlayTogetherScreen extends ConsumerStatefulWidget {
   const PlayTogetherScreen({super.key});
@@ -38,6 +42,13 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
   /// Room size the host picked. Starts at the free cap, so the first thing a
   /// new host sees is a number they can actually use.
   int _maxPlayers = 4;
+
+  /// Show the Bible chapter before the first question. The server ignores this
+  /// when the quiz has no single resolvable chapter.
+  bool _readChapterFirst = false;
+
+  /// Seconds per question. `0` = the host advances every step by hand.
+  int _questionTimerSeconds = 0;
 
   @override
   void dispose() {
@@ -59,7 +70,12 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
     try {
       final room = await ref
           .read(multiplayerActionControllerProvider.notifier)
-          .createRoom(quizId: _selectedQuizId!, maxPlayers: _maxPlayers);
+          .createRoom(
+            quizId: _selectedQuizId!,
+            maxPlayers: _maxPlayers,
+            readChapterFirst: _readChapterFirst,
+            questionTimerSeconds: _questionTimerSeconds,
+          );
       if (!mounted) return;
 
       // Starting the game spends a credit, so the remaining count on this
@@ -111,6 +127,7 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
   void _openRoom(MultiplayerRoom room) {
     final base = '/play-together/room/${room.code}';
     switch (room.status) {
+      case MultiplayerRoomStatus.reading:
       case MultiplayerRoomStatus.inProgress:
       case MultiplayerRoomStatus.questionResult:
         context.push('$base/play');
@@ -153,7 +170,12 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
     try {
       final room = await ref
           .read(multiplayerActionControllerProvider.notifier)
-          .createRoom(quizId: quizId, maxPlayers: _maxPlayers);
+          .createRoom(
+            quizId: quizId,
+            maxPlayers: _maxPlayers,
+            readChapterFirst: _readChapterFirst,
+            questionTimerSeconds: _questionTimerSeconds,
+          );
       if (!mounted) return;
 
       ref.invalidate(multiplayerCapabilityProvider);
@@ -197,9 +219,53 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
     }
   }
 
+  /// Hosting and joining both need an account: the room keeps a player by
+  /// their account, and the host's free games are counted on it. The rest of
+  /// the app plays signed out, so this is said here rather than as a 401.
+  Widget _buildSignedOut(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppTheme.paper,
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+          children: [
+            const GradientHeader(
+              eyebrow: 'Samen spelen',
+              title: 'Speciaal ontworpen voor groepen',
+              subtitle:
+                  'Van gezin tot jeugdvereniging - iedereen speelt mee. Geen '
+                  'installatie, gewoon een code delen en direct beginnen.',
+            ),
+            const SizedBox(height: 28),
+            AppEmptyState(
+              icon: Icons.groups_outlined,
+              title: 'Log in om samen te spelen',
+              description:
+                  'Een kamer maken of meedoen kan met een gratis account, '
+                  'zodat je naam en score in de kamer kloppen.',
+              action: SiteButton(
+                label: 'Inloggen',
+                expand: false,
+                height: 44,
+                onPressed: () => context.push('/login'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final quizzesAsync = ref.watch(quizzesProvider(const QuizQuery(limit: 25)));
+    final hasSession = ref.watch(hasSessionProvider).asData?.value ?? true;
+    if (!hasSession) return _buildSignedOut(context);
+
+    // Premium quizzes are excluded from the multiplayer picker: a host must not
+    // be able to route a whole room past the premium-quiz gate.
+    final quizzesAsync = ref.watch(
+      quizzesProvider(const QuizQuery(limit: 25, includePremium: false)),
+    );
     final actionState = ref.watch(multiplayerActionControllerProvider);
     final capability = ref.watch(multiplayerCapabilityProvider).asData?.value;
 
@@ -276,6 +342,8 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
                       maxPlayers: _maxPlayers,
                       maxPlayersFree: maxPlayersFree,
                       maxPlayersPremium: maxPlayersPremium,
+                      readChapterFirst: _readChapterFirst,
+                      questionTimerSeconds: _questionTimerSeconds,
                       onSelectQuiz: (id) {
                         setState(() {
                           _selectedQuizId = id;
@@ -285,6 +353,16 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
                         if (count == null) return;
                         setState(() {
                           _maxPlayers = count;
+                        });
+                      },
+                      onToggleReadChapterFirst: (value) {
+                        setState(() {
+                          _readChapterFirst = value;
+                        });
+                      },
+                      onSelectTempo: (seconds) {
+                        setState(() {
+                          _questionTimerSeconds = seconds;
                         });
                       },
                       onPlayerCapUpgrade: _openPlayerCapPaywall,
@@ -633,8 +711,12 @@ class _CreateRoomForm extends StatelessWidget {
     required this.maxPlayers,
     required this.maxPlayersFree,
     required this.maxPlayersPremium,
+    required this.readChapterFirst,
+    required this.questionTimerSeconds,
     required this.onSelectQuiz,
     required this.onSelectMaxPlayers,
+    required this.onToggleReadChapterFirst,
+    required this.onSelectTempo,
     required this.onPlayerCapUpgrade,
     required this.onCreateRoom,
     required this.onUpgrade,
@@ -663,8 +745,15 @@ class _CreateRoomForm extends StatelessWidget {
   final int maxPlayersFree;
   final int maxPlayersPremium;
 
+  /// The two new host options: read the chapter first, and seconds per question
+  /// (`0` = the host advances every step by hand).
+  final bool readChapterFirst;
+  final int questionTimerSeconds;
+
   final ValueChanged<String?> onSelectQuiz;
   final ValueChanged<int?> onSelectMaxPlayers;
+  final ValueChanged<bool> onToggleReadChapterFirst;
+  final ValueChanged<int> onSelectTempo;
   final VoidCallback onPlayerCapUpgrade;
   final Future<void> Function() onCreateRoom;
   final VoidCallback onUpgrade;
@@ -673,11 +762,10 @@ class _CreateRoomForm extends StatelessWidget {
   Widget build(BuildContext context) {
     // The premium ceiling replaces the last rung rather than being appended,
     // so a server that lowers it never leaves an unreachable option behind.
-    final playerOptions =
-        <int>{
-          ..._basePlayerOptions.where((count) => count < maxPlayersPremium),
-          maxPlayersPremium,
-        }.toList()..sort();
+    final playerOptions = <int>{
+      ..._basePlayerOptions.where((count) => count < maxPlayersPremium),
+      maxPlayersPremium,
+    }.toList()..sort();
     final playerCapExceeded = !isPremiumHost && maxPlayers > maxPlayersFree;
 
     if (!hasPremiumAccess) {
@@ -694,7 +782,10 @@ class _CreateRoomForm extends StatelessWidget {
           children: [
             const Eyebrow('Gratis spellen op'),
             const SizedBox(height: 16),
-            const Text('Je gratis spellen zijn op', style: AppTheme.displaySmall),
+            const Text(
+              'Je gratis spellen zijn op',
+              style: AppTheme.displaySmall,
+            ),
             const SizedBox(height: 10),
             const Text(
               'Met Premium host je onbeperkt kamers, tot 20 spelers tegelijk. '
@@ -896,6 +987,60 @@ class _CreateRoomForm extends StatelessWidget {
                       ),
                     ),
                   ],
+                  const SizedBox(height: 24),
+                  const RuleLine(),
+                  const SizedBox(height: 20),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'LEES EERST HET HOOFDSTUK',
+                              style: AppTheme.overline,
+                            ),
+                            SizedBox(height: 6),
+                            Text(
+                              'Werkt alleen bij quizzen over 1 hoofdstuk.',
+                              style: AppTheme.caption,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Switch.adaptive(
+                        value: readChapterFirst,
+                        activeTrackColor: AppTheme.ink,
+                        onChanged: isBusy ? null : onToggleReadChapterFirst,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  const Text('TEMPO PER VRAAG', style: AppTheme.overline),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      for (final seconds in _tempoOptions)
+                        Expanded(
+                          child: Padding(
+                            padding: EdgeInsets.only(
+                              right: seconds == _tempoOptions.last ? 0 : 8,
+                            ),
+                            child: _ChoiceChip(
+                              label: seconds == 0
+                                  ? 'Host bepaalt'
+                                  : '${seconds}s',
+                              selected: questionTimerSeconds == seconds,
+                              onTap: isBusy
+                                  ? null
+                                  : () => onSelectTempo(seconds),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                   const SizedBox(height: 20),
                   SiteButton(
                     label: 'Start kamer',
@@ -916,6 +1061,52 @@ class _CreateRoomForm extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Button-group chip, mirroring the single-player `_ChoiceChip` in
+/// `quiz_detail_screen.dart`. [onTap] is nullable so the chip greys out while
+/// the form is busy.
+class _ChoiceChip extends StatelessWidget {
+  const _ChoiceChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? AppTheme.ink : AppTheme.paper,
+      borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+        onTap: onTap,
+        child: Container(
+          height: 42,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+            border: Border.all(color: selected ? AppTheme.ink : AppTheme.rule),
+          ),
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: selected ? AppTheme.inkInverted : AppTheme.inkSoft,
+            ),
+          ),
+        ),
       ),
     );
   }
