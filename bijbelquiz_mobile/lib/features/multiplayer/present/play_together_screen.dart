@@ -8,6 +8,7 @@ import '../../../core/config/app_config.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/app_notice.dart';
 import '../../../core/ui/app_widgets.dart';
+import '../../auth/present/auth_controller.dart';
 import '../../groups/data/player_group_repository.dart';
 import '../../groups/domain/player_group.dart';
 import '../../quiz/data/quiz_repository.dart';
@@ -218,8 +219,48 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
     }
   }
 
+  /// Hosting and joining both need an account: the room keeps a player by
+  /// their account, and the host's free games are counted on it. The rest of
+  /// the app plays signed out, so this is said here rather than as a 401.
+  Widget _buildSignedOut(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppTheme.paper,
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+          children: [
+            const GradientHeader(
+              eyebrow: 'Samen spelen',
+              title: 'Speciaal ontworpen voor groepen',
+              subtitle:
+                  'Van gezin tot jeugdvereniging - iedereen speelt mee. Geen '
+                  'installatie, gewoon een code delen en direct beginnen.',
+            ),
+            const SizedBox(height: 28),
+            AppEmptyState(
+              icon: Icons.groups_outlined,
+              title: 'Log in om samen te spelen',
+              description:
+                  'Een kamer maken of meedoen kan met een gratis account, '
+                  'zodat je naam en score in de kamer kloppen.',
+              action: SiteButton(
+                label: 'Inloggen',
+                expand: false,
+                height: 44,
+                onPressed: () => context.push('/login'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final hasSession = ref.watch(hasSessionProvider).asData?.value ?? true;
+    if (!hasSession) return _buildSignedOut(context);
+
     // Premium quizzes are excluded from the multiplayer picker: a host must not
     // be able to route a whole room past the premium-quiz gate.
     final quizzesAsync = ref.watch(
@@ -721,11 +762,10 @@ class _CreateRoomForm extends StatelessWidget {
   Widget build(BuildContext context) {
     // The premium ceiling replaces the last rung rather than being appended,
     // so a server that lowers it never leaves an unreachable option behind.
-    final playerOptions =
-        <int>{
-          ..._basePlayerOptions.where((count) => count < maxPlayersPremium),
-          maxPlayersPremium,
-        }.toList()..sort();
+    final playerOptions = <int>{
+      ..._basePlayerOptions.where((count) => count < maxPlayersPremium),
+      maxPlayersPremium,
+    }.toList()..sort();
     final playerCapExceeded = !isPremiumHost && maxPlayers > maxPlayersFree;
 
     if (!hasPremiumAccess) {
@@ -742,7 +782,10 @@ class _CreateRoomForm extends StatelessWidget {
           children: [
             const Eyebrow('Gratis spellen op'),
             const SizedBox(height: 16),
-            const Text('Je gratis spellen zijn op', style: AppTheme.displaySmall),
+            const Text(
+              'Je gratis spellen zijn op',
+              style: AppTheme.displaySmall,
+            ),
             const SizedBox(height: 10),
             const Text(
               'Met Premium host je onbeperkt kamers, tot 20 spelers tegelijk. '

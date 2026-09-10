@@ -10,6 +10,7 @@ import '../../../core/ui/app_widgets.dart';
 import '../../leaderboard/data/leaderboard_repository.dart';
 import '../../leaderboard/domain/leaderboard_entry.dart';
 import '../../auth/present/auth_controller.dart';
+import '../../quiz/data/pending_attempt_store.dart';
 import '../data/badge_catalog.dart';
 import '../data/profile_model.dart';
 import 'profile_provider.dart';
@@ -19,6 +20,19 @@ class ProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Signed out is not an error here. The app can be played without an
+    // account, and this tab is where one is offered.
+    final hasSession = ref.watch(hasSessionProvider).asData?.value;
+    if (hasSession == false) {
+      final pending =
+          ref.watch(pendingAttemptsProvider).asData?.value ??
+          const <PendingAttempt>[];
+      return Scaffold(
+        backgroundColor: AppTheme.paper,
+        body: _GuestProfileContent(pending: pending),
+      );
+    }
+
     final profileAsync = ref.watch(profileProvider);
     final leaderboardAsync = ref.watch(leaderboardProvider);
 
@@ -157,13 +171,16 @@ class ProfileScreen extends ConsumerWidget {
                 onTap: () async {
                   Navigator.of(sheetContext).pop();
 
-                  final storage = ref.read(authStorageProvider);
-                  await storage.deleteToken();
+                  // The controller also signs Google and RevenueCat out and
+                  // flips `hasSessionProvider`, which is what every screen
+                  // now reads to decide between its two renderings.
+                  await ref.read(authControllerProvider.notifier).logout();
                   ref.invalidate(profileProvider);
-                  ref.invalidate(authControllerProvider);
 
+                  // Signed out is a normal state: back to the home screen,
+                  // not to a login form.
                   if (context.mounted) {
-                    context.go('/login');
+                    context.go('/home');
                   }
                 },
               ),
@@ -188,7 +205,8 @@ class _StreakReminderTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final enabled = ref.watch(streakReminderEnabledProvider).asData?.value ?? false;
+    final enabled =
+        ref.watch(streakReminderEnabledProvider).asData?.value ?? false;
 
     Future<void> toggle(bool value) async {
       final result = await StreakReminder.instance.setEnabled(
@@ -214,11 +232,7 @@ class _StreakReminderTile extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: Row(
         children: [
-          const Icon(
-            Icons.notifications_none,
-            size: 18,
-            color: AppTheme.ink,
-          ),
+          const Icon(Icons.notifications_none, size: 18, color: AppTheme.ink),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -226,8 +240,11 @@ class _StreakReminderTile extends ConsumerWidget {
               children: [
                 Text('Reeksherinnering', style: AppTheme.bodyStrong),
                 const SizedBox(height: 2),
-                Text('Elke avond om 19:00, alleen als je nog niet '
-                    'gespeeld hebt.', style: AppTheme.bodyMuted),
+                Text(
+                  'Elke avond om 19:00, alleen als je nog niet '
+                  'gespeeld hebt.',
+                  style: AppTheme.bodyMuted,
+                ),
               ],
             ),
           ),
@@ -394,10 +411,7 @@ class _ProfileContent extends StatelessWidget {
           StatStrip(
             stacked: true,
             items: [
-              StatItem(
-                value: '${profile.quizzesPlayed}',
-                label: 'Quizzen',
-              ),
+              StatItem(value: '${profile.quizzesPlayed}', label: 'Quizzen'),
               StatItem(
                 value: '$averageScore%',
                 label: 'Score',
@@ -456,7 +470,103 @@ class _ProfileContent extends StatelessWidget {
       ),
     );
   }
+}
 
+/// The profile tab for somebody playing without an account.
+///
+/// Not an error state: playing signed out is allowed, and this is the one
+/// place the app explains what an account adds and offers one. Any quizzes
+/// parked on the device are named, so the offer is about something concrete
+/// rather than a feature list.
+class _GuestProfileContent extends StatelessWidget {
+  const _GuestProfileContent({required this.pending});
+
+  final List<PendingAttempt> pending;
+
+  static const List<(IconData, String)> _benefits = [
+    (Icons.trending_up, 'Punten, niveau en reeks die blijven staan'),
+    (Icons.leaderboard_outlined, 'Een plek op de ranglijst'),
+    (Icons.military_tech_outlined, 'Badges voor je prestaties'),
+    (Icons.sync_outlined, 'Dezelfde voortgang op bijbelquiz.com'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+        children: [
+          const Eyebrow('Profiel'),
+          const SizedBox(height: 14),
+          const Text('Bewaar je voortgang', style: AppTheme.displayLarge),
+          const SizedBox(height: 10),
+          const Text(
+            'Je speelt zonder account. Dat kan gewoon, maar je score, punten '
+            'en reeks blijven alleen bewaard met een gratis account.',
+            style: AppTheme.bodyLead,
+          ),
+          const SizedBox(height: 28),
+          if (pending.isNotEmpty) ...[
+            AppCard(
+              borderColor: AppTheme.lapis.withValues(alpha: 0.45),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Eyebrow('Klaar om op te slaan'),
+                  const SizedBox(height: 10),
+                  Text(
+                    pending.length == 1
+                        ? 'Eén quiz wacht op je account'
+                        : '${pending.length} quizzen wachten op je account',
+                    style: AppTheme.displaySmall,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    pending
+                        .map(
+                          (attempt) =>
+                              '${attempt.quizTitle} '
+                              '(${attempt.correctAnswers}/${attempt.totalQuestions})',
+                        )
+                        .join(', '),
+                    style: AppTheme.bodyMuted,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
+          SiteButton(
+            label: 'Gratis account aanmaken',
+            onPressed: () => context.push('/register'),
+          ),
+          const SizedBox(height: 10),
+          SiteOutlineButton(
+            label: 'Inloggen',
+            onPressed: () => context.push('/login'),
+          ),
+          const SizedBox(height: 40),
+          const SectionHeader(
+            eyebrow: 'Met een account',
+            title: 'Wat er bewaard blijft',
+          ),
+          const SizedBox(height: 8),
+          for (final benefit in _benefits)
+            RuleListTile(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              child: Row(
+                children: [
+                  Icon(benefit.$1, size: 18, color: AppTheme.inkSoft),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text(benefit.$2, style: AppTheme.bodyStrong)),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 /// `rounded-lg border border-rule bg-paper-raised p-5` with a 2px progress

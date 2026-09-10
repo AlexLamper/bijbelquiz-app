@@ -34,18 +34,21 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       await ref.read(authControllerProvider.notifier).restoreSession();
 
       // A signed-in user never sees the onboarding again - it is a
-      // first-run intro for visitors who still have to create an account.
-      // Mark it seen so signing out later also skips it.
+      // first-run intro. Mark it seen so signing out later also skips it.
       await ref.read(onboardingStorageProvider).markSeen();
       if (mounted) context.go('/home');
       return;
     }
 
+    // No account is needed to use the app. The intro runs once, on the first
+    // launch; after that a visitor lands on the home screen like anybody
+    // else. Signing in is offered on the profile tab and after a finished
+    // quiz, where there is something to keep.
     final hasSeenOnboarding = await ref
         .read(onboardingStorageProvider)
         .hasSeen();
     if (!mounted) return;
-    context.go(hasSeenOnboarding ? '/login' : '/onboarding');
+    context.go(hasSeenOnboarding ? '/home' : '/onboarding');
   }
 
   @override

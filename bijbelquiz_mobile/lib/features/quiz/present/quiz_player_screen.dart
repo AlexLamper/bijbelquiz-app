@@ -8,9 +8,11 @@ import '../../../core/analytics/analytics.dart';
 import '../../../core/notifications/streak_reminder.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/app_widgets.dart';
+import '../../auth/present/auth_controller.dart';
 import '../../profile/data/profile_model.dart';
 import '../../profile/present/profile_provider.dart';
 import '../data/bible_verse_repository.dart';
+import '../data/pending_attempt_store.dart';
 import '../data/quiz_repository.dart';
 import '../domain/answer.dart';
 import '../domain/question.dart';
@@ -46,6 +48,10 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
   /// True once the server has answered, whatever the awarded amount was.
   bool _resultConfirmed = false;
   bool _resultSubmitted = false;
+
+  /// Played signed out: the attempt is parked on the device rather than
+  /// reported, and the result screen offers an account to keep it.
+  bool _parkedForAccount = false;
 
   // ── Per-question timer ──────────────────────────────────────────────────
   // Off unless the reader switched it on from the quiz overview. Shown as one
@@ -168,6 +174,30 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
       (index) => _selectedIndexes[index],
     );
 
+    // Without an account the attempt is parked on this device. The result
+    // screen offers to keep it, and `PendingAttemptClaimer` writes it to
+    // whichever account signs in next, from wherever that happens.
+    final hasSession = await ref.read(hasSessionProvider.future);
+    if (!hasSession) {
+      await ref
+          .read(pendingAttemptStoreProvider)
+          .add(
+            PendingAttempt(
+              quizId: quiz.id,
+              quizTitle: quiz.title,
+              correctAnswers: _correctCount,
+              totalQuestions: totalQuestions,
+              selectedAnswerIndexes: answers,
+              completedAt: DateTime.now(),
+            ),
+          );
+      ref.invalidate(pendingAttemptsProvider);
+
+      if (!mounted) return;
+      setState(() => _parkedForAccount = true);
+      return;
+    }
+
     final result = await ref
         .read(quizRepositoryProvider)
         .submitQuizResult(
@@ -281,13 +311,15 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
                 _paywallRedirected = true;
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   if (!mounted) return;
-                  ref.read(analyticsProvider).track(
-                    AnalyticsEvents.paywallShown,
-                    props: {
-                      'trigger': PaywallTrigger.premiumQuizLocked,
-                      'surface': 'quiz_player',
-                    },
-                  );
+                  ref
+                      .read(analyticsProvider)
+                      .track(
+                        AnalyticsEvents.paywallShown,
+                        props: {
+                          'trigger': PaywallTrigger.premiumQuizLocked,
+                          'surface': 'quiz_player',
+                        },
+                      );
                   context.pushReplacement(
                     '/premium?reden=${PaywallTrigger.premiumQuizLocked}',
                   );
@@ -355,7 +387,9 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              _timedOut ? 'TIJD OM' : _formatSeconds(_secondsLeft),
+                              _timedOut
+                                  ? 'TIJD OM'
+                                  : _formatSeconds(_secondsLeft),
                               style: AppTheme.overline.copyWith(
                                 color: _timedOut || _secondsLeft <= 5
                                     ? AppTheme.vermilion
@@ -384,7 +418,9 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
                         minHeight: 2,
                         backgroundColor: AppTheme.rule,
                         valueColor: AlwaysStoppedAnimation<Color>(
-                          _secondsLeft <= 5 ? AppTheme.vermilion : AppTheme.lapis,
+                          _secondsLeft <= 5
+                              ? AppTheme.vermilion
+                              : AppTheme.lapis,
                         ),
                       ),
                     ),
@@ -747,7 +783,19 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
         ? 0
         : (_correctCount * 100 / totalQuestions).round();
 
-    final xpSentence = _resultConfirmed
+    // Signed out: what a new account would get for this attempt, by the same
+    // rule the server applies (the quiz's reward scaled by the share correct).
+    // A first attempt on a quiz has no earlier best to beat, so unlike the
+    // signed-in case this is not a promise the account cannot keep.
+    final previewXp = _parkedForAccount
+        ? (totalQuestions == 0
+              ? 0
+              : (quiz.xpReward * _correctCount / totalQuestions).round())
+        : null;
+
+    final xpSentence = _parkedForAccount
+        ? 'Je speelt zonder account, dus deze score is nog niet opgeslagen.'
+        : _resultConfirmed
         ? (earnedXp == null || earnedXp == 0
               ? 'Je verdiende deze keer geen extra XP - een herhaling telt '
                     'alleen mee als je jezelf verbetert.'
@@ -786,13 +834,19 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
                 ),
                 StatItem(value: '$percentage%', label: 'Score'),
                 StatItem(
-                  value: earnedXp == null ? '-' : '$earnedXp',
+                  value: previewXp != null
+                      ? '$previewXp'
+                      : (earnedXp == null ? '-' : '$earnedXp'),
                   label: 'XP',
                   ruleColor: AppTheme.positive,
                 ),
               ],
             ),
             const SizedBox(height: 28),
+            if (_parkedForAccount) ...[
+              _SaveScoreCard(previewXp: previewXp ?? 0),
+              const SizedBox(height: 28),
+            ],
             _QuizReviewSection(quiz: quiz, picks: Map.of(_selectedIndexes)),
             const SizedBox(height: 28),
             SiteButton(
@@ -806,6 +860,53 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// The offer to keep a signed-out score, in the website's result-screen card:
+/// `rounded-lg border border-lapis/45 bg-paper-raised p-5`.
+///
+/// Both buttons lead to the auth screens, which land on the profile tab on
+/// success; the parked attempt is written on the way (see
+/// `PendingAttemptClaimer`), so the XP named here is what appears there.
+class _SaveScoreCard extends StatelessWidget {
+  const _SaveScoreCard({required this.previewXp});
+
+  final int previewXp;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      borderColor: AppTheme.lapis.withValues(alpha: 0.45),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Eyebrow('Nog niet opgeslagen'),
+          const SizedBox(height: 12),
+          Text(
+            'Bewaar je score, $previewXp XP en je reeks',
+            style: AppTheme.displaySmall,
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Log in of maak een gratis account, dan wordt deze score direct '
+            'bijgeschreven. Je quizzen tellen dan mee voor je niveau en de '
+            'ranglijst.',
+            style: AppTheme.bodyMuted,
+          ),
+          const SizedBox(height: 16),
+          SiteButton(
+            label: 'Gratis account aanmaken',
+            onPressed: () => context.push('/register'),
+          ),
+          const SizedBox(height: 10),
+          SiteOutlineButton(
+            label: 'Inloggen',
+            onPressed: () => context.push('/login'),
+          ),
+        ],
       ),
     );
   }
@@ -1059,7 +1160,10 @@ class _ReviewRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final answers = question.answers;
-    final picked = (pickedIndex != null && pickedIndex! >= 0 && pickedIndex! < answers.length)
+    final picked =
+        (pickedIndex != null &&
+            pickedIndex! >= 0 &&
+            pickedIndex! < answers.length)
         ? answers[pickedIndex!]
         : null;
     final wasCorrect = picked?.isCorrect ?? false;

@@ -163,10 +163,9 @@ class QuizRepository {
         queryParameters: queryParameters,
       );
 
-      return _extractQuizList(response.data)
-          .whereType<Map<String, dynamic>>()
-          .map(Quiz.fromJson)
-          .toList();
+      return _extractQuizList(
+        response.data,
+      ).whereType<Map<String, dynamic>>().map(Quiz.fromJson).toList();
     } catch (e) {
       throw Exception('Failed to load quizzes: $e');
     }
@@ -185,6 +184,10 @@ class QuizRepository {
     required int correctAnswers,
     required int totalQuestions,
     List<int?> selectedAnswerIndexes = const <int?>[],
+
+    /// Played before signing in and written now that there is an account.
+    /// Recorded on the server's funnel event only.
+    bool claimed = false,
   }) async {
     try {
       final response = await _apiClient.dio.post(
@@ -197,6 +200,7 @@ class QuizRepository {
           'answers': selectedAnswerIndexes
               .map((index) => {'selectedAnswerIndex': index})
               .toList(),
+          if (claimed) 'claimed': true,
         },
       );
 

@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/app_widgets.dart';
-import '../../auth/present/auth_controller.dart';
 import '../../auth/present/splash_screen.dart' show BijbelQuizWordmark;
 import '../data/onboarding_storage.dart';
 
@@ -96,9 +95,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     // Persist the seen-flag so the intro never reappears on later launches.
     await ref.read(onboardingStorageProvider).markSeen();
 
-    final token = await ref.read(authStorageProvider).getToken();
-    final hasSession = token != null && token.isNotEmpty;
-    if (mounted) context.go(hasSession ? '/home' : '/login');
+    // Straight into the app, account or not. Sign-in is offered on the
+    // profile tab and after a finished quiz, where there is a score to keep.
+    if (mounted) context.go('/home');
   }
 
   void _next() {

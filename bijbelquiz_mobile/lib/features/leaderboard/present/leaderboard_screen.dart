@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/avatar/mascot_avatar.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/app_widgets.dart';
+import '../../auth/present/auth_controller.dart';
 import '../../groups/data/player_group_repository.dart';
 import '../../groups/domain/player_group.dart';
 import '../../profile/present/profile_provider.dart';
@@ -84,6 +86,8 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
               final topXp = sortedEntries.isEmpty ? 0 : sortedEntries.first.xp;
 
               final profile = ref.watch(profileProvider).asData?.value;
+              final hasSession =
+                  ref.watch(hasSessionProvider).asData?.value ?? true;
               final myId = profile?.id ?? '';
               final myName = (profile?.name ?? '').trim().toLowerCase();
               var myIndex = myId.isEmpty
@@ -153,6 +157,29 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                       total: sortedEntries.length,
                       xp: myIndex >= 0 ? sortedEntries[myIndex].xp : profile.xp,
                     ),
+                  ] else if (!hasSession) ...[
+                    // A visitor can read the list but is not on it. Said once,
+                    // where their own placement would otherwise be.
+                    const SizedBox(height: 16),
+                    AppCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Je staat nog niet in de ranglijst. Met een '
+                            'gratis account telt je XP mee.',
+                            style: AppTheme.bodyMuted,
+                          ),
+                          const SizedBox(height: 12),
+                          SiteOutlineButton(
+                            label: 'Inloggen',
+                            expand: false,
+                            height: 44,
+                            onPressed: () => context.push('/login'),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                   const SizedBox(height: 28),
                   if (sortedEntries.isEmpty)
@@ -160,7 +187,9 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                   else
                     _LeaderboardTable(
                       // Collapse again when the player switches board.
-                      key: ValueKey('${_selectedGroupId ?? 'all'}-$_selectedRange'),
+                      key: ValueKey(
+                        '${_selectedGroupId ?? 'all'}-$_selectedRange',
+                      ),
                       entries: sortedEntries,
                       highlightEntryId: myEntryId,
                     ),

@@ -23,6 +23,21 @@ final authRepositoryProvider = Provider(
   ),
 );
 
+/// Whether a session token is stored on this device.
+///
+/// The app can be used without an account, so "is there a session" is a
+/// question screens ask all the time: whether to offer sign-in, whether to
+/// fetch the profile at all, whether a finished quiz is written to the server
+/// or parked on the device. It is answered from storage rather than from
+/// `authControllerProvider`, whose value is also null while a stored session
+/// is still being restored, and rather than from a failing `profileProvider`,
+/// which also fails offline. Invalidated by the controller on every sign-in
+/// and sign-out.
+final hasSessionProvider = FutureProvider<bool>((ref) async {
+  final token = await ref.watch(authStorageProvider).getToken();
+  return token != null && token.isNotEmpty;
+});
+
 // State management
 final authControllerProvider = AsyncNotifierProvider<AuthController, User?>(() {
   return AuthController();
@@ -59,6 +74,12 @@ class AuthController extends AsyncNotifier<User?> {
   @override
   FutureOr<User?> build() {
     return null;
+  }
+
+  /// The stored token changed: every screen asking `hasSessionProvider`
+  /// re-reads it, and the profile that depends on it reloads.
+  void _sessionChanged() {
+    ref.invalidate(hasSessionProvider);
   }
 
   /// Link RevenueCat to the authenticated user so subscription status
@@ -112,6 +133,7 @@ class AuthController extends AsyncNotifier<User?> {
       final repository = ref.read(authRepositoryProvider);
       final user = await repository.login(email, password);
       await _linkRevenueCat(user);
+      _sessionChanged();
       state = AsyncValue.data(user);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
@@ -124,6 +146,7 @@ class AuthController extends AsyncNotifier<User?> {
       final repository = ref.read(authRepositoryProvider);
       final user = await repository.register(name, email, password);
       await _linkRevenueCat(user);
+      _sessionChanged();
       state = AsyncValue.data(user);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
@@ -179,6 +202,7 @@ class AuthController extends AsyncNotifier<User?> {
     final repository = ref.read(authRepositoryProvider);
     final user = await repository.loginWithGoogle(idToken);
     await _linkRevenueCat(user);
+    _sessionChanged();
     state = AsyncValue.data(user);
   }
 
@@ -214,6 +238,7 @@ class AuthController extends AsyncNotifier<User?> {
         email: credential.email,
       );
       await _linkRevenueCat(user);
+      _sessionChanged();
       state = AsyncValue.data(user);
     } on SignInWithAppleAuthorizationException catch (e) {
       if (e.code == AuthorizationErrorCode.canceled) {
@@ -282,6 +307,7 @@ class AuthController extends AsyncNotifier<User?> {
     state = const AsyncValue.loading();
     final repository = ref.read(authRepositoryProvider);
     await repository.logout();
+    _sessionChanged();
 
     await ensureGoogleSignInInitialized();
     await gAuth.GoogleSignIn.instance.signOut();

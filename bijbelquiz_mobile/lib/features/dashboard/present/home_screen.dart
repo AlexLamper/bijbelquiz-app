@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/app_widgets.dart';
 import '../../../core/ui/server_image.dart';
+import '../../auth/present/auth_controller.dart';
 import '../../profile/present/profile_provider.dart';
 import '../../quiz/data/quiz_repository.dart';
 import '../../seasons/data/season_repository.dart';
@@ -92,6 +93,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final level = profile?.level ?? 1;
     final xp = profile?.xp ?? 0;
     final isPremiumUser = profile?.isPremium ?? false;
+    // Unknown for the first frame reads as signed in: the returning player is
+    // the common case, and a guest greeting flashing at them would be wrong
+    // more often than the reverse.
+    final signedIn = ref.watch(hasSessionProvider).asData?.value ?? true;
 
     return Scaffold(
       backgroundColor: AppTheme.paper,
@@ -120,6 +125,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     streak: streak,
                     level: level,
                     xp: xp,
+                    signedIn: signedIn,
                   ),
                   const SizedBox(height: 40),
                   const SectionHeader(
@@ -271,15 +277,63 @@ class _HomeHero extends StatelessWidget {
     required this.streak,
     required this.level,
     required this.xp,
+    required this.signedIn,
   });
 
   final String name;
   final int streak;
   final int level;
   final int xp;
+  final bool signedIn;
 
   @override
   Widget build(BuildContext context) {
+    if (!signedIn) {
+      // The website's own hero, since this reader is a visitor here too. No
+      // stat strip: a niveau of 1 and a reeks of 0 are not this person's
+      // numbers, they are the absence of any.
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Eyebrow('Welkom'),
+          const SizedBox(height: 22),
+          const Text.rich(
+            TextSpan(
+              style: TextStyle(
+                fontFamily: AppTheme.displayFontName,
+                fontSize: 34,
+                fontWeight: FontWeight.w600,
+                height: 1.06,
+                letterSpacing: -1.02,
+                color: AppTheme.ink,
+              ),
+              children: [
+                TextSpan(text: 'Hoe goed ken jij de '),
+                TextSpan(
+                  text: 'Bijbel',
+                  style: TextStyle(color: AppTheme.lapis),
+                ),
+                TextSpan(text: '?'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          const Text(
+            'Speel gratis, zonder account. Maak er een aan om je score, '
+            'punten en reeks te bewaren.',
+            style: AppTheme.bodyLead,
+          ),
+          const SizedBox(height: 20),
+          SiteOutlineButton(
+            label: 'Voortgang bewaren',
+            expand: false,
+            height: 44,
+            onPressed: () => context.go('/profile'),
+          ),
+        ],
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

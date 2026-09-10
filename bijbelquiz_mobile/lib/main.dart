@@ -12,8 +12,39 @@ import 'core/config/preview_config.dart';
 import 'core/config/revenuecat_config.dart';
 import 'core/notifications/streak_reminder.dart';
 import 'core/preview/preview_data.dart';
+import 'core/ui/app_notice.dart';
+import 'features/auth/domain/user.dart';
+import 'features/auth/present/auth_controller.dart';
 import 'features/profile/data/profile_model.dart';
 import 'features/profile/present/profile_provider.dart';
+import 'features/quiz/data/pending_attempt_claimer.dart';
+import 'features/quiz/data/pending_attempt_store.dart';
+
+/// The app-wide messenger, for notices raised outside any screen.
+final rootScaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+
+/// Writes the quizzes played before signing in to the account that just did,
+/// and says so once. Failures leave the attempts parked for the next sign-in.
+Future<void> _claimPendingAttempts(WidgetRef ref) async {
+  final summary = await ref.read(pendingAttemptClaimerProvider).claim();
+  if (summary.isEmpty) return;
+
+  // The profile's XP, streak and recent activity all moved.
+  ref.invalidate(profileProvider);
+  ref.invalidate(pendingAttemptsProvider);
+
+  final messenger = rootScaffoldMessengerKey.currentState;
+  if (messenger == null) return;
+
+  final title = summary.firstTitle ?? 'je quiz';
+  AppNotice.successOn(
+    messenger,
+    summary.saved == 1
+        ? 'Je score voor "$title" is opgeslagen (+${summary.xpEarned} XP).'
+        : '${summary.saved} quizzen opgeslagen (+${summary.xpEarned} XP).',
+    title: 'Voortgang bewaard',
+  );
+}
 
 Future<void> _initRevenueCat() async {
   if (kIsWeb) return;
@@ -103,11 +134,23 @@ class BijbelquizApp extends ConsumerWidget {
       );
     });
 
+    // Quizzes played before signing in are written to the account the moment
+    // one appears. Whether the sign-in came from the profile tab, a finished
+    // quiz, Google or Apple, it all passes through this one provider. Keyed
+    // on the user id so a state refresh for the same account does not run the
+    // claim twice.
+    ref.listen<AsyncValue<User?>>(authControllerProvider, (previous, next) {
+      final user = next.asData?.value;
+      if (user == null || previous?.asData?.value?.id == user.id) return;
+      unawaited(_claimPendingAttempts(ref));
+    });
+
     final routerConfig = ref.watch(routerProvider);
 
     return MaterialApp.router(
       title: 'Bijbelquiz',
       debugShowCheckedModeBanner: false,
+      scaffoldMessengerKey: rootScaffoldMessengerKey,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.light,
