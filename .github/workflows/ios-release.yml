@@ -1,9 +1,16 @@
 name: iOS Build & Upload to TestFlight
 
 on:
-  # push:           # Uncomment these 3 lines to re-enable automatic TestFlight builds on push to main
-  #   branches:
-  #     - main
+  # Every push to main that touches the app builds and uploads a new TestFlight
+  # build. The build number is resolved from App Store Connect, so no pubspec
+  # bump is needed. Changes outside the app (README, server reference) do not
+  # trigger a build; use "Run workflow" for those.
+  push:
+    branches:
+      - main
+    paths:
+      - "bijbelquiz_mobile/**"
+      - ".github/workflows/ios-release.yml"
   workflow_dispatch:
     inputs:
       build_name:
@@ -14,6 +21,12 @@ on:
         description: "Build number (e.g. 46). Leave blank to resolve it automatically from App Store Connect."
         required: false
         default: ""
+
+# A newer push replaces a build that is still running, so TestFlight only gets
+# the latest main and the macOS minutes are not spent on stale commits.
+concurrency:
+  group: ios-testflight
+  cancel-in-progress: true
 
 jobs:
   build-and-upload-ios:
