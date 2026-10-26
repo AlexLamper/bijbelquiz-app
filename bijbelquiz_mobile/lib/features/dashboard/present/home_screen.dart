@@ -11,6 +11,7 @@ import '../../auth/present/auth_controller.dart';
 import '../../duels/present/home_duel_provider.dart';
 import '../../profile/data/profile_model.dart';
 import '../../profile/present/profile_provider.dart';
+import '../../quiz/data/quiz_of_the_day.dart';
 import '../../quiz/data/quiz_repository.dart';
 import '../../quiz/domain/category.dart';
 import '../../quiz/domain/quiz.dart';
@@ -37,7 +38,8 @@ class HomeScreen extends ConsumerWidget {
     ref.invalidate(currentSeasonProvider);
     ref.invalidate(homeDuelProvider);
     ref.invalidate(quizzesProvider(_homeQuery));
-    await ref.read(quizzesProvider(_homeQuery).future);
+    ref.invalidate(quizOfTheDayProvider);
+    await ref.read(quizOfTheDayProvider.future);
   }
 
   @override
@@ -45,8 +47,7 @@ class HomeScreen extends ConsumerWidget {
     final profile = ref.watch(profileProvider).asData?.value;
     final categories =
         ref.watch(categoriesProvider).asData?.value ?? const <Category>[];
-    final quizzesAsync = ref.watch(quizzesProvider(_homeQuery));
-    final quizzes = quizzesAsync.asData?.value ?? const <Quiz>[];
+    final quizOfTheDayAsync = ref.watch(quizOfTheDayProvider);
     final duel = ref.watch(homeDuelProvider).asData?.value;
     final season = ref.watch(currentSeasonProvider).asData?.value;
     final isPremiumUser = profile?.isPremium ?? false;
@@ -54,6 +55,18 @@ class HomeScreen extends ConsumerWidget {
     // the common case, and a guest card flashing at them would be wrong more
     // often than the reverse.
     final signedIn = ref.watch(hasSessionProvider).asData?.value ?? true;
+
+    // The catalogue only supplies titles for "Verder spelen", and it is by far
+    // the heaviest request on this screen. It starts once the daily card is
+    // settled, and only for a player who has something to continue, so it
+    // never competes with the card for the connection.
+    final needsCatalogue =
+        signedIn &&
+        (profile?.recentProgress.isNotEmpty ?? false) &&
+        !quizOfTheDayAsync.isLoading;
+    final quizzes = needsCatalogue
+        ? ref.watch(quizzesProvider(_homeQuery)).asData?.value ?? const <Quiz>[]
+        : const <Quiz>[];
 
     final recent = signedIn
         ? _recentEntries(profile, quizzes)
@@ -73,9 +86,8 @@ class HomeScreen extends ConsumerWidget {
             children: [
               _HomeHeader(profile: signedIn ? profile : null),
               const SizedBox(height: 20),
-              quizzesAsync.when(
-                data: (all) {
-                  final quiz = _quizOfTheDay(all);
+              quizOfTheDayAsync.when(
+                data: (quiz) {
                   if (quiz == null) return const _EmptyDailyCard();
                   final locked = quiz.isPremium && !isPremiumUser;
                   return _DailyQuizCard(
@@ -92,7 +104,10 @@ class HomeScreen extends ConsumerWidget {
                 },
                 loading: () => const _DailyLoadingCard(),
                 error: (_, _) => _HomeErrorCard(
-                  onRetry: () => ref.invalidate(quizzesProvider(_homeQuery)),
+                  onRetry: () {
+                    ref.invalidate(quizzesProvider(_homeQuery));
+                    ref.invalidate(quizOfTheDayProvider);
+                  },
                 ),
               ),
               if (!signedIn) ...[
@@ -162,20 +177,6 @@ class HomeScreen extends ConsumerWidget {
       ),
     );
   }
-}
-
-/// One quiz a day, the same for everybody: a stable pick from the free
-/// catalogue, so nobody is offered a quiz of the day they cannot play.
-Quiz? _quizOfTheDay(List<Quiz> quizzes) {
-  if (quizzes.isEmpty) return null;
-  final free = quizzes.where((q) => !q.isPremium).toList();
-  final pool = [...(free.isEmpty ? quizzes : free)]
-    ..sort((a, b) => a.id.compareTo(b.id));
-  final now = DateTime.now();
-  final day =
-      DateTime.utc(now.year, now.month, now.day).millisecondsSinceEpoch ~/
-      Duration.millisecondsPerDay;
-  return pool[day % pool.length];
 }
 
 class _RecentEntry {

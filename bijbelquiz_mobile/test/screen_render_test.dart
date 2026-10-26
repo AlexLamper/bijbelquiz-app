@@ -17,6 +17,7 @@ import 'package:bijbelquiz_mobile/features/profile/data/profile_model.dart';
 import 'package:bijbelquiz_mobile/features/profile/present/profile_achievements_screen.dart';
 import 'package:bijbelquiz_mobile/features/profile/present/profile_provider.dart';
 import 'package:bijbelquiz_mobile/features/profile/present/profile_screen.dart';
+import 'package:bijbelquiz_mobile/features/quiz/data/quiz_of_the_day.dart';
 import 'package:bijbelquiz_mobile/features/quiz/data/quiz_repository.dart';
 import 'package:bijbelquiz_mobile/features/quiz/domain/answer.dart';
 import 'package:bijbelquiz_mobile/features/quiz/domain/category.dart';
@@ -211,6 +212,9 @@ void main() {
       overrides: [
         categoriesProvider.overrideWith((ref) async => categories),
         quizzesProvider.overrideWith((ref, query) async => quizzes()),
+        quizOfTheDayProvider.overrideWith(
+          (ref) => Stream.value(quizzes().first),
+        ),
         quizDetailProvider.overrideWith((ref, id) async => quizWithQuestions()),
         profileProvider.overrideWith((ref) async => profile),
         leaderboardProvider.overrideWith((ref) async => leaderboard),
