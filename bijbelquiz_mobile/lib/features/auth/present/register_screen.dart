@@ -60,9 +60,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   Widget build(BuildContext context) {
     ref.listen(authControllerProvider, (previous, next) {
       if (next.hasValue && next.value != null) {
-        // The profile tab is where the new account's progress shows up,
-        // including whatever was parked while playing signed out.
-        context.go('/profile');
+        // Straight to the home tab after creating an account.
+        context.go('/home');
       } else if (next.hasError) {
         AppNotice.error(context, next.error);
       }
@@ -70,10 +69,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     final state = ref.watch(authControllerProvider);
     final isIOSApp = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
-    final showGoogle = !isIOSApp;
-    final googleReady = showGoogle
-        ? ref.watch(googleSignInInitProvider).hasValue
-        : true;
+    // Google works on every platform, iOS included (GIDClientID and the
+    // reversed-client URL scheme are set in ios/Runner/Info.plist).
+    const showGoogle = true;
+    final googleReady = ref.watch(googleSignInInitProvider).hasValue;
     final showApple =
         isIOSApp &&
         (ref.watch(appleSignInAvailableProvider).asData?.value ?? false);

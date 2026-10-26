@@ -505,7 +505,7 @@ class DuelVersus extends StatelessWidget {
   }
 }
 
-/// The guest state of the duel screens: "Log in om te duelleren".
+/// The guest state of the duel screens: "Log in om tegen anderen te spelen".
 class DuelLoginCard extends StatelessWidget {
   const DuelLoginCard({super.key, required this.onLogin, this.onRegister});
 
@@ -526,7 +526,10 @@ class DuelLoginCard extends StatelessWidget {
             child: BqIcon(BqIcons.swords, size: 24, color: AppTheme.coralDeep),
           ),
           const SizedBox(height: 14),
-          const Text('Log in om te duelleren', style: AppTheme.displayTitle),
+          const Text(
+            'Log in om tegen anderen te spelen',
+            style: AppTheme.displayTitle,
+          ),
           const SizedBox(height: 6),
           const Text(
             'Daag vrienden of een willekeurige speler uit: 1 tegen 1, 3 rondes '
