@@ -65,6 +65,10 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
   DateTime? _shownAt;
   bool _startedPurchase = false;
 
+  /// Premium was already active when the screen opened. Nothing to sell, so
+  /// the screen steps aside instead of showing a payment page.
+  bool _alreadyPremium = false;
+
   /// Held rather than read from `ref` in [dispose]: reading a provider while
   /// the scope is being torn down throws, and the dismissal event has to
   /// survive exactly that teardown.
@@ -74,6 +78,13 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
   void initState() {
     super.initState();
     _analytics = ref.read(analyticsProvider);
+    if (hasPremiumAccess(ref)) {
+      _alreadyPremium = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _leave();
+      });
+      return;
+    }
     _shownAt = DateTime.now();
     _analytics.track(
       AnalyticsEvents.paywallShown,
@@ -86,7 +97,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
     // Leaving without starting a purchase is the signal the funnel needs: it
     // is the difference between "nobody saw the wall" and "everybody saw it
     // and walked away".
-    if (!_startedPurchase) {
+    if (!_startedPurchase && !_alreadyPremium) {
       final shownAt = _shownAt;
       _analytics.track(
         AnalyticsEvents.paywallDismissed,
@@ -170,6 +181,10 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_alreadyPremium) {
+      return const Scaffold(backgroundColor: AppTheme.paper);
+    }
+
     ref.listen<PremiumState>(premiumControllerProvider, (prev, next) {
       if (!mounted) return;
       if (next.status == PurchaseStatus.success) {

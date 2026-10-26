@@ -230,13 +230,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const SizedBox(height: 16),
             _SettingsGroup(
               children: [
-                _ValueRow(
-                  icon: BqIcons.crown,
-                  iconSize: 18,
-                  tileColor: AppTheme.goldTint,
-                  title: 'Premium beheren',
-                  onTap: () => context.push('/premium'),
-                ),
+                // Premium players have nothing to buy or restore here.
+                if (!(profile?.isPremium ?? false))
+                  _ValueRow(
+                    icon: BqIcons.crown,
+                    iconSize: 18,
+                    tileColor: AppTheme.goldTint,
+                    title: 'Premium',
+                    onTap: () => context.push('/premium'),
+                  ),
                 if (profile?.isAdmin ?? false)
                   _ValueRow(
                     icon: BqIcons.shield,

@@ -49,6 +49,13 @@ class PremiumState {
 final premiumControllerProvider =
     NotifierProvider<PremiumController, PremiumState>(PremiumController.new);
 
+/// Whether the signed-in player already has Premium, by the server profile or
+/// by RevenueCat - whichever has loaded and says yes. Used to keep the paywall
+/// away from people who have nothing left to buy.
+bool hasPremiumAccess(WidgetRef ref) =>
+    (ref.read(profileProvider).asData?.value.isPremium ?? false) ||
+    ref.read(premiumControllerProvider).isPremium;
+
 // ─── Controller ───────────────────────────────────────────────────────────────
 
 class PremiumController extends Notifier<PremiumState> {

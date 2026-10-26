@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/analytics/analytics.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/bq.dart';
+import 'premium_controller.dart';
 import 'widgets/paywall_parts.dart';
 
 /// A short pre-sell funnel shown before the paywall, in the spirit of
@@ -27,9 +28,24 @@ class _PremiumIntroScreenState extends ConsumerState<PremiumIntroScreen> {
   int _page = 0;
   _Goal _goal = _Goal.knowledge;
 
+  /// Premium was already active when the screen opened: no pre-sell needed.
+  bool _alreadyPremium = false;
+
   @override
   void initState() {
     super.initState();
+    if (hasPremiumAccess(ref)) {
+      _alreadyPremium = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/home');
+        }
+      });
+      return;
+    }
     ref
         .read(analyticsProvider)
         .track(
@@ -80,6 +96,9 @@ class _PremiumIntroScreenState extends ConsumerState<PremiumIntroScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_alreadyPremium) {
+      return const Scaffold(backgroundColor: AppTheme.paper);
+    }
     return Scaffold(
       backgroundColor: AppTheme.paper,
       body: SafeArea(

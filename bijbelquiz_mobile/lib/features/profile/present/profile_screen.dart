@@ -608,7 +608,8 @@ class _PremiumRow extends StatelessWidget {
         ),
         title: 'Premium',
         subtitle: isPremium ? 'Je hebt Premium' : 'Je speelt gratis',
-        onTap: () => context.push(isPremium ? '/premium' : '/premium-intro'),
+        // Premium players have nothing to buy, so the row is informational.
+        onTap: isPremium ? null : () => context.push('/premium-intro'),
       ),
     );
   }
