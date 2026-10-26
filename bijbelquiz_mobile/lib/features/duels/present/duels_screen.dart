@@ -102,8 +102,15 @@ class _DuelsScreenState extends ConsumerState<DuelsScreen> {
               onPressed: () => context.push('/duels/new'),
             ),
             const SizedBox(height: 16),
+            // A refresh (opening the tab, pull-to-refresh, coming back from a
+            // duel) keeps the list that is already on screen and swaps it when
+            // the new one arrives. Without these flags every reload replaced
+            // the duels with a spinner - and on a slow response the player
+            // never saw them. A failed refresh keeps the last good list too.
             ...listAsync.when(
               skipLoadingOnRefresh: true,
+              skipLoadingOnReload: true,
+              skipError: true,
               data: _sections,
               loading: () => const [SizedBox(height: 120), AppLoader()],
               error: (error, _) => [

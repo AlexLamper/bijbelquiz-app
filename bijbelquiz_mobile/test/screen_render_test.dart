@@ -8,6 +8,11 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:bijbelquiz_mobile/core/theme/app_theme.dart';
 import 'package:bijbelquiz_mobile/features/dashboard/present/home_screen.dart';
+import 'package:bijbelquiz_mobile/features/auth/present/auth_controller.dart';
+import 'package:bijbelquiz_mobile/features/duels/data/duels_preview.dart';
+import 'package:bijbelquiz_mobile/features/duels/data/duels_repository.dart';
+import 'package:bijbelquiz_mobile/features/duels/domain/duel.dart';
+import 'package:bijbelquiz_mobile/features/duels/present/duels_screen.dart';
 import 'package:bijbelquiz_mobile/features/leaderboard/data/leaderboard_repository.dart';
 import 'package:bijbelquiz_mobile/features/leaderboard/domain/leaderboard_entry.dart';
 import 'package:bijbelquiz_mobile/features/leaderboard/present/leaderboard_screen.dart';
@@ -339,6 +344,33 @@ void main() {
     expectNoLayoutError(tester);
 
     await scrollThrough(tester);
+  });
+
+  testWidgets('duels tab lists the duels of the signed-in player', (
+    tester,
+  ) async {
+    final list = DuelList.fromJson(DuelsPreview.instance.list());
+    expect(list.isEmpty, isFalse);
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          hasSessionProvider.overrideWith((ref) async => true),
+          duelListProvider.overrideWith((ref) async => list),
+        ],
+        child: host(const Scaffold(body: DuelsScreen())),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expectNoLayoutError(tester);
+    expect(find.text('Jouw beurt'), findsOneWidget);
+    expect(find.text(list.myTurn.first.opponentName), findsWidgets);
   });
 
   testWidgets('onboarding renders without layout errors', (tester) async {

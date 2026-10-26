@@ -14,7 +14,7 @@ import '../domain/quiz_passage.dart';
 /// The point of the "lees eerst" option: answering about Daniël 2 having just
 /// read Daniël 2 turns a memory test into a reading exercise, which is what
 /// most people opened a Bible quiz for. Full-screen running text with the
-/// verse numbers inline - a page, not a list of items - and the way on pinned
+/// verse numbers inline, one verse per line - and the way on pinned
 /// to the bottom.
 class QuizPassageScreen extends ConsumerWidget {
   const QuizPassageScreen({super.key, required this.idOrSlug});
@@ -184,25 +184,6 @@ class _PassageText extends ConsumerWidget {
     color: AppTheme.lapis,
   );
 
-  static final RegExp _sentenceEnd = RegExp('[.!?][\'"’”)]*\$');
-
-  /// The API sends verses, not paragraphs. Break after a verse that ends a
-  /// sentence once a paragraph has a few verses, so the chapter reads as
-  /// running text without ever splitting a sentence.
-  static List<List<ChapterVerse>> _paragraphs(List<ChapterVerse> verses) {
-    final paragraphs = <List<ChapterVerse>>[];
-    var current = <ChapterVerse>[];
-    for (final verse in verses) {
-      current.add(verse);
-      if (current.length >= 4 && _sentenceEnd.hasMatch(verse.text.trim())) {
-        paragraphs.add(current);
-        current = <ChapterVerse>[];
-      }
-    }
-    if (current.isNotEmpty) paragraphs.add(current);
-    return paragraphs;
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final versesAsync = ref.watch(chapterVersesProvider(passage));
@@ -217,12 +198,12 @@ class _PassageText extends ConsumerWidget {
                 'Dit hoofdstuk kon nu niet opgehaald worden. Je kunt gewoon met de quiz beginnen.',
           );
         }
-        final paragraphs = _paragraphs(verses);
+        // One verse per line, each starting at the left edge.
         return ListView.builder(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-          itemCount: paragraphs.length + 1,
+          itemCount: verses.length + 1,
           itemBuilder: (context, index) {
-            if (index == paragraphs.length) {
+            if (index == verses.length) {
               return Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
@@ -233,7 +214,7 @@ class _PassageText extends ConsumerWidget {
             }
             return Padding(
               padding: const EdgeInsets.only(bottom: 10),
-              child: _Paragraph(verses: paragraphs[index]),
+              child: _Verse(verse: verses[index]),
             );
           },
         );
@@ -257,41 +238,43 @@ class _PassageText extends ConsumerWidget {
   }
 }
 
-class _Paragraph extends StatelessWidget {
-  const _Paragraph({required this.verses});
+class _Verse extends StatelessWidget {
+  const _Verse({required this.verse});
 
-  final List<ChapterVerse> verses;
+  final ChapterVerse verse;
 
   @override
   Widget build(BuildContext context) {
-    final spans = <InlineSpan>[];
-    for (var i = 0; i < verses.length; i++) {
-      final verse = verses[i];
-      spans.add(
-        WidgetSpan(
-          alignment: PlaceholderAlignment.baseline,
-          baseline: TextBaseline.alphabetic,
-          child: Transform.translate(
-            offset: const Offset(0, -3),
-            child: Padding(
-              padding: const EdgeInsets.only(right: 3),
-              child: Text('${verse.verse}', style: _PassageText._numberStyle),
-            ),
-          ),
-        ),
-      );
-      // U+2060 (word joiner) keeps the verse number on the same line as the
-      // first word of its verse.
-      spans.add(
-        TextSpan(text: '⁠${verse.text}${i < verses.length - 1 ? ' ' : ''}'),
-      );
-    }
-
     return Semantics(
-      label: verses.map((v) => '${v.verse} ${v.text}').join(' '),
+      label: '${verse.verse} ${verse.text}',
       excludeSemantics: true,
-      child: Text.rich(
-        TextSpan(style: _PassageText._textStyle, children: spans),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text.rich(
+          TextSpan(
+            style: _PassageText._textStyle,
+            children: [
+              WidgetSpan(
+                alignment: PlaceholderAlignment.baseline,
+                baseline: TextBaseline.alphabetic,
+                child: Transform.translate(
+                  offset: const Offset(0, -3),
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 3),
+                    child: Text(
+                      '${verse.verse}',
+                      style: _PassageText._numberStyle,
+                    ),
+                  ),
+                ),
+              ),
+              // U+2060 (word joiner) keeps the verse number on the same line
+              // as the first word of its verse.
+              TextSpan(text: '\u2060${verse.text.trim()}'),
+            ],
+          ),
+          textAlign: TextAlign.left,
+        ),
       ),
     );
   }
