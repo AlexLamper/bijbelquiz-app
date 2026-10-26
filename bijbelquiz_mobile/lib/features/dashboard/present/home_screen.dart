@@ -513,7 +513,7 @@ class _GuestCard extends StatelessWidget {
             label: 'Voortgang bewaren',
             style: BqButtonStyle.tint,
             height: 44,
-            onPressed: () => context.go('/profile'),
+            onPressed: () => context.push('/register'),
           ),
         ],
       ),

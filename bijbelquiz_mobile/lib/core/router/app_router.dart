@@ -315,11 +315,14 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/profile/achievements',
             builder: (context, state) => const ProfileAchievementsScreen(),
           ),
-          GoRoute(
-            path: '/profile/edit',
-            builder: (context, state) => const ProfileIdentityScreen(),
-          ),
         ],
+      ),
+      GoRoute(
+        // Outside the shell on purpose: it is opened from the profile and from
+        // settings, and pushing a shell child from a screen that is not in the
+        // shell builds a second tab bar around it.
+        path: '/profile/edit',
+        builder: (context, state) => const ProfileIdentityScreen(),
       ),
       GoRoute(
         path: '/duels/new',
