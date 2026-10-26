@@ -1,153 +1,160 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// Design tokens copied 1:1 from www.bijbelquiz.com.
+/// BijbelQuiz 2.0 design tokens.
 ///
-/// The site is an editorial/print inspired system: a warm paper background,
-/// ink coloured type, hairline rules instead of shadows, a serif display face
-/// (Newsreader) for headings and Inter for everything else.
+/// Calm and professional: a warm grey background, white cards with a 1px
+/// border, lapis as the one primary colour and small tinted accents for life
+/// (gold = XP and rewards, coral = streak and duels, green = correct and done).
+/// Titles and quiz questions use Fredoka, everything else Nunito.
 ///
-/// CSS reference (`:root` of the site stylesheet):
-///   --paper:#faf9f6  --paper-raised:#fff  --paper-sunken:#f1efe9
-///   --ink:#1b1a18    --ink-soft:#45433e   --ink-muted:#6f6c64
-///   --ink-inverted:#faf9f6
-///   --rule:#e6e3db   --rule-strong:#d3cfc4
-///   --lapis:#35548c  --lapis-strong:#2a4373  --lapis-tint:#eaeef7
-///   --vermilion:#a04a2f --vermilion-strong:#883b23 --vermilion-tint:#f8ece6
-///   --positive:#3f6b4f  --positive-tint:#e9f0ea
-///   --destructive:#9b3b26
-///   --radius:.5rem
+/// The legacy names (paper, ink, rule, vermilion...) are kept as aliases so
+/// every screen keeps compiling; they now map onto the new palette.
 class AppTheme {
   // ---------------------------------------------------------------------
   // Typefaces
   // ---------------------------------------------------------------------
 
-  /// Body / UI face - Inter (`--font-sans`).
-  static const String sansFontName = 'Inter';
+  /// UI face.
+  static const String sansFontName = 'Nunito';
 
-  /// Display face - Newsreader (`--font-serif`, used via `.font-display`).
-  static const String displayFontName = 'Newsreader';
+  /// Display face: page titles, card titles, quiz questions.
+  static const String displayFontName = 'Fredoka';
 
-  /// Kept for backwards compatibility with older call sites.
-  static const String monoFontName = 'Inter';
+  /// Kept for older call sites that wanted tabular figures.
+  static const String monoFontName = 'Nunito';
 
   // ---------------------------------------------------------------------
-  // Raw palette (light mode = the site's default)
+  // Palette
   // ---------------------------------------------------------------------
 
-  static const Color paper = Color(0xFFFAF9F6);
+  /// Page background.
+  static const Color paper = Color(0xFFECEAE4);
+
+  /// Cards, sheets, the tab bar.
   static const Color paperRaised = Color(0xFFFFFFFF);
-  static const Color paperSunken = Color(0xFFF1EFE9);
+
+  /// Inset fields and empty tracks inside cards.
+  static const Color paperSunken = Color(0xFFF4F3EF);
 
   static const Color ink = Color(0xFF1B1A18);
   static const Color inkSoft = Color(0xFF45433E);
-  static const Color inkMuted = Color(0xFF6F6C64);
-  static const Color inkInverted = Color(0xFFFAF9F6);
+  static const Color inkMuted = Color(0xFF6B6860);
+  static const Color inkFaint = Color(0xFF9A978F);
+  static const Color inkInverted = Color(0xFFFFFFFF);
 
-  static const Color rule = Color(0xFFE6E3DB);
-  static const Color ruleStrong = Color(0xFFD3CFC4);
+  /// Card border.
+  static const Color rule = Color(0xFFDEDBD3);
 
+  /// Pressed edge of white buttons and answer tiles.
+  static const Color ruleStrong = Color(0xFFCFCBC1);
+
+  /// Dividers inside cards, empty progress tracks.
+  static const Color ruleSoft = Color(0xFFEEECE7);
+
+  // Primary - lapis.
   static const Color lapis = Color(0xFF35548C);
-  static const Color lapisStrong = Color(0xFF2A4373);
+  static const Color lapisStrong = Color(0xFF263E69);
   static const Color lapisTint = Color(0xFFEAEEF7);
+  static const Color lapisSoft = Color(0xFFDFE5F2);
+  static const Color lapisMutedText = Color(0xFF4F5F82);
 
+  // Gold - XP, levels, rewards, quiz of the day.
+  static const Color gold = Color(0xFFE9B12E);
+  static const Color goldDeep = Color(0xFFA87C14);
+  static const Color goldTint = Color(0xFFFBF1D6);
+  static const Color goldText = Color(0xFF8A6410);
+  static const Color goldInk = Color(0xFF3D2C05);
+
+  // Coral - streak and duels.
+  static const Color coral = Color(0xFFD9734F);
+  static const Color coralDeep = Color(0xFFB4502B);
+  static const Color coralEdge = Color(0xFF84391D);
+  static const Color coralTint = Color(0xFFF8ECE6);
+  static const Color coralLine = Color(0xFFEDCBBC);
+
+  /// Coral text on a coral tint (also used for "wrong").
   static const Color vermilion = Color(0xFFA04A2F);
-  static const Color vermilionStrong = Color(0xFF883B23);
-  static const Color vermilionTint = Color(0xFFF8ECE6);
+  static const Color vermilionStrong = Color(0xFF84391D);
+  static const Color vermilionTint = coralTint;
 
+  // Green - correct, completed, Old Testament.
   static const Color positive = Color(0xFF3F6B4F);
+  static const Color positiveDeep = Color(0xFF2C4D38);
+  static const Color positiveText = Color(0xFF2E5A3E);
   static const Color positiveTint = Color(0xFFE9F0EA);
+  static const Color positiveMutedText = Color(0xFF4E6B57);
 
-  static const Color destructive = Color(0xFF9B3B26);
+  static const Color destructive = Color(0xFFA04A2F);
 
-  // Dark palette (site `.dark`) - exposed so surfaces that must stay dark
-  // (splash / onboarding) use the exact same values as the website.
-  static const Color darkPaper = Color(0xFF0D0D0C);
-  static const Color darkPaperRaised = Color(0xFF161513);
-  static const Color darkPaperSunken = Color(0xFF1D1C19);
-  static const Color darkInk = Color(0xFFF4F2EC);
-  static const Color darkInkSoft = Color(0xFFCBC7BD);
-  static const Color darkInkMuted = Color(0xFF918D83);
-  static const Color darkInkInverted = Color(0xFF131211);
-  static const Color darkRule = Color(0xFF2A2925);
-  static const Color darkRuleStrong = Color(0xFF3D3B35);
-  static const Color darkLapis = Color(0xFF8AA6D9);
-  static const Color darkLapisStrong = Color(0xFFA4BBE6);
-  static const Color darkLapisTint = Color(0xFF141A28);
-  static const Color darkVermilion = Color(0xFFD98B6A);
-  static const Color darkPositive = Color(0xFF7FB08D);
-  static const Color darkDestructive = Color(0xFFC2604A);
+  // The app is light-only for now; the dark aliases stay so older call sites
+  // that referenced them still compile, and they resolve to the light look.
+  static const Color darkPaper = paper;
+  static const Color darkPaperRaised = paperRaised;
+  static const Color darkPaperSunken = paperSunken;
+  static const Color darkInk = ink;
+  static const Color darkInkSoft = inkSoft;
+  static const Color darkInkMuted = inkMuted;
+  static const Color darkInkInverted = inkInverted;
+  static const Color darkRule = rule;
+  static const Color darkRuleStrong = ruleStrong;
+  static const Color darkLapis = lapis;
+  static const Color darkLapisStrong = lapisStrong;
+  static const Color darkLapisTint = lapisTint;
+  static const Color darkVermilion = vermilion;
+  static const Color darkPositive = positive;
+  static const Color darkDestructive = destructive;
 
   // ---------------------------------------------------------------------
-  // Semantic aliases (legacy names kept so existing screens keep compiling)
+  // Semantic aliases
   // ---------------------------------------------------------------------
 
-  /// Page background - `bg-paper`.
   static const Color canvas = paper;
-
-  /// Card background - `bg-paper-raised`.
   static const Color surface = paperRaised;
-
-  /// Muted / secondary text - `text-ink-muted`.
   static const Color muted = inkMuted;
-
-  /// Hairline - `border-rule`.
   static const Color border = rule;
-
-  /// Accent - `text-lapis` / `bg-lapis`.
   static const Color accent = lapis;
-
-  /// Accent wash - `bg-lapis-tint`.
   static const Color accentSoft = lapisTint;
-
-  /// Active filter chip on the site is solid ink, not a tint.
-  static const Color filterActive = ink;
-
+  static const Color filterActive = lapis;
   static const Color success = positive;
-  static const Color warning = vermilion;
+  static const Color warning = coral;
   static const Color error = destructive;
-
-  /// The site has no navy brand colour any more; the "brand" surface is ink.
-  static const Color brand = ink;
-  static const Color brandDeep = Color(0xFF0D0D0C);
-  static const Color brandLight = inkSoft;
+  static const Color brand = lapis;
+  static const Color brandDeep = lapisStrong;
+  static const Color brandLight = lapisMutedText;
 
   // ---------------------------------------------------------------------
-  // Radii (`--radius: .5rem`)
+  // Radii
   // ---------------------------------------------------------------------
 
-  /// `rounded-lg` - cards, panels.
-  static const double radiusLg = 8;
+  /// Cards and panels.
+  static const double radiusLg = 16;
 
-  /// `rounded-md` - buttons, inputs, images.
-  static const double radiusMd = 6;
+  /// Buttons, inputs, tiles.
+  static const double radiusMd = 12;
 
-  /// `rounded-sm` - badges.
-  static const double radiusSm = 4;
+  /// Small tiles and chips that are not pills.
+  static const double radiusSm = 8;
+
+  static const double radiusPill = 999;
 
   // ---------------------------------------------------------------------
-  // Gradients - the site is flat, so these are near-solid ink washes used
-  // only by the full-bleed splash / onboarding surfaces.
+  // Gradients - the design is flat; kept as solid lapis for old call sites.
   // ---------------------------------------------------------------------
 
   static const LinearGradient brandGradient = LinearGradient(
-    colors: [Color(0xFF0D0D0C), ink, Color(0xFF262421)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
+    colors: [lapis, lapis],
   );
 
   static const LinearGradient accentGradient = LinearGradient(
-    colors: [lapisStrong, lapis],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
+    colors: [lapis, lapis],
   );
 
-  /// Status bar / nav bar styling matching the paper background.
   static const SystemUiOverlayStyle overlayStyle = SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.dark,
     statusBarBrightness: Brightness.light,
-    systemNavigationBarColor: paper,
+    systemNavigationBarColor: paperRaised,
     systemNavigationBarIconBrightness: Brightness.dark,
   );
 
@@ -159,134 +166,125 @@ class AppTheme {
   }
 
   // ---------------------------------------------------------------------
-  // Type scale - mirrors the utility classes used on the site
+  // Type scale
   // ---------------------------------------------------------------------
 
-  /// `font-display text-[32px] font-normal leading-[1.08] tracking-[-0.025em]`
+  /// Page title - Fredoka 600 26/32.
   static const TextStyle displayLarge = TextStyle(
     fontFamily: displayFontName,
-    fontSize: 32,
-    fontWeight: FontWeight.w400,
-    height: 1.08,
-    letterSpacing: -0.8,
+    fontSize: 26,
+    fontWeight: FontWeight.w600,
+    height: 32 / 26,
     color: ink,
   );
 
-  /// `font-display text-[26px] font-normal leading-[1.12] tracking-[-0.025em]`
+  /// Quiz question / hero title - Fredoka 600 24.
   static const TextStyle displayMedium = TextStyle(
     fontFamily: displayFontName,
-    fontSize: 26,
-    fontWeight: FontWeight.w400,
-    height: 1.12,
-    letterSpacing: -0.65,
+    fontSize: 24,
+    fontWeight: FontWeight.w600,
+    height: 30 / 24,
     color: ink,
   );
 
-  /// `font-display text-xl font-normal tracking-[-0.015em]` - section titles.
+  /// Section title - Nunito 800 17.
   static const TextStyle displaySmall = TextStyle(
-    fontFamily: displayFontName,
-    fontSize: 20,
-    fontWeight: FontWeight.w400,
-    height: 1.2,
-    letterSpacing: -0.3,
+    fontFamily: sansFontName,
+    fontSize: 17,
+    fontWeight: FontWeight.w800,
+    height: 1.3,
     color: ink,
   );
 
-  /// `font-display text-lg font-normal leading-snug` - card titles.
+  /// Card title - Fredoka 600 18.
   static const TextStyle displayTitle = TextStyle(
     fontFamily: displayFontName,
     fontSize: 18,
-    fontWeight: FontWeight.w400,
-    height: 1.375,
+    fontWeight: FontWeight.w600,
+    height: 23 / 18,
     color: ink,
   );
 
-  /// `font-display text-base leading-snug`
+  /// Small card title - Fredoka 600 16.
   static const TextStyle displayBase = TextStyle(
     fontFamily: displayFontName,
     fontSize: 16,
-    fontWeight: FontWeight.w400,
-    height: 1.375,
+    fontWeight: FontWeight.w600,
+    height: 20 / 16,
     color: ink,
   );
 
-  /// `font-display text-[22px] font-normal leading-none tracking-[-0.015em]
-  /// tabular-nums` - the stat numbers in rule-separated strips.
+  /// Numbers in stat tiles.
   static const TextStyle statNumber = TextStyle(
-    fontFamily: displayFontName,
-    fontSize: 22,
-    fontWeight: FontWeight.w400,
-    height: 1.0,
-    letterSpacing: -0.33,
+    fontFamily: sansFontName,
+    fontSize: 18,
+    fontWeight: FontWeight.w800,
+    height: 22 / 18,
     color: ink,
     fontFeatures: [FontFeature.tabularFigures()],
   );
 
-  /// `text-[11px] font-medium uppercase tracking-[0.18em] text-ink-muted`
+  /// Small uppercase label - use at most once per card.
   static const TextStyle eyebrow = TextStyle(
     fontFamily: sansFontName,
-    fontSize: 11,
-    fontWeight: FontWeight.w500,
-    letterSpacing: 1.98,
+    fontSize: 12,
+    fontWeight: FontWeight.w800,
+    letterSpacing: 0.5,
     color: inkMuted,
   );
 
-  /// `text-[10px] font-medium uppercase tracking-[0.16em] text-ink-muted`
   static const TextStyle overline = TextStyle(
     fontFamily: sansFontName,
-    fontSize: 10,
-    fontWeight: FontWeight.w500,
-    letterSpacing: 1.6,
+    fontSize: 11,
+    fontWeight: FontWeight.w800,
+    letterSpacing: 0.5,
     color: inkMuted,
   );
 
-  /// `text-[11px] font-medium uppercase tracking-[0.16em] text-ink-muted`
   static const TextStyle metaLabel = TextStyle(
     fontFamily: sansFontName,
-    fontSize: 11,
-    fontWeight: FontWeight.w500,
-    letterSpacing: 1.76,
+    fontSize: 12,
+    fontWeight: FontWeight.w700,
     color: inkMuted,
   );
 
-  /// `text-[15px] leading-relaxed text-ink-muted`
+  /// Lead paragraph.
   static const TextStyle bodyLead = TextStyle(
     fontFamily: sansFontName,
     fontSize: 15,
-    height: 1.625,
-    color: inkMuted,
+    fontWeight: FontWeight.w600,
+    height: 22 / 15,
+    color: inkSoft,
   );
 
-  /// `text-sm leading-relaxed text-ink-muted`
   static const TextStyle bodyMuted = TextStyle(
     fontFamily: sansFontName,
     fontSize: 14,
-    height: 1.625,
+    fontWeight: FontWeight.w600,
+    height: 20 / 14,
     color: inkMuted,
   );
 
-  /// `text-sm font-medium text-ink`
   static const TextStyle bodyStrong = TextStyle(
     fontFamily: sansFontName,
-    fontSize: 14,
-    fontWeight: FontWeight.w500,
-    height: 1.45,
+    fontSize: 15,
+    fontWeight: FontWeight.w700,
+    height: 20 / 15,
     color: ink,
   );
 
-  /// `text-xs text-ink-muted`
   static const TextStyle caption = TextStyle(
     fontFamily: sansFontName,
-    fontSize: 12,
-    height: 1.45,
+    fontSize: 13,
+    fontWeight: FontWeight.w600,
+    height: 18 / 13,
     color: inkMuted,
   );
 
-  /// Button label - `text-sm font-medium`.
   static const TextStyle buttonLabel = TextStyle(
     fontFamily: sansFontName,
-    fontSize: 14,
-    fontWeight: FontWeight.w500,
+    fontSize: 16,
+    fontWeight: FontWeight.w800,
     letterSpacing: 0,
   );
 
@@ -294,172 +292,130 @@ class AppTheme {
   // ThemeData
   // ---------------------------------------------------------------------
 
-  static ThemeData get lightTheme => _build(
-    brightness: Brightness.light,
-    bg: paper,
-    card: paperRaised,
-    sunken: paperSunken,
-    fg: ink,
-    fgSoft: inkSoft,
-    fgMuted: inkMuted,
-    fgInverted: inkInverted,
-    line: rule,
-    lineStrong: ruleStrong,
-    ring: lapis,
-    danger: destructive,
-  );
+  static ThemeData get lightTheme => _build();
 
-  static ThemeData get darkTheme => _build(
-    brightness: Brightness.dark,
-    bg: darkPaper,
-    card: darkPaperRaised,
-    sunken: darkPaperSunken,
-    fg: darkInk,
-    fgSoft: darkInkSoft,
-    fgMuted: darkInkMuted,
-    fgInverted: darkInkInverted,
-    line: darkRule,
-    lineStrong: darkRuleStrong,
-    ring: darkLapis,
-    danger: darkDestructive,
-  );
+  /// Light-only for now: the redesign was approved in light, and a dark
+  /// variant needs its own review. Kept so `darkTheme:` call sites compile.
+  static ThemeData get darkTheme => _build();
 
-  static ThemeData _build({
-    required Brightness brightness,
-    required Color bg,
-    required Color card,
-    required Color sunken,
-    required Color fg,
-    required Color fgSoft,
-    required Color fgMuted,
-    required Color fgInverted,
-    required Color line,
-    required Color lineStrong,
-    required Color ring,
-    required Color danger,
-  }) {
-    final colorScheme = ColorScheme(
-      brightness: brightness,
-      // The site's primary action is solid ink, not the accent blue.
-      primary: fg,
-      onPrimary: fgInverted,
-      secondary: ring,
-      onSecondary: fgInverted,
-      surface: card,
-      onSurface: fg,
-      surfaceContainerHighest: sunken,
-      surfaceContainerHigh: sunken,
-      surfaceContainer: card,
-      surfaceContainerLow: bg,
-      surfaceContainerLowest: bg,
-      onSurfaceVariant: fgMuted,
-      error: danger,
-      onError: fgInverted,
-      outline: line,
-      outlineVariant: lineStrong,
+  static ThemeData _build() {
+    const colorScheme = ColorScheme(
+      brightness: Brightness.light,
+      primary: lapis,
+      onPrimary: inkInverted,
+      secondary: lapis,
+      onSecondary: inkInverted,
+      tertiary: gold,
+      onTertiary: goldInk,
+      surface: paperRaised,
+      onSurface: ink,
+      surfaceContainerHighest: paperSunken,
+      surfaceContainerHigh: paperSunken,
+      surfaceContainer: paperRaised,
+      surfaceContainerLow: paper,
+      surfaceContainerLowest: paper,
+      onSurfaceVariant: inkMuted,
+      error: destructive,
+      onError: inkInverted,
+      outline: rule,
+      outlineVariant: ruleSoft,
       shadow: Colors.transparent,
       scrim: Color(0x80000000),
-      inverseSurface: fg,
-      onInverseSurface: fgInverted,
-      inversePrimary: fgInverted,
+      inverseSurface: ink,
+      onInverseSurface: inkInverted,
+      inversePrimary: lapisTint,
     );
 
-    final textTheme = _textTheme(fg, fgMuted);
+    final textTheme = _textTheme();
 
     return ThemeData(
       useMaterial3: true,
-      brightness: brightness,
-      scaffoldBackgroundColor: bg,
-      canvasColor: bg,
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: paper,
+      canvasColor: paper,
       fontFamily: sansFontName,
       colorScheme: colorScheme,
-      splashFactory: InkSparkle.splashFactory,
+      splashFactory: InkRipple.splashFactory,
       textTheme: textTheme,
       primaryTextTheme: textTheme,
-      appBarTheme: AppBarTheme(
-        backgroundColor: bg,
+      appBarTheme: const AppBarTheme(
+        backgroundColor: paper,
         surfaceTintColor: Colors.transparent,
-        foregroundColor: fg,
+        foregroundColor: ink,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
         titleTextStyle: TextStyle(
           fontFamily: displayFontName,
-          fontSize: 20,
-          fontWeight: FontWeight.w400,
-          letterSpacing: -0.3,
-          color: fg,
+          fontSize: 22,
+          fontWeight: FontWeight.w600,
+          color: ink,
         ),
-        iconTheme: IconThemeData(color: fgSoft, size: 20),
-        systemOverlayStyle: brightness == Brightness.light
-            ? overlayStyle
-            : overlayStyle.copyWith(
-                statusBarIconBrightness: Brightness.light,
-                statusBarBrightness: Brightness.dark,
-                systemNavigationBarColor: bg,
-                systemNavigationBarIconBrightness: Brightness.light,
-              ),
+        iconTheme: IconThemeData(color: inkSoft, size: 22),
+        systemOverlayStyle: overlayStyle,
       ),
       cardTheme: CardThemeData(
-        color: card,
+        color: paperRaised,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radiusLg),
-          side: BorderSide(color: line, width: 1),
+          side: const BorderSide(color: rule, width: 1),
         ),
       ),
-      // `bg-ink text-ink-inverted hover:bg-ink-soft` at `h-11 rounded-md`.
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: fg,
-          foregroundColor: fgInverted,
-          disabledBackgroundColor: fg.withValues(alpha: 0.5),
-          disabledForegroundColor: fgInverted.withValues(alpha: 0.7),
+          backgroundColor: lapis,
+          foregroundColor: inkInverted,
+          disabledBackgroundColor: lapis.withValues(alpha: 0.45),
+          disabledForegroundColor: inkInverted.withValues(alpha: 0.8),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(radiusMd),
           ),
           textStyle: buttonLabel,
           elevation: 0,
-          minimumSize: const Size.fromHeight(48),
+          minimumSize: const Size.fromHeight(52),
           padding: const EdgeInsets.symmetric(horizontal: 20),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: fg,
-          foregroundColor: fgInverted,
-          disabledBackgroundColor: fg.withValues(alpha: 0.5),
-          disabledForegroundColor: fgInverted.withValues(alpha: 0.7),
+          backgroundColor: lapis,
+          foregroundColor: inkInverted,
+          disabledBackgroundColor: lapis.withValues(alpha: 0.45),
+          disabledForegroundColor: inkInverted.withValues(alpha: 0.8),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(radiusMd),
           ),
           textStyle: buttonLabel,
           elevation: 0,
           shadowColor: Colors.transparent,
-          minimumSize: const Size.fromHeight(48),
+          minimumSize: const Size.fromHeight(52),
           padding: const EdgeInsets.symmetric(horizontal: 20),
         ),
       ),
-      // `border border-rule bg-paper-raised text-ink hover:bg-paper-sunken`
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          backgroundColor: card,
-          foregroundColor: fg,
-          side: BorderSide(color: line),
+          backgroundColor: paperRaised,
+          foregroundColor: ink,
+          side: const BorderSide(color: rule),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(radiusMd),
           ),
           textStyle: buttonLabel,
-          minimumSize: const Size.fromHeight(48),
+          minimumSize: const Size.fromHeight(52),
           padding: const EdgeInsets.symmetric(horizontal: 20),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: fgSoft,
-          textStyle: buttonLabel,
+          foregroundColor: lapis,
+          textStyle: const TextStyle(
+            fontFamily: sansFontName,
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+          ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(radiusMd),
           ),
@@ -467,137 +423,136 @@ class AppTheme {
       ),
       iconButtonTheme: IconButtonThemeData(
         style: IconButton.styleFrom(
-          foregroundColor: fgSoft,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(radiusMd),
-          ),
+          foregroundColor: inkSoft,
+          shape: const CircleBorder(),
         ),
       ),
-      // `h-12 rounded-md border border-rule bg-paper-raised px-4
-      //  placeholder:text-ink-muted focus:border-lapis`
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: card,
-        hintStyle: TextStyle(
+        fillColor: paperRaised,
+        hintStyle: const TextStyle(
           fontFamily: sansFontName,
-          fontSize: 14,
-          color: fgMuted,
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: inkMuted,
         ),
-        labelStyle: TextStyle(
+        labelStyle: const TextStyle(
           fontFamily: sansFontName,
-          fontSize: 14,
-          color: fgMuted,
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: inkMuted,
         ),
-        floatingLabelStyle: TextStyle(
+        floatingLabelStyle: const TextStyle(
           fontFamily: sansFontName,
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-          color: ring,
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+          color: lapis,
         ),
-        prefixIconColor: fgMuted,
-        suffixIconColor: fgMuted,
+        prefixIconColor: inkFaint,
+        suffixIconColor: inkFaint,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusMd),
-          borderSide: BorderSide(color: line),
+          borderSide: const BorderSide(color: rule),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusMd),
-          borderSide: BorderSide(color: line),
+          borderSide: const BorderSide(color: rule),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusMd),
-          borderSide: BorderSide(color: ring, width: 1.4),
+          borderSide: const BorderSide(color: lapis, width: 1.6),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusMd),
-          borderSide: BorderSide(color: danger),
+          borderSide: const BorderSide(color: destructive),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusMd),
-          borderSide: BorderSide(color: danger, width: 1.4),
+          borderSide: const BorderSide(color: destructive, width: 1.6),
         ),
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
+          horizontal: 14,
           vertical: 14,
         ),
       ),
-      dividerTheme: DividerThemeData(color: line, thickness: 1, space: 1),
+      dividerTheme: const DividerThemeData(
+        color: ruleSoft,
+        thickness: 1,
+        space: 1,
+      ),
       chipTheme: ChipThemeData(
-        backgroundColor: card,
-        selectedColor: fg,
-        side: BorderSide(color: line),
-        labelStyle: TextStyle(
+        backgroundColor: paperRaised,
+        selectedColor: lapis,
+        side: const BorderSide(color: rule),
+        labelStyle: const TextStyle(
           fontFamily: sansFontName,
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-          color: fg,
+          fontSize: 14,
+          fontWeight: FontWeight.w700,
+          color: inkSoft,
+        ),
+        secondaryLabelStyle: const TextStyle(
+          fontFamily: sansFontName,
+          fontSize: 14,
+          fontWeight: FontWeight.w800,
+          color: inkInverted,
         ),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(radiusMd),
+          borderRadius: BorderRadius.circular(radiusPill),
         ),
         showCheckmark: false,
       ),
-      bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        backgroundColor: card,
-        selectedItemColor: fg,
-        unselectedItemColor: fgMuted,
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: paperRaised,
+        selectedItemColor: lapis,
+        unselectedItemColor: inkMuted,
         type: BottomNavigationBarType.fixed,
         elevation: 0,
-        selectedLabelStyle: const TextStyle(
-          fontFamily: sansFontName,
-          fontSize: 11,
-          fontWeight: FontWeight.w500,
-        ),
-        unselectedLabelStyle: const TextStyle(
-          fontFamily: sansFontName,
-          fontSize: 11,
-          fontWeight: FontWeight.w400,
-        ),
       ),
-      navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: card,
+      navigationBarTheme: const NavigationBarThemeData(
+        backgroundColor: paperRaised,
         surfaceTintColor: Colors.transparent,
-        indicatorColor: sunken,
+        indicatorColor: lapisTint,
         elevation: 0,
         height: 64,
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: card,
+        backgroundColor: paperRaised,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radiusLg),
-          side: BorderSide(color: line),
+          side: const BorderSide(color: rule),
         ),
-        titleTextStyle: TextStyle(
+        titleTextStyle: const TextStyle(
           fontFamily: displayFontName,
-          fontSize: 20,
-          fontWeight: FontWeight.w400,
-          letterSpacing: -0.3,
-          color: fg,
+          fontSize: 22,
+          fontWeight: FontWeight.w600,
+          color: ink,
         ),
-        contentTextStyle: TextStyle(
+        contentTextStyle: const TextStyle(
           fontFamily: sansFontName,
-          fontSize: 14,
-          height: 1.625,
-          color: fgMuted,
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          height: 22 / 15,
+          color: inkSoft,
         ),
       ),
-      bottomSheetTheme: BottomSheetThemeData(
-        backgroundColor: card,
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: paperRaised,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         modalElevation: 0,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(radiusLg)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: fg,
-        contentTextStyle: TextStyle(
+        backgroundColor: ink,
+        contentTextStyle: const TextStyle(
           fontFamily: sansFontName,
-          fontSize: 14,
-          color: fgInverted,
+          fontSize: 15,
+          fontWeight: FontWeight.w700,
+          color: inkInverted,
         ),
         behavior: SnackBarBehavior.floating,
         elevation: 0,
@@ -605,100 +560,103 @@ class AppTheme {
           borderRadius: BorderRadius.circular(radiusMd),
         ),
       ),
-      progressIndicatorTheme: ProgressIndicatorThemeData(
-        color: fg,
-        linearTrackColor: sunken,
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: lapis,
+        linearTrackColor: ruleSoft,
         circularTrackColor: Colors.transparent,
-        linearMinHeight: 2,
+        linearMinHeight: 6,
       ),
       switchTheme: SwitchThemeData(
-        thumbColor: WidgetStateProperty.resolveWith(
-          (s) => s.contains(WidgetState.selected) ? fgInverted : card,
-        ),
+        thumbColor: WidgetStateProperty.all(paperRaised),
         trackColor: WidgetStateProperty.resolveWith(
-          (s) => s.contains(WidgetState.selected) ? fg : sunken,
+          (s) => s.contains(WidgetState.selected) ? lapis : ruleStrong,
         ),
-        trackOutlineColor: WidgetStateProperty.all(line),
+        trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
       ),
-      tabBarTheme: TabBarThemeData(
-        labelColor: fg,
-        unselectedLabelColor: fgMuted,
-        indicatorColor: fg,
-        dividerColor: line,
-        labelStyle: const TextStyle(
-          fontFamily: sansFontName,
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
+      checkboxTheme: CheckboxThemeData(
+        fillColor: WidgetStateProperty.resolveWith(
+          (s) => s.contains(WidgetState.selected) ? lapis : paperRaised,
         ),
-        unselectedLabelStyle: const TextStyle(
+        side: const BorderSide(color: ruleStrong, width: 1.5),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+      ),
+      radioTheme: RadioThemeData(
+        fillColor: WidgetStateProperty.resolveWith(
+          (s) => s.contains(WidgetState.selected) ? lapis : ruleStrong,
+        ),
+      ),
+      tabBarTheme: const TabBarThemeData(
+        labelColor: lapis,
+        unselectedLabelColor: inkMuted,
+        indicatorColor: lapis,
+        dividerColor: Colors.transparent,
+        labelStyle: TextStyle(
           fontFamily: sansFontName,
           fontSize: 14,
-          fontWeight: FontWeight.w400,
+          fontWeight: FontWeight.w800,
+        ),
+        unselectedLabelStyle: TextStyle(
+          fontFamily: sansFontName,
+          fontSize: 14,
+          fontWeight: FontWeight.w700,
         ),
       ),
       listTileTheme: ListTileThemeData(
-        iconColor: fgSoft,
-        textColor: fg,
+        iconColor: inkSoft,
+        textColor: ink,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radiusMd),
         ),
       ),
       tooltipTheme: TooltipThemeData(
         decoration: BoxDecoration(
-          color: fg,
+          color: ink,
           borderRadius: BorderRadius.circular(radiusSm),
         ),
-        textStyle: TextStyle(
+        textStyle: const TextStyle(
           fontFamily: sansFontName,
-          fontSize: 12,
-          color: fgInverted,
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+          color: inkInverted,
         ),
       ),
     );
   }
 
-  static TextTheme _textTheme(Color fg, Color fgMuted) {
-    TextStyle display(double size, double lh, double ls, FontWeight w) =>
-        TextStyle(
-          fontFamily: displayFontName,
-          fontSize: size,
-          height: lh,
-          letterSpacing: ls,
-          fontWeight: w,
-          color: fg,
-        );
-
-    TextStyle sans(
-      double size,
-      double lh,
-      FontWeight w, [
-      Color? c,
-      double ls = 0,
-    ]) => TextStyle(
-      fontFamily: sansFontName,
+  static TextTheme _textTheme() {
+    TextStyle display(double size, double lh) => TextStyle(
+      fontFamily: displayFontName,
       fontSize: size,
-      height: lh,
-      fontWeight: w,
-      letterSpacing: ls,
-      color: c ?? fg,
+      height: lh / size,
+      fontWeight: FontWeight.w600,
+      color: ink,
     );
 
+    TextStyle sans(double size, double lh, FontWeight w, [Color c = ink]) =>
+        TextStyle(
+          fontFamily: sansFontName,
+          fontSize: size,
+          height: lh / size,
+          fontWeight: w,
+          color: c,
+        );
+
     return TextTheme(
-      displayLarge: display(40, 1.08, -1.0, FontWeight.w400),
-      displayMedium: display(34, 1.1, -0.85, FontWeight.w400),
-      displaySmall: display(26, 1.12, -0.65, FontWeight.w400),
-      headlineLarge: display(24, 1.15, -0.36, FontWeight.w400),
-      headlineMedium: display(20, 1.2, -0.3, FontWeight.w400),
-      headlineSmall: display(18, 1.375, 0, FontWeight.w400),
-      titleLarge: display(18, 1.375, 0, FontWeight.w400),
-      titleMedium: sans(15, 1.45, FontWeight.w500),
-      titleSmall: sans(14, 1.45, FontWeight.w500),
-      bodyLarge: sans(15, 1.625, FontWeight.w400),
-      bodyMedium: sans(14, 1.625, FontWeight.w400, fgMuted),
-      bodySmall: sans(12, 1.45, FontWeight.w400, fgMuted),
-      labelLarge: sans(14, 1.2, FontWeight.w500),
-      labelMedium: sans(12, 1.2, FontWeight.w500, fgMuted),
-      labelSmall: sans(10, 1.2, FontWeight.w500, fgMuted, 1.6),
+      displayLarge: display(34, 40),
+      displayMedium: display(30, 36),
+      displaySmall: display(26, 32),
+      headlineLarge: display(24, 30),
+      headlineMedium: display(22, 28),
+      headlineSmall: display(20, 25),
+      titleLarge: display(18, 23),
+      titleMedium: sans(16, 21, FontWeight.w800),
+      titleSmall: sans(15, 20, FontWeight.w700),
+      bodyLarge: sans(16, 23, FontWeight.w600, inkSoft),
+      bodyMedium: sans(15, 21, FontWeight.w600, inkSoft),
+      bodySmall: sans(13, 18, FontWeight.w600, inkMuted),
+      labelLarge: sans(15, 20, FontWeight.w800),
+      labelMedium: sans(13, 17, FontWeight.w700, inkMuted),
+      labelSmall: sans(12, 16, FontWeight.w800, inkMuted),
     );
   }
 }

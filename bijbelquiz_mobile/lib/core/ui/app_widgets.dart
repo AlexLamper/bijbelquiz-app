@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import 'bq.dart';
 
 /// ---------------------------------------------------------------------------
 /// Editorial building blocks copied from www.bijbelquiz.com.
@@ -33,23 +34,11 @@ class Eyebrow extends StatelessWidget {
     final style = (compact ? AppTheme.overline : AppTheme.eyebrow).copyWith(
       color: color ?? AppTheme.inkMuted,
     );
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: compact ? 14 : 24,
-          height: 1,
-          color: ruleColor ?? AppTheme.lapis,
-        ),
-        SizedBox(width: compact ? 8 : 10),
-        Flexible(
-          child: Text(
-            label.toUpperCase(),
-            style: style,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
+    return Text(
+      label.toUpperCase(),
+      style: style,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
     );
   }
 }
@@ -82,21 +71,20 @@ class GradientHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Eyebrow(
-                eyebrow ?? title,
-                ruleColor: accent ? AppTheme.vermilion : AppTheme.lapis,
-              ),
-              const SizedBox(height: 12),
+              if (eyebrow != null) ...[
+                Eyebrow(eyebrow!),
+                const SizedBox(height: 6),
+              ],
               Text(title, style: AppTheme.displayLarge),
               if (subtitle != null) ...[
-                const SizedBox(height: 12),
-                Text(subtitle!, style: AppTheme.bodyLead),
+                const SizedBox(height: 6),
+                Text(subtitle!, style: AppTheme.bodyMuted),
               ],
             ],
           ),
@@ -142,55 +130,15 @@ class SectionHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (eyebrow != null) ...[
-                    Eyebrow(eyebrow!),
-                    const SizedBox(height: 10),
-                  ],
-                  Text(title, style: AppTheme.displaySmall),
-                  if (description != null) ...[
-                    const SizedBox(height: 10),
-                    Text(description!, style: AppTheme.bodyMuted),
-                  ],
-                ],
-              ),
-            ),
-            if (actionLabel != null && onAction != null) ...[
-              const SizedBox(width: 16),
-              InkWell(
-                onTap: onAction,
-                borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        actionLabel!,
-                        style: AppTheme.bodyStrong.copyWith(
-                          color: AppTheme.inkSoft,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      const Icon(
-                        Icons.arrow_forward,
-                        size: 14,
-                        color: AppTheme.inkSoft,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ],
+        BqSectionHeader(
+          title: title,
+          actionLabel: actionLabel,
+          onAction: onAction,
         ),
-        if (showRule) ...[const SizedBox(height: 14), const RuleLine()],
+        if (description != null) ...[
+          const SizedBox(height: 4),
+          Text(description!, style: AppTheme.bodyMuted),
+        ],
       ],
     );
   }
@@ -204,7 +152,7 @@ class RuleLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(height: 1, color: color ?? AppTheme.rule);
+    return Container(height: 1, color: color ?? AppTheme.ruleSoft);
   }
 }
 
@@ -213,7 +161,7 @@ class AppCard extends StatelessWidget {
   const AppCard({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(20),
+    this.padding = const EdgeInsets.all(16),
     this.onTap,
     this.color,
     this.borderColor,
@@ -252,8 +200,8 @@ class AppCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(radius),
-        highlightColor: AppTheme.paperSunken,
-        splashColor: AppTheme.paperSunken,
+        highlightColor: AppTheme.ruleSoft,
+        splashColor: AppTheme.ruleSoft,
         child: Container(
           padding: padding,
           decoration: BoxDecoration(
@@ -424,7 +372,7 @@ class SiteBadge extends StatelessWidget {
     : this(
         label,
         key: key,
-        background: AppTheme.paperSunken,
+        background: AppTheme.ruleSoft,
         foreground: AppTheme.inkSoft,
         borderColor: AppTheme.rule,
         icon: icon,
@@ -433,36 +381,12 @@ class SiteBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fg = solid ? AppTheme.inkInverted : (foreground ?? AppTheme.inkSoft);
-    final bg = solid ? AppTheme.ink : (background ?? AppTheme.paperSunken);
-    // Tinted badges on the site use a 35% alpha border of their accent.
-    final bc = solid
-        ? Colors.transparent
-        : (borderColor == null
-              ? AppTheme.rule
-              : (borderColor == AppTheme.rule
-                    ? AppTheme.rule
-                    : borderColor!.withValues(alpha: 0.35)));
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-        border: Border.all(color: bc),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 11, color: fg),
-            const SizedBox(width: 5),
-          ],
-          Text(
-            label.toUpperCase(),
-            style: AppTheme.overline.copyWith(color: fg),
-          ),
-        ],
-      ),
+    final bg = solid ? AppTheme.lapis : (background ?? AppTheme.paperSunken);
+    return BqPill(
+      label: label,
+      background: bg,
+      foreground: fg,
+      icon: icon == null ? null : Icon(icon, size: 13, color: fg),
     );
   }
 }
@@ -490,41 +414,15 @@ class SiteButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final button = SizedBox(
-      height: height,
-      width: expand ? double.infinity : null,
-      child: FilledButton(
-        onPressed: loading ? null : onPressed,
-        // The theme sets `minimumSize: Size.fromHeight(48)`, i.e. an *infinite*
-        // minimum width. Inside a Row that swallows the whole line and starves
-        // the flexible siblings, so a non-expanding button must drop it.
-        style: expand ? null : _compactStyle(height),
-        child: loading
-            ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: AppTheme.inkInverted,
-                ),
-              )
-            : Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (icon != null) ...[
-                    Icon(icon, size: 16),
-                    const SizedBox(width: 8),
-                  ],
-                  Text(label),
-                  if (trailingIcon != null) ...[
-                    const SizedBox(width: 8),
-                    Icon(trailingIcon, size: 16),
-                  ],
-                ],
-              ),
-      ),
+    return BqButton(
+      label: label,
+      onPressed: onPressed,
+      loading: loading,
+      expand: expand,
+      height: height < 52 && expand ? 52 : height,
+      fontSize: height < 44 ? 14 : 16,
+      icon: icon == null ? null : Icon(icon, size: 18),
     );
-    return button;
   }
 }
 
@@ -547,40 +445,16 @@ class SiteOutlineButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: height,
-      width: expand ? double.infinity : null,
-      child: OutlinedButton(
-        onPressed: onPressed,
-        // See [SiteButton.build]: the theme's infinite minimum width has to go
-        // when the button shares a Row with flexible content.
-        style: expand ? null : _compactStyle(height),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Icon(icon, size: 16),
-              const SizedBox(width: 8),
-            ],
-            Text(label),
-          ],
-        ),
-      ),
+    return BqButton(
+      label: label,
+      onPressed: onPressed,
+      style: BqButtonStyle.secondary,
+      expand: expand,
+      height: height < 52 && expand ? 52 : height,
+      fontSize: height < 44 ? 14 : 16,
+      icon: icon == null ? null : Icon(icon, size: 18),
     );
   }
-}
-
-/// Style override for buttons that must size to their label instead of to the
-/// full line. Only the properties that need to differ are set, so everything
-/// else still comes from the theme.
-ButtonStyle _compactStyle(double height) {
-  return ButtonStyle(
-    minimumSize: WidgetStatePropertyAll<Size>(Size(0, height)),
-    padding: const WidgetStatePropertyAll<EdgeInsetsGeometry>(
-      EdgeInsets.symmetric(horizontal: 14),
-    ),
-    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-  );
 }
 
 /// A rule-separated list row, as used by the leaderboard and settings lists.
@@ -604,7 +478,7 @@ class RuleListTile extends StatelessWidget {
       padding: padding,
       decoration: showRule
           ? const BoxDecoration(
-              border: Border(bottom: BorderSide(color: AppTheme.rule)),
+              border: Border(bottom: BorderSide(color: AppTheme.ruleSoft)),
             )
           : null,
       child: child,
@@ -614,8 +488,8 @@ class RuleListTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        highlightColor: AppTheme.paperSunken,
-        splashColor: AppTheme.paperSunken,
+        highlightColor: AppTheme.ruleSoft,
+        splashColor: AppTheme.ruleSoft,
         child: content,
       ),
     );
@@ -635,8 +509,8 @@ class AppLoader extends StatelessWidget {
         width: size,
         height: size,
         child: const CircularProgressIndicator(
-          strokeWidth: 2,
-          color: AppTheme.ink,
+          strokeWidth: 3,
+          color: AppTheme.lapis,
         ),
       ),
     );

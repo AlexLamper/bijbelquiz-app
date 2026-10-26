@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -6,6 +7,7 @@ import '../analytics/analytics.dart';
 import '../config/app_config.dart';
 import '../config/preview_config.dart';
 import '../theme/app_theme.dart';
+import '../ui/bq.dart';
 
 import '../../features/auth/present/splash_screen.dart';
 import '../../features/onboarding/present/onboarding_screen.dart';
@@ -28,40 +30,49 @@ import '../../features/quiz/present/quiz_detail_screen.dart';
 import '../../features/quiz/present/quiz_passage_screen.dart';
 import '../../features/quiz/present/quiz_player_screen.dart';
 import '../../features/admin/present/admin_screen.dart';
+import '../../features/duels/present/duels_screen.dart';
+import '../../features/duels/present/new_duel_screen.dart';
+import '../../features/duels/present/duel_play_screen.dart';
+import '../../features/settings/present/settings_screen.dart';
 
-// Main Scaffold representing the Bottom Navigation persistence
-class MainScaffold extends StatelessWidget {
+/// The tab shell: Home, Quizzen, Duels, Ranglijst, Profiel.
+class MainScaffold extends ConsumerWidget {
   final Widget child;
   const MainScaffold({super.key, required this.child});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final currentIndex = _calculateSelectedIndex(context);
+    final duelBadge = ref.watch(duelsTurnCountProvider);
 
-    // `border-t border-rule bg-paper-raised` - the site's mobile tab bar.
-    return Scaffold(
-      backgroundColor: AppTheme.paper,
-      body: child,
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: AppTheme.paperRaised,
-          border: Border(top: BorderSide(color: AppTheme.rule, width: 1)),
-        ),
-        child: SafeArea(
-          top: false,
-          child: SizedBox(
-            height: 62,
-            child: Row(
-              children: [
-                for (var i = 0; i < _items.length; i++)
-                  Expanded(
-                    child: _NavItem(
-                      item: _items[i],
-                      active: currentIndex == i,
-                      onTap: () => _onItemTapped(i, context),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: AppTheme.overlayStyle,
+      child: Scaffold(
+        backgroundColor: AppTheme.paper,
+        body: child,
+        bottomNavigationBar: Container(
+          decoration: const BoxDecoration(
+            color: AppTheme.paperRaised,
+            border: Border(top: BorderSide(color: AppTheme.rule, width: 1)),
+          ),
+          child: SafeArea(
+            top: false,
+            minimum: const EdgeInsets.only(bottom: 8),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+              child: Row(
+                children: [
+                  for (var i = 0; i < _items.length; i++)
+                    Expanded(
+                      child: _NavItem(
+                        item: _items[i],
+                        active: currentIndex == i,
+                        badge: i == 2 ? duelBadge : 0,
+                        onTap: () => _onItemTapped(i, context),
+                      ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -70,97 +81,134 @@ class MainScaffold extends StatelessWidget {
   }
 
   static const List<_NavItemData> _items = [
-    _NavItemData(Icons.home_outlined, Icons.home, 'Home'),
-    // `menu_book` read as "read a chapter", not "answer questions", and sat
-    // too close to the Bible imagery used elsewhere in the app.
-    _NavItemData(Icons.quiz_outlined, Icons.quiz, 'Quizzen'),
-    _NavItemData(Icons.leaderboard_outlined, Icons.leaderboard, 'Ranglijst'),
-    _NavItemData(Icons.groups_outlined, Icons.groups, 'Samen'),
-    _NavItemData(Icons.person_outline, Icons.person, 'Profiel'),
+    _NavItemData(BqIcons.home, BqIcons.homeFilled, 'Home', '/home'),
+    _NavItemData(BqIcons.book, BqIcons.book, 'Quizzen', '/quizzes'),
+    _NavItemData(BqIcons.swords, BqIcons.swords, 'Duels', '/duels'),
+    _NavItemData(BqIcons.trophy, BqIcons.trophy, 'Ranglijst', '/leaderboard'),
+    _NavItemData(BqIcons.user, BqIcons.user, 'Profiel', '/profile'),
   ];
 
   static int _calculateSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).uri.path;
     if (location.startsWith('/home')) return 0;
+    // Samen spelen is reached from Quizzen, so it keeps that tab lit.
     if (location.startsWith('/quizzes')) return 1;
-    if (location.startsWith('/leaderboard')) return 2;
-    if (location.startsWith('/play-together')) return 3;
+    if (location.startsWith('/play-together')) return 1;
+    if (location.startsWith('/duels')) return 2;
+    if (location.startsWith('/leaderboard')) return 3;
     if (location.startsWith('/profile')) return 4;
     return 0;
   }
 
   void _onItemTapped(int index, BuildContext context) {
-    switch (index) {
-      case 0:
-        context.go('/home');
-        break;
-      case 1:
-        context.go('/quizzes');
-        break;
-      case 2:
-        context.go('/leaderboard');
-        break;
-      case 3:
-        context.go('/play-together');
-        break;
-      case 4:
-        context.go('/profile');
-        break;
-    }
+    context.go(_items[index].path);
   }
 }
 
 class _NavItemData {
-  const _NavItemData(this.icon, this.activeIcon, this.label);
+  const _NavItemData(this.icon, this.activeIcon, this.label, this.path);
 
-  final IconData icon;
-  final IconData activeIcon;
+  final String icon;
+  final String activeIcon;
   final String label;
+  final String path;
 }
 
-/// Tab item - active is solid ink with a `bg-lapis` marker rule above it,
-/// matching the underline the site draws under the active desktop nav link
-/// (`after:absolute after:bottom-0 after:h-px after:bg-lapis`).
+/// Tab item: the active one gets a soft lapis pill behind its icon.
 class _NavItem extends StatelessWidget {
   const _NavItem({
     required this.item,
     required this.active,
     required this.onTap,
+    this.badge = 0,
   });
 
   final _NavItemData item;
   final bool active;
   final VoidCallback onTap;
+  final int badge;
 
   @override
   Widget build(BuildContext context) {
-    final color = active ? AppTheme.ink : AppTheme.inkMuted;
-    return InkWell(
-      onTap: onTap,
-      splashColor: AppTheme.paperSunken,
-      highlightColor: AppTheme.paperSunken,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            height: 1,
-            width: 22,
-            color: active ? AppTheme.lapis : Colors.transparent,
+    final color = active ? AppTheme.lapis : AppTheme.inkMuted;
+    return Semantics(
+      button: true,
+      selected: active,
+      label: badge > 0 ? '${item.label}, $badge wacht op jou' : item.label,
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        splashColor: Colors.transparent,
+        highlightColor: AppTheme.ruleSoft,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 56,
+                height: 30,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  alignment: Alignment.center,
+                  children: [
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 160),
+                      width: 56,
+                      height: 30,
+                      decoration: BoxDecoration(
+                        color: active ? AppTheme.lapisTint : Colors.transparent,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                    BqIcon(
+                      active ? item.activeIcon : item.icon,
+                      size: 22,
+                      color: color,
+                    ),
+                    if (badge > 0)
+                      Positioned(
+                        top: -2,
+                        right: 8,
+                        child: Container(
+                          constraints: const BoxConstraints(minWidth: 16),
+                          height: 16,
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          decoration: BoxDecoration(
+                            color: AppTheme.coralDeep,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            '$badge',
+                            style: const TextStyle(
+                              fontFamily: AppTheme.sansFontName,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              height: 1,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                item.label,
+                style: TextStyle(
+                  fontFamily: AppTheme.sansFontName,
+                  fontSize: 12,
+                  height: 1.1,
+                  fontWeight: active ? FontWeight.w800 : FontWeight.w700,
+                  color: color,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 11),
-          Icon(active ? item.activeIcon : item.icon, size: 20, color: color),
-          const SizedBox(height: 6),
-          Text(
-            item.label,
-            style: TextStyle(
-              fontFamily: AppTheme.sansFontName,
-              fontSize: 10,
-              height: 1,
-              fontWeight: active ? FontWeight.w500 : FontWeight.w400,
-              color: color,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -239,6 +287,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const LibraryScreen(),
           ),
           GoRoute(
+            path: '/duels',
+            builder: (context, state) => const DuelsScreen(),
+          ),
+          GoRoute(
             path: '/leaderboard',
             builder: (context, state) => const LeaderboardScreen(),
           ),
@@ -259,6 +311,19 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const ProfileIdentityScreen(),
           ),
         ],
+      ),
+      GoRoute(
+        path: '/duels/new',
+        builder: (context, state) => const NewDuelScreen(),
+      ),
+      GoRoute(
+        path: '/duels/:id',
+        builder: (context, state) =>
+            DuelPlayScreen(duelId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/settings',
+        builder: (context, state) => const SettingsScreen(),
       ),
       GoRoute(
         path: '/group-license',

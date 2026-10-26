@@ -71,33 +71,32 @@ flutter:
   assets:
     - assets/images/
   fonts:
-    # Body / UI face used on www.bijbelquiz.com (--font-sans).
-    - family: Inter
+    # BijbelQuiz 2.0: Nunito for all UI text, Fredoka for titles and quiz
+    # questions. Static instances, so every weight renders exactly.
+    - family: Nunito
       fonts:
-        - asset: assets/fonts/Inter-Regular.ttf
+        - asset: assets/fonts/Nunito-400.ttf
           weight: 400
-        - asset: assets/fonts/Inter-Medium.ttf
+        - asset: assets/fonts/Nunito-500.ttf
           weight: 500
-        - asset: assets/fonts/Inter-SemiBold.ttf
+        - asset: assets/fonts/Nunito-600.ttf
           weight: 600
-        - asset: assets/fonts/Inter-Bold.ttf
+        - asset: assets/fonts/Nunito-700.ttf
           weight: 700
-    # Display / serif face used on www.bijbelquiz.com (--font-serif,
-    # applied through the .font-display utility).
-    - family: Newsreader
+        - asset: assets/fonts/Nunito-800.ttf
+          weight: 800
+        - asset: assets/fonts/Nunito-900.ttf
+          weight: 900
+    - family: Fredoka
       fonts:
-        - asset: assets/fonts/Newsreader-Regular.ttf
+        - asset: assets/fonts/Fredoka-400.ttf
           weight: 400
-        - asset: assets/fonts/Newsreader-Medium.ttf
+        - asset: assets/fonts/Fredoka-500.ttf
           weight: 500
-        - asset: assets/fonts/Newsreader-SemiBold.ttf
+        - asset: assets/fonts/Fredoka-600.ttf
           weight: 600
-    - family: Geist
-      fonts:
-        - asset: assets/fonts/Geist-Variable.ttf
-    - family: Geist Mono
-      fonts:
-        - asset: assets/fonts/GeistMono-Variable.ttf
+        - asset: assets/fonts/Fredoka-700.ttf
+          weight: 700
 
   # To add assets to your application, add an assets section, like this:
   # assets:
@@ -135,7 +134,7 @@ flutter_launcher_icons:
   ios: true
   image_path: "assets/images/app_icon.png"
   # --paper from www.bijbelquiz.com
-  adaptive_icon_background: "#FAF9F6"
+  adaptive_icon_background: "#ECEAE4"
   adaptive_icon_foreground: "assets/images/app_icon.png"
   min_sdk_android: 21
   web:
