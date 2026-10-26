@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -311,11 +313,7 @@ class _DailyQuizCard extends StatelessWidget {
               Positioned(
                 right: -14,
                 top: -10,
-                child: SvgPicture.string(
-                  _bookOutline,
-                  width: 120,
-                  height: 120,
-                ),
+                child: SvgPicture.string(_bookOutline, width: 120, height: 120),
               ),
               Padding(
                 padding: const EdgeInsets.all(20),
@@ -560,9 +558,8 @@ class _ContinueCard extends StatelessWidget {
 
     return Semantics(
       button: true,
-      label: total > 0
-          ? '$title, $score van $total goed'
-          : title,
+      onTap: onTap,
+      label: total > 0 ? '$title, $score van $total goed' : title,
       excludeSemantics: true,
       child: BqCard(
         radius: 18,
@@ -739,7 +736,13 @@ class _TopicGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget row(_Topic a, _Topic b) => IntrinsicHeight(
+    // 76 in the design: two title lines and the subtitle. Grows with the
+    // reader's text size so a larger font never clips the subtitle.
+    final s = MediaQuery.textScalerOf(context);
+    final height = math.max(76.0, 26 + s.scale(36) + s.scale(14.4));
+
+    Widget row(_Topic a, _Topic b) => SizedBox(
+      height: height,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -774,13 +777,13 @@ class _TopicTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
+      onTap: onTap,
       label: '${topic.title}, ${topic.subtitle}',
       excludeSemantics: true,
       child: BqCard(
         padding: EdgeInsets.zero,
         onTap: onTap,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 76),
+        child: SizedBox.expand(
           child: Stack(
             clipBehavior: Clip.hardEdge,
             children: [
@@ -814,25 +817,33 @@ class _TopicTile extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 92),
-                      child: Text(
-                        topic.title,
-                        style: const TextStyle(
-                          fontFamily: AppTheme.sansFontName,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          height: 18 / 15,
-                          color: AppTheme.ink,
+                    // Flexible + ellipsis: with large system text the tile
+                    // clips the title instead of overflowing.
+                    Flexible(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 92),
+                        child: Text(
+                          topic.title,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontFamily: AppTheme.sansFontName,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            height: 18 / 15,
+                            color: AppTheme.ink,
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 4),
                     Text(
                       topic.subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontFamily: AppTheme.sansFontName,
                         fontSize: 12,
+                        height: 1.2,
                         fontWeight: FontWeight.w700,
                         color: topic.subtitleColor,
                       ),

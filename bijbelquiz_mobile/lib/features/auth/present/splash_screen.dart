@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/ui/app_widgets.dart';
+import '../../../core/ui/bq.dart';
 import '../../onboarding/data/onboarding_storage.dart';
 import '../present/auth_controller.dart';
 
@@ -53,18 +53,34 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Paper background with the site wordmark - the site has no dark hero.
+    // The welcome screen's logo lockup on the paper background, while the
+    // stored session is checked.
     return const Scaffold(
       backgroundColor: AppTheme.paper,
       body: Center(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            BijbelQuizWordmark(fontSize: 34),
-            SizedBox(height: 18),
-            Text('TEST JOUW KENNIS VAN DE BIJBEL', style: AppTheme.overline),
-            SizedBox(height: 44),
-            AppLoader(size: 20),
+            BqLogo(markSize: 64, fontSize: 36),
+            SizedBox(height: 14),
+            Text(
+              'Hoe goed ken jij de Bijbel?',
+              style: TextStyle(
+                fontFamily: AppTheme.sansFontName,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.inkMuted,
+              ),
+            ),
+            SizedBox(height: 40),
+            SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.4,
+                color: AppTheme.lapis,
+              ),
+            ),
           ],
         ),
       ),

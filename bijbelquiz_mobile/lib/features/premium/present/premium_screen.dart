@@ -236,6 +236,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                             PaywallLink(
                               label: 'Herstellen',
                               color: AppTheme.inkMuted,
+                              padding: const EdgeInsets.only(left: 12),
                               onTap: isLoading
                                   ? null
                                   : () => ref
@@ -310,9 +311,9 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                                 title: 'Maandelijks',
                                 price: monthlyPrice,
                                 period: 'per maand',
-                                note: monthlyTrial?.label ?? 'Geen proefperiode',
-                                selected:
-                                    _selectedPlan == _PremiumPlan.monthly,
+                                note:
+                                    monthlyTrial?.label ?? 'Geen proefperiode',
+                                selected: _selectedPlan == _PremiumPlan.monthly,
                                 onTap: isLoading
                                     ? null
                                     : () => _select(_PremiumPlan.monthly),
@@ -328,12 +329,13 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                             ? null
                             : () => _select(_PremiumPlan.lifetime),
                       ),
+                      // BqButton keeps 3px above itself for its press travel.
                       SizedBox(
-                        height: _selectedPlan == _PremiumPlan.lifetime ? 14 : 2,
+                        height: _selectedPlan == _PremiumPlan.lifetime ? 11 : 0,
                       ),
                       BqButton(
                         label: paywallCtaLabel(trial),
-                        height: 53,
+                        height: 56,
                         fontSize: 17,
                         radius: 14,
                         loading: isLoading,

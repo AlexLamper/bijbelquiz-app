@@ -4,7 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/analytics/analytics.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/ui/app_widgets.dart';
+import '../../../core/ui/bq.dart';
+import 'widgets/paywall_parts.dart';
 
 /// A short pre-sell funnel shown before the paywall, in the spirit of
 /// bijbelstudie-app's `/pro-intro`: pick a goal, see what Premium does for that
@@ -29,10 +30,12 @@ class _PremiumIntroScreenState extends ConsumerState<PremiumIntroScreen> {
   @override
   void initState() {
     super.initState();
-    ref.read(analyticsProvider).track(
-      AnalyticsEvents.paywallShown,
-      props: {'trigger': widget.trigger, 'surface': 'premium_intro'},
-    );
+    ref
+        .read(analyticsProvider)
+        .track(
+          AnalyticsEvents.paywallShown,
+          props: {'trigger': widget.trigger, 'surface': 'premium_intro'},
+        );
   }
 
   @override
@@ -83,32 +86,23 @@ class _PremiumIntroScreenState extends ConsumerState<PremiumIntroScreen> {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(8, 4, 16, 4),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
               child: Row(
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.close, color: AppTheme.inkSoft),
-                    onPressed: () => context.canPop()
-                        ? context.pop()
-                        : context.go('/home'),
+                  PaywallCloseButton(
+                    onTap: () =>
+                        context.canPop() ? context.pop() : context.go('/home'),
                   ),
+                  const SizedBox(width: 16),
                   Expanded(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        for (var i = 0; i < 3; i++)
-                          Container(
-                            width: 22,
-                            height: 3,
-                            margin: const EdgeInsets.symmetric(horizontal: 3),
-                            color: i <= _page
-                                ? AppTheme.ink
-                                : AppTheme.rule,
-                          ),
-                      ],
+                    child: Semantics(
+                      label: 'Stap ${_page + 1} van 3',
+                      child: ExcludeSemantics(
+                        child: BqSegments(total: 3, done: _page + 1),
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 40),
+                  const SizedBox(width: 56),
                 ],
               ),
             ),
@@ -128,16 +122,53 @@ class _PremiumIntroScreenState extends ConsumerState<PremiumIntroScreen> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-              child: SiteButton(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 22),
+              child: BqButton(
                 label: _page < 2 ? 'Verder' : 'Bekijk Premium',
-                trailingIcon: Icons.arrow_forward,
+                height: 56,
+                fontSize: 17,
+                radius: 14,
                 onPressed: _next,
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _StepHeading extends StatelessWidget {
+  const _StepHeading({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Semantics(
+          header: true,
+          child: Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontFamily: AppTheme.displayFontName,
+              fontSize: 28,
+              fontWeight: FontWeight.w600,
+              height: 33 / 28,
+              color: AppTheme.ink,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          subtitle,
+          textAlign: TextAlign.center,
+          style: AppTheme.bodyLead.copyWith(color: AppTheme.inkMuted),
+        ),
+      ],
     );
   }
 }
@@ -151,15 +182,17 @@ class _GoalStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
       children: [
-        const GradientHeader(
-          eyebrow: 'Premium',
+        const _StepHeading(
           title: 'Waar wil je in groeien?',
           subtitle: 'Dan laten we zien wat Premium daarvoor doet.',
         ),
         const SizedBox(height: 24),
         _GoalTile(
+          icon: BqIcons.book,
+          tint: AppTheme.lapisTint,
+          iconColor: AppTheme.lapis,
           label: 'Meer Bijbelkennis',
           description: 'Begrijpen waarom een antwoord klopt.',
           active: selected == _Goal.knowledge,
@@ -167,6 +200,8 @@ class _GoalStep extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         _GoalTile(
+          icon: BqIcons.flame,
+          tint: AppTheme.coralTint,
           label: 'Elke dag iets leren',
           description: 'Een gewoonte opbouwen en vasthouden.',
           active: selected == _Goal.habit,
@@ -174,6 +209,9 @@ class _GoalStep extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         _GoalTile(
+          icon: BqIcons.users,
+          tint: AppTheme.positiveTint,
+          iconColor: AppTheme.positive,
           label: 'Samen spelen',
           description: 'Met familie of een groep tegen elkaar.',
           active: selected == _Goal.together,
@@ -186,12 +224,18 @@ class _GoalStep extends StatelessWidget {
 
 class _GoalTile extends StatelessWidget {
   const _GoalTile({
+    required this.icon,
+    required this.tint,
     required this.label,
     required this.description,
     required this.active,
     required this.onTap,
+    this.iconColor,
   });
 
+  final String icon;
+  final Color tint;
+  final Color? iconColor;
   final String label;
   final String description;
   final bool active;
@@ -199,44 +243,87 @@ class _GoalTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: active ? AppTheme.lapisTint : AppTheme.paperRaised,
-      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-            border: Border.all(
-              color: active ? AppTheme.lapis : AppTheme.rule,
-            ),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                active
-                    ? Icons.radio_button_checked
-                    : Icons.radio_button_unchecked,
-                size: 20,
-                color: active ? AppTheme.lapis : AppTheme.inkMuted,
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(label, style: AppTheme.displayBase),
-                    const SizedBox(height: 3),
-                    Text(description, style: AppTheme.caption),
-                  ],
+    return Semantics(
+      button: true,
+      selected: active,
+      inMutuallyExclusiveGroup: true,
+      onTap: onTap,
+      label: '$label. $description',
+      excludeSemantics: true,
+      child: Material(
+        color: AppTheme.paperRaised,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+          side: active
+              ? const BorderSide(color: AppTheme.lapis, width: 2)
+              : const BorderSide(color: AppTheme.rule),
+        ),
+        child: InkWell(
+          onTap: onTap,
+          highlightColor: AppTheme.ruleSoft.withValues(alpha: 0.6),
+          splashColor: AppTheme.ruleSoft,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                BqIconTile(
+                  background: tint,
+                  size: 40,
+                  child: BqIcon(icon, size: 22, color: iconColor),
                 ),
-              ),
-            ],
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        style: const TextStyle(
+                          fontFamily: AppTheme.sansFontName,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.ink,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(description, style: AppTheme.caption),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                _RadioMark(active: active),
+              ],
+            ),
           ),
         ),
       ),
+    );
+  }
+}
+
+class _RadioMark extends StatelessWidget {
+  const _RadioMark({required this.active});
+
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      width: 24,
+      height: 24,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: active ? AppTheme.lapis : AppTheme.paperRaised,
+        border: active
+            ? null
+            : Border.all(color: AppTheme.ruleStrong, width: 2),
+      ),
+      child: active
+          ? const BqIcon(BqIcons.check, size: 14, color: AppTheme.inkInverted)
+          : null,
     );
   }
 }
@@ -249,25 +336,43 @@ class _ValueStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
       children: [
-        const GradientHeader(
-          eyebrow: 'Met Premium',
+        const _StepHeading(
           title: 'Dit krijg je erbij',
           subtitle: 'Alles in een lidmaatschap, op web en app.',
         ),
         const SizedBox(height: 24),
-        for (final benefit in benefits) ...[
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        BqCard(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(Icons.check, size: 18, color: AppTheme.positive),
-              const SizedBox(width: 12),
-              Expanded(child: Text(benefit, style: AppTheme.bodyLead)),
+              for (var i = 0; i < benefits.length; i++)
+                Padding(
+                  padding: EdgeInsets.only(top: i == 0 ? 0 : 14),
+                  child: Row(
+                    children: [
+                      const PaywallCheck(),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          benefits[i],
+                          style: const TextStyle(
+                            fontFamily: AppTheme.sansFontName,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            height: 20 / 15,
+                            color: AppTheme.ink,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
             ],
           ),
-          const SizedBox(height: 16),
-        ],
+        ),
       ],
     );
   }
@@ -279,20 +384,31 @@ class _ReadyStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
       children: const [
-        GradientHeader(
-          eyebrow: 'Bijna klaar',
+        _StepHeading(
           title: 'Kies je plan',
           subtitle:
               'Op de volgende pagina zie je de prijzen. Opzeggen kan altijd.',
         ),
         SizedBox(height: 24),
-        AppCard(
-          child: Text(
-            'Je account werkt op web en app tegelijk. Een aankoop op je telefoon '
-            'geeft je ook Premium op de website, en andersom.',
-            style: AppTheme.bodyMuted,
+        BqCard(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              BqIconTile(
+                size: 40,
+                child: BqIcon(BqIcons.link, size: 20, color: AppTheme.lapis),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Je account werkt op web en app tegelijk. Een aankoop op je '
+                  'telefoon geeft je ook Premium op de website, en andersom.',
+                  style: AppTheme.bodyMuted,
+                ),
+              ),
+            ],
           ),
         ),
       ],

@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
-import '../../../../core/ui/primary_button.dart';
+
 import 'google_logo_icon.dart';
+import 'social_auth_button.dart';
 
 Widget buildButton({
   required BuildContext context,
   required VoidCallback? onPressed,
   required bool isLoading,
 }) {
-  return PrimaryButton(
-    text: 'Inloggen met Google',
-    isSecondary: true,
-    isLoading: isLoading,
+  return SocialAuthButton(
+    label: 'Doorgaan met Google',
+    icon: const GoogleLogoIcon(size: 18),
+    loading: isLoading,
     onPressed: isLoading ? null : onPressed,
-    leading: const GoogleLogoIcon(size: 20),
   );
 }

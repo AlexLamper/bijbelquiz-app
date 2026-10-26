@@ -121,8 +121,8 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
     );
   }
 
-  /// The line under the title: when the running month ends, or which group is
-  /// on screen.
+  /// The line under the title: what the board counts, or which group is on
+  /// screen.
   String _subtitle(PlayerGroup? group) {
     if (group != null) {
       final count = group.memberCount;
@@ -130,11 +130,9 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
     }
     switch (_selectedRange) {
       case LeaderboardPeriod.month:
-        // The monthly board counts the calendar month, so it runs until the
-        // last day of this month.
-        final now = DateTime.now();
-        final lastDay = DateTime(now.year, now.month + 1, 0).day;
-        return 'Deze maand loopt tot $lastDay ${_monthNames[now.month - 1]}';
+        // The server's monthly board is a rolling window (the last 30 days),
+        // not the calendar month, so no end date is promised here.
+        return 'XP van de afgelopen 30 dagen';
       case LeaderboardPeriod.all:
         return 'Alle XP sinds de start telt mee';
     }
@@ -181,21 +179,6 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
     ];
   }
 }
-
-const List<String> _monthNames = [
-  'januari',
-  'februari',
-  'maart',
-  'april',
-  'mei',
-  'juni',
-  'juli',
-  'augustus',
-  'september',
-  'oktober',
-  'november',
-  'december',
-];
 
 String _formatXp(int value) {
   final digits = value.abs().toString();
@@ -306,6 +289,7 @@ class _TabButton extends StatelessWidget {
       selected: active,
       label: label,
       excludeSemantics: true,
+      onTap: onTap,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
@@ -395,6 +379,7 @@ class _ScopeChip extends StatelessWidget {
         selected: active,
         label: label,
         excludeSemantics: true,
+        onTap: onTap,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: onTap,
@@ -847,6 +832,9 @@ class _ShowMoreRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
+      label: expanded ? 'Toon minder' : 'Toon alle $total spelers',
+      excludeSemantics: true,
+      onTap: onTap,
       child: InkWell(
         onTap: onTap,
         child: SizedBox(
@@ -911,7 +899,7 @@ class _GuestCard extends StatelessWidget {
           const SizedBox(width: 10),
           BqButton(
             label: 'Inloggen',
-            style: BqButtonStyle.secondary,
+            style: BqButtonStyle.tint,
             height: 44,
             expand: false,
             fontSize: 15,

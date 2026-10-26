@@ -208,7 +208,7 @@ class _PremiumUpgradeSheetState extends ConsumerState<_PremiumUpgradeSheet> {
             const SizedBox(height: 16),
             BqButton(
               label: paywallCtaLabel(trial),
-              height: 53,
+              height: 56,
               fontSize: 17,
               radius: 14,
               loading: isLoading,

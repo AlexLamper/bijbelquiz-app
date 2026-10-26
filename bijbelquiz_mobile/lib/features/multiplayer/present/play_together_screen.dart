@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
@@ -7,25 +8,25 @@ import '../../../core/analytics/analytics.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/app_notice.dart';
-import '../../../core/ui/app_widgets.dart';
+import '../../../core/ui/bq.dart';
 import '../../auth/present/auth_controller.dart';
 import '../../groups/data/player_group_repository.dart';
 import '../../groups/domain/player_group.dart';
-import '../../quiz/data/quiz_repository.dart';
-import '../../quiz/domain/quiz.dart';
 import '../data/multiplayer_api_exception.dart';
 import '../domain/multiplayer_models.dart';
 import 'multiplayer_action_controller.dart';
+import 'widgets/host_setup_sheet.dart';
+import 'widgets/mp_ui.dart';
 
-enum _PlayMode { create, join }
+/// Which button is waiting on the server, so only that one shows a spinner.
+enum _Pending { create, join, invite }
 
-/// Room sizes offered, matching `PLAYER_OPTIONS` on the website. The last rung
-/// is replaced by whatever ceiling the server reports for Premium.
-const List<int> _basePlayerOptions = [2, 3, 4, 6, 8, 10, 12];
-
-/// Seconds per question the host may pick. `0` hands every step to the host.
-const List<int> _tempoOptions = [0, 30, 60, 90];
-
+/// Samen spelen: make a room as host, or join one with a code.
+///
+/// Reached from Quizzen and still inside the tab shell, so the Quizzen tab
+/// stays lit and the back button returns there. The quiz picker and the host
+/// options (room size, read the chapter first, tempo) live in a bottom sheet
+/// behind "Kies een quiz".
 class PlayTogetherScreen extends ConsumerStatefulWidget {
   const PlayTogetherScreen({super.key});
 
@@ -35,9 +36,10 @@ class PlayTogetherScreen extends ConsumerStatefulWidget {
 
 class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
   final TextEditingController _roomCodeController = TextEditingController();
+  final FocusNode _codeFocus = FocusNode();
 
+  /// The last host setup, so reopening the sheet starts where the host was.
   String? _selectedQuizId;
-  _PlayMode _mode = _PlayMode.create;
 
   /// Room size the host picked. Starts at the free cap, so the first thing a
   /// new host sees is a number they can actually use.
@@ -50,10 +52,53 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
   /// Seconds per question. `0` = the host advances every step by hand.
   int _questionTimerSeconds = 0;
 
+  _Pending? _pending;
+  String? _pendingGroupId;
+
   @override
   void dispose() {
     _roomCodeController.dispose();
+    _codeFocus.dispose();
     super.dispose();
+  }
+
+  // -------------------------------------------------------------------------
+  // Actions
+  // -------------------------------------------------------------------------
+
+  /// Opens the quiz picker + host options. With a [group], the room that comes
+  /// out of it is shared with that group straight away.
+  Future<void> _openHostSetup({PlayerGroup? group}) async {
+    final capability = ref.read(multiplayerCapabilityProvider).asData?.value;
+    final setup = await showHostSetupSheet(
+      context,
+      initialQuizId: _selectedQuizId,
+      initialMaxPlayers: _maxPlayers,
+      initialReadChapterFirst: _readChapterFirst,
+      initialQuestionTimerSeconds: _questionTimerSeconds,
+      capability: capability,
+      confirmLabel: group == null ? 'Kamer maken' : 'Maak kamer en nodig uit',
+      hint: group == null ? null : 'Daarna nodigen we ${group.name} uit.',
+    );
+    if (setup == null || !mounted) return;
+
+    setState(() {
+      _selectedQuizId = setup.quiz.id;
+      _maxPlayers = setup.maxPlayers;
+      _readChapterFirst = setup.readChapterFirst;
+      _questionTimerSeconds = setup.questionTimerSeconds;
+    });
+
+    if (setup.upgradeRequested) {
+      _openPlayerCapPaywall();
+      return;
+    }
+
+    if (group == null) {
+      await _createRoom();
+    } else {
+      await _reinviteGroup(group);
+    }
   }
 
   Future<void> _createRoom() async {
@@ -67,6 +112,7 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
       return;
     }
 
+    setState(() => _pending = _Pending.create);
     try {
       final room = await ref
           .read(multiplayerActionControllerProvider.notifier)
@@ -91,7 +137,10 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
         context.push('/premium?reden=host_quota_exhausted');
       }
     } catch (error) {
+      if (!mounted) return;
       _showError(error);
+    } finally {
+      if (mounted) setState(() => _pending = null);
     }
   }
 
@@ -111,6 +160,8 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
       return;
     }
 
+    _codeFocus.unfocus();
+    setState(() => _pending = _Pending.join);
     try {
       final room = await ref
           .read(multiplayerActionControllerProvider.notifier)
@@ -118,7 +169,10 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
       if (!mounted) return;
       context.push('/play-together/room/${room.code}');
     } catch (error) {
+      if (!mounted) return;
       _showError(error);
+    } finally {
+      if (mounted) setState(() => _pending = null);
     }
   }
 
@@ -139,25 +193,15 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
     }
   }
 
-  Future<void> _startRoomForQuiz(String quizId) async {
-    setState(() {
-      _mode = _PlayMode.create;
-      _selectedQuizId = quizId;
-    });
-
-    await _createRoom();
-  }
-
   /// Opens a room and hands the group's invite straight to the share sheet.
   ///
   /// The whole value of a saved group is not having to reassemble it: one tap
   /// makes the room and puts the link in front of the same chat that played
   /// last time. It still needs a quiz, because a room without one is nothing to
-  /// invite anybody to.
+  /// invite anybody to - the setup sheet asks for it first.
   Future<void> _reinviteGroup(PlayerGroup group) async {
     final quizId = _selectedQuizId;
     if (quizId == null || quizId.isEmpty) {
-      setState(() => _mode = _PlayMode.create);
       _showMessage('Kies eerst een quiz, dan nodigen we ${group.name} uit.');
       return;
     }
@@ -167,6 +211,10 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
       return;
     }
 
+    setState(() {
+      _pending = _Pending.invite;
+      _pendingGroupId = group.id;
+    });
     try {
       final room = await ref
           .read(multiplayerActionControllerProvider.notifier)
@@ -200,7 +248,7 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
         );
       } catch (_) {
         // No share target, or the sheet was dismissed. The room exists either
-        // way and the lobby below shows the code.
+        // way and the lobby shows the code.
       }
 
       if (!mounted) return;
@@ -216,227 +264,14 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
     } catch (error) {
       if (!mounted) return;
       _showError(error);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _pending = null;
+          _pendingGroupId = null;
+        });
+      }
     }
-  }
-
-  /// Hosting and joining both need an account: the room keeps a player by
-  /// their account, and the host's free games are counted on it. The rest of
-  /// the app plays signed out, so this is said here rather than as a 401.
-  Widget _buildSignedOut(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.paper,
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
-          children: [
-            const GradientHeader(
-              eyebrow: 'Samen spelen',
-              title: 'Speciaal ontworpen voor groepen',
-              subtitle:
-                  'Van gezin tot jeugdvereniging - iedereen speelt mee. Geen '
-                  'installatie, gewoon een code delen en direct beginnen.',
-            ),
-            const SizedBox(height: 28),
-            AppEmptyState(
-              icon: Icons.groups_outlined,
-              title: 'Log in om samen te spelen',
-              description:
-                  'Een kamer maken of meedoen kan met een gratis account, '
-                  'zodat je naam en score in de kamer kloppen.',
-              action: SiteButton(
-                label: 'Inloggen',
-                expand: false,
-                height: 44,
-                onPressed: () => context.push('/login'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final hasSession = ref.watch(hasSessionProvider).asData?.value ?? true;
-    if (!hasSession) return _buildSignedOut(context);
-
-    // Premium quizzes are excluded from the multiplayer picker: a host must not
-    // be able to route a whole room past the premium-quiz gate.
-    final quizzesAsync = ref.watch(
-      quizzesProvider(const QuizQuery(limit: 25, includePremium: false)),
-    );
-    final actionState = ref.watch(multiplayerActionControllerProvider);
-    final capability = ref.watch(multiplayerCapabilityProvider).asData?.value;
-
-    // Unknown while the capability call is in flight: hosting stays open, and
-    // the server refuses with its own message if the quota is actually spent.
-    final hostingLocked = capability?.canCreateRoom == false;
-    final freeGamesLeft = capability?.freeRoomsRemaining;
-    final onMonthlyAllowance = capability?.onMonthlyAllowance ?? false;
-    final isPremiumHost = capability?.isPremium ?? false;
-    final maxPlayersFree = capability?.maxPlayersFree ?? 4;
-    final maxPlayersPremium = capability?.maxPlayersPremium ?? 20;
-
-    return Scaffold(
-      backgroundColor: AppTheme.paper,
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
-          children: [
-            const GradientHeader(
-              eyebrow: 'Samen spelen',
-              title: 'Speciaal ontworpen voor groepen',
-              subtitle:
-                  'Van gezin tot jeugdvereniging - iedereen speelt mee. Geen '
-                  'installatie, gewoon een code delen en direct beginnen.',
-            ),
-            const SizedBox(height: 28),
-            // A game survives a crash, a reboot or an incoming call: the room
-            // lives on the server, so the way back into it is offered here
-            // rather than leaving the player to remember the code.
-            ref
-                .watch(activeMultiplayerRoomProvider)
-                .maybeWhen(
-                  data: (room) => room == null
-                      ? const SizedBox.shrink()
-                      : Padding(
-                          padding: const EdgeInsets.only(bottom: 24),
-                          child: _ResumeRoomCard(
-                            room: room,
-                            onResume: () => _openRoom(room),
-                          ),
-                        ),
-                  orElse: () => const SizedBox.shrink(),
-                ),
-            // Mode toggle - same button pair as the site's filter row.
-            Row(
-              children: [
-                _ModeButton(
-                  label: 'Kamer maken',
-                  active: _mode == _PlayMode.create,
-                  locked: hostingLocked,
-                  onTap: () => setState(() => _mode = _PlayMode.create),
-                ),
-                const SizedBox(width: 8),
-                _ModeButton(
-                  label: 'Deelnemen',
-                  active: _mode == _PlayMode.join,
-                  onTap: () => setState(() => _mode = _PlayMode.join),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 180),
-              child: _mode == _PlayMode.create
-                  ? _CreateRoomForm(
-                      key: const ValueKey('create-form'),
-                      quizzesAsync: quizzesAsync,
-                      selectedQuizId: _selectedQuizId,
-                      isBusy: actionState.isLoading,
-                      hasPremiumAccess: !hostingLocked,
-                      freeGamesLeft: freeGamesLeft,
-                      onMonthlyAllowance: onMonthlyAllowance,
-                      isPremiumHost: isPremiumHost,
-                      maxPlayers: _maxPlayers,
-                      maxPlayersFree: maxPlayersFree,
-                      maxPlayersPremium: maxPlayersPremium,
-                      readChapterFirst: _readChapterFirst,
-                      questionTimerSeconds: _questionTimerSeconds,
-                      onSelectQuiz: (id) {
-                        setState(() {
-                          _selectedQuizId = id;
-                        });
-                      },
-                      onSelectMaxPlayers: (count) {
-                        if (count == null) return;
-                        setState(() {
-                          _maxPlayers = count;
-                        });
-                      },
-                      onToggleReadChapterFirst: (value) {
-                        setState(() {
-                          _readChapterFirst = value;
-                        });
-                      },
-                      onSelectTempo: (seconds) {
-                        setState(() {
-                          _questionTimerSeconds = seconds;
-                        });
-                      },
-                      onPlayerCapUpgrade: _openPlayerCapPaywall,
-                      onCreateRoom: _createRoom,
-                      onUpgrade: () {
-                        context.push('/premium?reden=host_quota_exhausted');
-                      },
-                    )
-                  : _JoinRoomForm(
-                      key: const ValueKey('join-form'),
-                      controller: _roomCodeController,
-                      isBusy: actionState.isLoading,
-                      onJoin: _joinRoom,
-                    ),
-            ),
-            // Saved groups, if any. Placed above "Zo werkt het" because a
-            // returning host is not reading the explainer again - they are
-            // here to get the same eight people back in a room.
-            ...(() {
-              final groups =
-                  ref.watch(playerGroupsProvider).asData?.value ??
-                  const <PlayerGroup>[];
-              if (groups.isEmpty) return const <Widget>[];
-
-              return [
-                const SizedBox(height: 44),
-                const SectionHeader(
-                  eyebrow: 'Je groepen',
-                  title: 'Nodig ze zo weer uit',
-                  description:
-                      'Kies een quiz en stuur je groep in een tik een nieuwe '
-                      'uitnodiging.',
-                ),
-                const SizedBox(height: 24),
-                RuleGrid(
-                  children: [
-                    for (final group in groups)
-                      _SavedGroupRow(
-                        group: group,
-                        isBusy: actionState.isLoading,
-                        onReinvite: () => _reinviteGroup(group),
-                      ),
-                  ],
-                ),
-              ];
-            })(),
-            const SizedBox(height: 44),
-            const SectionHeader(
-              eyebrow: 'Zo werkt het',
-              title: 'In drie stappen',
-            ),
-            const SizedBox(height: 24),
-            const _HowItWorksGrid(),
-            const SizedBox(height: 44),
-            SectionHeader(
-              eyebrow: 'Snelstart',
-              title: 'Start direct een kamer',
-              description:
-                  'Kies een quiz en open meteen een nieuwe kamer voor je groep.',
-            ),
-            const SizedBox(height: 24),
-            _QuickStartQuizzes(
-              quizzesAsync: quizzesAsync,
-              isBusy: actionState.isLoading,
-              hasPremiumAccess: !hostingLocked,
-              onStartRoom: _startRoomForQuiz,
-              onUpgrade: () {
-                context.push('/premium?reden=host_quota_exhausted');
-              },
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   /// Whether the picked room size is above what this account may host.
@@ -470,9 +305,300 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
   void _showError(Object error) {
     AppNotice.error(context, error);
   }
+
+  // -------------------------------------------------------------------------
+  // Build
+  // -------------------------------------------------------------------------
+
+  void _back() => context.go('/quizzes');
+
+  @override
+  Widget build(BuildContext context) {
+    final hasSession = ref.watch(hasSessionProvider).asData?.value ?? true;
+    if (!hasSession) return _buildSignedOut(context);
+
+    final actionState = ref.watch(multiplayerActionControllerProvider);
+    final capability = ref.watch(multiplayerCapabilityProvider).asData?.value;
+    final busy = actionState.isLoading || _pending != null;
+
+    // Unknown while the capability call is in flight: hosting stays open, and
+    // the server refuses with its own message if the quota is actually spent.
+    final hostingLocked = capability?.canCreateRoom == false;
+    final maxPlayersPremium = capability?.maxPlayersPremium ?? 20;
+
+    // A game survives a crash, a reboot or an incoming call: the room lives on
+    // the server, so the way back into it is offered here rather than leaving
+    // the player to remember the code.
+    final activeRoom = ref.watch(activeMultiplayerRoomProvider).asData?.value;
+
+    final groups =
+        ref.watch(playerGroupsProvider).asData?.value ?? const <PlayerGroup>[];
+
+    return Scaffold(
+      backgroundColor: AppTheme.paper,
+      body: SafeArea(
+        bottom: false,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          children: [
+            MpHeader(
+              title: 'Samen spelen',
+              buttonLabel: 'Terug',
+              onButton: _back,
+            ),
+            const SizedBox(height: 16),
+            _Intro(maxPlayers: maxPlayersPremium),
+            const SizedBox(height: 16),
+            if (activeRoom != null) ...[
+              _ResumeRoomCard(
+                room: activeRoom,
+                onResume: () => _openRoom(activeRoom),
+              ),
+              const SizedBox(height: 16),
+            ],
+            _CreateRoomCard(
+              hostingLocked: hostingLocked,
+              capability: capability,
+              busy: busy,
+              loading: _pending == _Pending.create,
+              onChooseQuiz: () => _openHostSetup(),
+              onUpgrade: () =>
+                  context.push('/premium?reden=host_quota_exhausted'),
+            ),
+            const SizedBox(height: 16),
+            _JoinRoomCard(
+              controller: _roomCodeController,
+              focusNode: _codeFocus,
+              busy: busy,
+              loading: _pending == _Pending.join,
+              onJoin: _joinRoom,
+            ),
+            // Saved groups, if any: a returning host is here to get the same
+            // eight people back in a room.
+            if (groups.isNotEmpty) ...[
+              const SizedBox(height: 28),
+              const BqSectionHeader(title: 'Je groepen'),
+              const SizedBox(height: 2),
+              const Text(
+                'Kies een quiz en stuur je groep in een tik een nieuwe '
+                'uitnodiging.',
+                style: AppTheme.caption,
+              ),
+              const SizedBox(height: 10),
+              BqListCard(
+                children: [
+                  for (final group in groups)
+                    _SavedGroupRow(
+                      group: group,
+                      busy: busy,
+                      loading:
+                          _pending == _Pending.invite &&
+                          _pendingGroupId == group.id,
+                      onReinvite: () => _openHostSetup(group: group),
+                    ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Hosting and joining both need an account: the room keeps a player by
+  /// their account, and the host's free games are counted on it. The rest of
+  /// the app plays signed out, so this is said here rather than as a 401.
+  Widget _buildSignedOut(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppTheme.paper,
+      body: SafeArea(
+        bottom: false,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+          children: [
+            MpHeader(
+              title: 'Samen spelen',
+              buttonLabel: 'Terug',
+              onButton: _back,
+            ),
+            const SizedBox(height: 16),
+            const _Intro(maxPlayers: 20),
+            const SizedBox(height: 16),
+            BqCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const _CardHeading(
+                    icon: BqIcons.user,
+                    title: 'Log in om samen te spelen',
+                  ),
+                  const SizedBox(height: 14),
+                  const Text(
+                    'Een kamer maken of meedoen kan met een gratis account, '
+                    'zodat je naam en score in de kamer kloppen.',
+                    style: AppTheme.bodyLead,
+                  ),
+                  const SizedBox(height: 14),
+                  BqButton(
+                    label: 'Inloggen',
+                    onPressed: () => context.push('/login'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
-/// `h-9 rounded-md border-rule bg-paper-raised px-4` / active `bg-ink`.
+// ---------------------------------------------------------------------------
+// Pieces
+// ---------------------------------------------------------------------------
+
+class _Intro extends StatelessWidget {
+  const _Intro({required this.maxPlayers});
+
+  final int maxPlayers;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Iedereen speelt tegelijk dezelfde quiz, ieder op een eigen telefoon.',
+          style: AppTheme.bodyLead,
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            const BqIcon(BqIcons.users, size: 18, color: AppTheme.lapis),
+            const SizedBox(width: 8),
+            Text(
+              'Tot $maxPlayers spelers per kamer',
+              style: AppTheme.caption.copyWith(fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Icon tile + Fredoka title (+ optional muted subtitle) at the top of a card.
+class _CardHeading extends StatelessWidget {
+  const _CardHeading({required this.icon, required this.title, this.subtitle});
+
+  final String icon;
+  final String title;
+  final String? subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        BqIconTile(child: BqIcon(icon, size: 22, color: AppTheme.lapis)),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                title,
+                style: AppTheme.displayTitle.copyWith(
+                  fontSize: 20,
+                  height: 26 / 20,
+                ),
+              ),
+              if (subtitle != null) ...[
+                const SizedBox(height: 2),
+                Text(subtitle!, style: AppTheme.caption),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CreateRoomCard extends StatelessWidget {
+  const _CreateRoomCard({
+    required this.hostingLocked,
+    required this.capability,
+    required this.busy,
+    required this.loading,
+    required this.onChooseQuiz,
+    required this.onUpgrade,
+  });
+
+  final bool hostingLocked;
+  final MultiplayerCapability? capability;
+  final bool busy;
+  final bool loading;
+  final VoidCallback onChooseQuiz;
+  final VoidCallback onUpgrade;
+
+  @override
+  Widget build(BuildContext context) {
+    final freeGamesLeft = capability?.freeRoomsRemaining;
+    final maxPlayersPremium = capability?.maxPlayersPremium ?? 20;
+
+    return BqCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const _CardHeading(
+            icon: BqIcons.plus,
+            title: 'Kamer maken',
+            subtitle: 'Jij bent de host',
+          ),
+          const SizedBox(height: 14),
+          if (hostingLocked) ...[
+            MpNotice(
+              tone: MpNoticeTone.info,
+              title: 'Je gratis spellen zijn op',
+              message:
+                  'Met Premium host je onbeperkt kamers, tot '
+                  '$maxPlayersPremium spelers tegelijk. Deelnemen met een '
+                  'kamercode blijft altijd gratis.',
+            ),
+            const SizedBox(height: 14),
+            BqButton(label: 'Bekijk Premium', onPressed: onUpgrade),
+          ] else ...[
+            const Text(
+              'Kies een quiz, deel de code met je groep en start als iedereen '
+              'er is.',
+              style: AppTheme.bodyLead,
+            ),
+            // Two games out, the counter stops being a footnote and becomes a
+            // notice. Meeting the wall for the first time in a lobby full of
+            // waiting people is the one experience this has to prevent.
+            if (freeGamesLeft != null && freeGamesLeft <= 2) ...[
+              const SizedBox(height: 14),
+              _FreeGamesWarning(
+                remaining: freeGamesLeft,
+                monthly: capability?.onMonthlyAllowance ?? false,
+                onUpgrade: onUpgrade,
+              ),
+            ],
+            const SizedBox(height: 14),
+            BqButton(
+              label: 'Kies een quiz',
+              loading: loading,
+              onPressed: busy ? null : onChooseQuiz,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 /// The last-two-games notice.
 ///
 /// Deliberately states a fact rather than pressuring: the number is real, the
@@ -498,10 +624,10 @@ class _FreeGamesWarning extends StatelessWidget {
     final isLast = remaining <= 1;
 
     final label = monthly
-        ? 'JE SPEL VAN DEZE MAAND'
+        ? 'Je spel van deze maand'
         : isLast
-        ? 'LAATSTE GRATIS SPEL'
-        : 'NOG $remaining GRATIS SPELLEN';
+        ? 'Laatste gratis spel'
+        : 'Nog $remaining gratis spellen';
 
     final body = monthly
         ? 'Dit is je gratis spel voor deze maand. Volgende maand krijg je er '
@@ -512,79 +638,59 @@ class _FreeGamesWarning extends StatelessWidget {
         : 'Je hebt nog $remaining gratis spellen om te hosten. Een spel telt '
               'pas mee zodra je hem echt start.';
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.vermilionTint,
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(color: AppTheme.vermilion.withValues(alpha: 0.35)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: AppTheme.overline.copyWith(color: AppTheme.vermilion),
-          ),
-          const SizedBox(height: 8),
-          Text(body, style: AppTheme.bodyMuted),
-          const SizedBox(height: 12),
-          SiteOutlineButton(
-            label: 'Bekijk Premium',
-            expand: false,
-            height: 38,
-            onPressed: onUpgrade,
-          ),
-        ],
+    return MpNotice(
+      tone: MpNoticeTone.info,
+      title: label,
+      message: body,
+      action: MpSecondaryButton(
+        label: 'Bekijk Premium',
+        height: 44,
+        expand: false,
+        fontSize: 14,
+        onPressed: onUpgrade,
       ),
     );
   }
 }
 
-/// One saved group, with its re-invite action.
-class _SavedGroupRow extends StatelessWidget {
-  const _SavedGroupRow({
-    required this.group,
-    required this.isBusy,
-    required this.onReinvite,
+class _JoinRoomCard extends StatelessWidget {
+  const _JoinRoomCard({
+    required this.controller,
+    required this.focusNode,
+    required this.busy,
+    required this.loading,
+    required this.onJoin,
   });
 
-  final PlayerGroup group;
-  final bool isBusy;
-  final VoidCallback onReinvite;
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final bool busy;
+  final bool loading;
+  final Future<void> Function() onJoin;
 
   @override
   Widget build(BuildContext context) {
-    final memberLabel = group.memberCount == 1
-        ? '1 speler'
-        : '${group.memberCount} spelers';
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: Row(
+    return BqCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  group.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTheme.bodyStrong,
-                ),
-                const SizedBox(height: 5),
-                Text(memberLabel.toUpperCase(), style: AppTheme.overline),
-              ],
-            ),
+          const _CardHeading(
+            icon: BqIcons.enter,
+            title: 'Meedoen met code',
+            subtitle: 'De host deelt een code van 6 tekens',
           ),
-          const SizedBox(width: 12),
-          SiteOutlineButton(
-            label: 'Uitnodigen',
-            icon: Icons.ios_share,
-            expand: false,
-            height: 36,
-            onPressed: isBusy ? null : onReinvite,
+          const SizedBox(height: 14),
+          _CodeBoxes(
+            controller: controller,
+            focusNode: focusNode,
+            enabled: !busy,
+            onSubmitted: onJoin,
+          ),
+          const SizedBox(height: 14),
+          MpSecondaryButton(
+            label: 'Meedoen',
+            loading: loading,
+            onPressed: busy ? null : onJoin,
           ),
         ],
       ),
@@ -592,7 +698,155 @@ class _SavedGroupRow extends StatelessWidget {
   }
 }
 
-/// "You still have a game running" banner.
+/// Six code boxes over one invisible text field, so typing, pasting and the
+/// keyboard's "go" key all work like a normal input.
+class _CodeBoxes extends StatelessWidget {
+  const _CodeBoxes({
+    required this.controller,
+    required this.focusNode,
+    required this.enabled,
+    required this.onSubmitted,
+  });
+
+  static const int length = 6;
+
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final bool enabled;
+  final Future<void> Function() onSubmitted;
+
+  @override
+  Widget build(BuildContext context) {
+    const none = OutlineInputBorder(borderSide: BorderSide.none);
+
+    return Semantics(
+      container: true,
+      label: 'Kamercode, $length tekens',
+      child: SizedBox(
+        height: 56,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: ExcludeSemantics(
+                child: ListenableBuilder(
+                  listenable: Listenable.merge([controller, focusNode]),
+                  builder: (context, _) {
+                    final text = controller.text;
+                    final focused = focusNode.hasFocus;
+                    return Row(
+                      children: [
+                        for (var i = 0; i < length; i++) ...[
+                          if (i > 0) const SizedBox(width: 8),
+                          Expanded(
+                            child: _CodeBox(
+                              char: i < text.length ? text[i] : '',
+                              filled: i < text.length,
+                              active: focused && i == text.length,
+                            ),
+                          ),
+                        ],
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: TextField(
+                controller: controller,
+                focusNode: focusNode,
+                enabled: enabled,
+                autocorrect: false,
+                enableSuggestions: false,
+                showCursor: false,
+                keyboardType: TextInputType.visiblePassword,
+                textCapitalization: TextCapitalization.characters,
+                textInputAction: TextInputAction.go,
+                onSubmitted: (_) => onSubmitted(),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp('[A-Za-z0-9]')),
+                  const _UpperCaseFormatter(),
+                  LengthLimitingTextInputFormatter(length),
+                ],
+                cursorColor: Colors.transparent,
+                style: const TextStyle(
+                  color: Colors.transparent,
+                  fontSize: 1,
+                  height: 1,
+                ),
+                decoration: const InputDecoration(
+                  isCollapsed: true,
+                  filled: false,
+                  counterText: '',
+                  contentPadding: EdgeInsets.zero,
+                  border: none,
+                  enabledBorder: none,
+                  focusedBorder: none,
+                  disabledBorder: none,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CodeBox extends StatelessWidget {
+  const _CodeBox({
+    required this.char,
+    required this.filled,
+    required this.active,
+  });
+
+  final String char;
+  final bool filled;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 120),
+      decoration: BoxDecoration(
+        color: filled || active ? AppTheme.paperRaised : mpSunken,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        border: active
+            ? Border.all(color: AppTheme.lapis, width: 2)
+            : const Border(
+                top: BorderSide(color: AppTheme.rule),
+                left: BorderSide(color: AppTheme.rule),
+                right: BorderSide(color: AppTheme.rule),
+                bottom: BorderSide(color: AppTheme.rule, width: 3),
+              ),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        char,
+        style: const TextStyle(
+          fontFamily: AppTheme.sansFontName,
+          fontSize: 22,
+          fontWeight: FontWeight.w800,
+          color: AppTheme.ink,
+        ),
+      ),
+    );
+  }
+}
+
+class _UpperCaseFormatter extends TextInputFormatter {
+  const _UpperCaseFormatter();
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    return newValue.copyWith(text: newValue.text.toUpperCase());
+  }
+}
+
+/// "You still have a game running" card.
 class _ResumeRoomCard extends StatelessWidget {
   const _ResumeRoomCard({required this.room, required this.onResume});
 
@@ -606,730 +860,107 @@ class _ResumeRoomCard extends StatelessWidget {
       MultiplayerRoomStatus.finished => 'Je laatste spel is afgelopen',
       _ => 'Je spel loopt nog',
     };
+    final quizTitle = room.quizTitle.isEmpty
+        ? 'Multiplayer quiz'
+        : room.quizTitle;
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppTheme.lapisTint,
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(color: AppTheme.lapis.withValues(alpha: 0.35)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'HERVATTEN',
-            style: AppTheme.overline.copyWith(color: AppTheme.lapis),
-          ),
-          const SizedBox(height: 12),
-          Text(label, style: AppTheme.displaySmall),
-          const SizedBox(height: 6),
-          Text(
-            '${room.quizTitle.isEmpty ? 'Multiplayer quiz' : room.quizTitle} '
-            '- kamer ${room.code}',
-            style: AppTheme.bodyMuted,
-          ),
-          const SizedBox(height: 18),
-          SiteButton(
-            label: 'Ga verder',
-            trailingIcon: Icons.arrow_forward,
-            onPressed: onResume,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ModeButton extends StatelessWidget {
-  const _ModeButton({
-    required this.label,
-    required this.active,
-    required this.onTap,
-    this.locked = false,
-  });
-
-  final String label;
-  final bool active;
-  final VoidCallback onTap;
-  final bool locked;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: active ? AppTheme.ink : AppTheme.paperRaised,
-      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        onTap: onTap,
-        child: Container(
-          height: 38,
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-            border: Border.all(color: active ? AppTheme.ink : AppTheme.rule),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (locked) ...[
-                Icon(
-                  Icons.lock_outline,
-                  size: 13,
-                  color: active ? AppTheme.inkInverted : AppTheme.inkMuted,
-                ),
-                const SizedBox(width: 7),
-              ],
-              Text(
-                label,
-                style: TextStyle(
-                  fontFamily: AppTheme.sansFontName,
-                  color: active ? AppTheme.inkInverted : AppTheme.ink,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CreateRoomForm extends StatelessWidget {
-  const _CreateRoomForm({
-    super.key,
-    required this.quizzesAsync,
-    required this.selectedQuizId,
-    required this.isBusy,
-    required this.hasPremiumAccess,
-    required this.freeGamesLeft,
-    required this.onMonthlyAllowance,
-    required this.isPremiumHost,
-    required this.maxPlayers,
-    required this.maxPlayersFree,
-    required this.maxPlayersPremium,
-    required this.readChapterFirst,
-    required this.questionTimerSeconds,
-    required this.onSelectQuiz,
-    required this.onSelectMaxPlayers,
-    required this.onToggleReadChapterFirst,
-    required this.onSelectTempo,
-    required this.onPlayerCapUpgrade,
-    required this.onCreateRoom,
-    required this.onUpgrade,
-  });
-
-  final AsyncValue<List<Quiz>> quizzesAsync;
-  final String? selectedQuizId;
-  final bool isBusy;
-  final bool hasPremiumAccess;
-
-  /// Free hosted games left, or null for Premium (unlimited) and while the
-  /// capability call is still in flight.
-  final int? freeGamesLeft;
-
-  /// True once the discovery pack is spent: the number above then counts this
-  /// month rather than a lifetime allowance.
-  final bool onMonthlyAllowance;
-
-  /// Whether this account may host at the premium ceiling. Separate from
-  /// [hasPremiumAccess], which is about the free-game quota: an account with
-  /// games left still only gets four seats.
-  final bool isPremiumHost;
-
-  /// Room size the host picked, and the two ceilings it is judged against.
-  final int maxPlayers;
-  final int maxPlayersFree;
-  final int maxPlayersPremium;
-
-  /// The two new host options: read the chapter first, and seconds per question
-  /// (`0` = the host advances every step by hand).
-  final bool readChapterFirst;
-  final int questionTimerSeconds;
-
-  final ValueChanged<String?> onSelectQuiz;
-  final ValueChanged<int?> onSelectMaxPlayers;
-  final ValueChanged<bool> onToggleReadChapterFirst;
-  final ValueChanged<int> onSelectTempo;
-  final VoidCallback onPlayerCapUpgrade;
-  final Future<void> Function() onCreateRoom;
-  final VoidCallback onUpgrade;
-
-  @override
-  Widget build(BuildContext context) {
-    // The premium ceiling replaces the last rung rather than being appended,
-    // so a server that lowers it never leaves an unreachable option behind.
-    final playerOptions = <int>{
-      ..._basePlayerOptions.where((count) => count < maxPlayersPremium),
-      maxPlayersPremium,
-    }.toList()..sort();
-    final playerCapExceeded = !isPremiumHost && maxPlayers > maxPlayersFree;
-
-    if (!hasPremiumAccess) {
-      // `dark:bg-lapis/10 border-lapis/35` - the site's accent notice block.
-      return Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: AppTheme.lapisTint,
-          borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-          border: Border.all(color: AppTheme.lapis.withValues(alpha: 0.35)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Semantics(
+      button: true,
+      label: '$label. $quizTitle, kamer ${room.code}. Ga verder',
+      excludeSemantics: true,
+      child: BqCard(
+        onTap: onResume,
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        child: Row(
           children: [
-            const Eyebrow('Gratis spellen op'),
-            const SizedBox(height: 16),
-            const Text(
-              'Je gratis spellen zijn op',
-              style: AppTheme.displaySmall,
+            const BqIconTile(
+              child: BqIcon(BqIcons.enter, size: 20, color: AppTheme.lapis),
             ),
-            const SizedBox(height: 10),
-            const Text(
-              'Met Premium host je onbeperkt kamers, tot 20 spelers tegelijk. '
-              'Deelnemen met een kamercode blijft altijd gratis.',
-              style: AppTheme.bodyMuted,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'HERVATTEN',
+                    style: AppTheme.eyebrow.copyWith(color: AppTheme.lapis),
+                  ),
+                  Text(label, style: AppTheme.bodyStrong),
+                  Text(
+                    '$quizTitle - kamer ${room.code}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTheme.caption,
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 20),
-            SiteButton(
-              label: 'Bekijk Premium',
-              trailingIcon: Icons.arrow_forward,
-              onPressed: onUpgrade,
+            const SizedBox(width: 8),
+            const BqIcon(
+              BqIcons.chevronRight,
+              size: 18,
+              color: AppTheme.inkFaint,
             ),
           ],
         ),
-      );
-    }
-
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Text('NIEUWE KAMER', style: AppTheme.overline),
-          const SizedBox(height: 8),
-          Text(
-            isPremiumHost
-                ? 'Jij bent spelleider en kunt tot $maxPlayersPremium spelers '
-                      'uitnodigen.'
-                : 'Gratis tot $maxPlayersFree spelers. Een gratis spel telt '
-                      'pas mee als je het spel echt start.',
-            style: AppTheme.caption,
-          ),
-          const SizedBox(height: 16),
-          // Two games out, the counter stops being a footnote and becomes a
-          // notice. Meeting the wall for the first time in a lobby full of
-          // waiting people is the one experience this has to prevent.
-          ...switch (freeGamesLeft) {
-            null => const <Widget>[],
-            final int left when left <= 2 => <Widget>[
-              _FreeGamesWarning(
-                remaining: left,
-                monthly: onMonthlyAllowance,
-                onUpgrade: onUpgrade,
-              ),
-              const SizedBox(height: 16),
-            ],
-            final int left => <Widget>[
-              Text(
-                'Je hebt nog $left gratis spellen om te hosten.',
-                style: AppTheme.caption,
-              ),
-              const SizedBox(height: 16),
-            ],
-          },
-          quizzesAsync.when(
-            data: (quizzes) {
-              if (quizzes.isEmpty) {
-                return const Text(
-                  'Geen quizzen gevonden om een kamer te starten.',
-                  style: AppTheme.bodyMuted,
-                );
-              }
-
-              final effectiveValue =
-                  (selectedQuizId == null ||
-                      quizzes.every((quiz) => quiz.id != selectedQuizId))
-                  ? quizzes.first.id
-                  : selectedQuizId;
-
-              if (effectiveValue != selectedQuizId) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  onSelectQuiz(effectiveValue);
-                });
-              }
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Text('KIES EEN QUIZ', style: AppTheme.overline),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    value: effectiveValue,
-                    isExpanded: true,
-                    icon: const Icon(
-                      Icons.keyboard_arrow_down,
-                      size: 18,
-                      color: AppTheme.inkMuted,
-                    ),
-                    dropdownColor: AppTheme.paperRaised,
-                    borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-                    style: const TextStyle(
-                      fontFamily: AppTheme.sansFontName,
-                      fontSize: 15,
-                      color: AppTheme.ink,
-                    ),
-                    decoration: const InputDecoration(
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 15,
-                      ),
-                    ),
-                    items: quizzes
-                        .map(
-                          (quiz) => DropdownMenuItem<String>(
-                            value: quiz.id,
-                            child: Text(
-                              quiz.title,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        )
-                        .toList(),
-                    selectedItemBuilder: (context) {
-                      return quizzes
-                          .map(
-                            (quiz) => Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                quiz.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          )
-                          .toList();
-                    },
-                    onChanged: isBusy ? null : onSelectQuiz,
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'MAXIMAAL AANTAL SPELERS',
-                    style: AppTheme.overline,
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<int>(
-                    value: playerOptions.contains(maxPlayers)
-                        ? maxPlayers
-                        : maxPlayersFree,
-                    isExpanded: true,
-                    icon: const Icon(
-                      Icons.keyboard_arrow_down,
-                      size: 18,
-                      color: AppTheme.inkMuted,
-                    ),
-                    dropdownColor: AppTheme.paperRaised,
-                    borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-                    style: const TextStyle(
-                      fontFamily: AppTheme.sansFontName,
-                      fontSize: 15,
-                      color: AppTheme.ink,
-                    ),
-                    decoration: const InputDecoration(
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 15,
-                      ),
-                    ),
-                    items: [
-                      for (final count in playerOptions)
-                        DropdownMenuItem<int>(
-                          value: count,
-                          child: Row(
-                            children: [
-                              Text('$count spelers'),
-                              if (!isPremiumHost && count > maxPlayersFree) ...[
-                                const SizedBox(width: 10),
-                                const SiteBadge.lapis('PREMIUM'),
-                              ],
-                            ],
-                          ),
-                        ),
-                    ],
-                    // The closed field never carries the badge: it would sit
-                    // there claiming the account has Premium.
-                    selectedItemBuilder: (context) => [
-                      for (final count in playerOptions)
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text('$count spelers'),
-                        ),
-                    ],
-                    onChanged: isBusy ? null : onSelectMaxPlayers,
-                  ),
-                  // One line, not a second paywall block: the host only needs
-                  // to know this number is out of reach and what buys it.
-                  if (playerCapExceeded) ...[
-                    const SizedBox(height: 10),
-                    InkWell(
-                      onTap: onPlayerCapUpgrade,
-                      child: Text(
-                        '$maxPlayers spelers vraagt om Premium. Gratis speel '
-                        'je tot $maxPlayersFree spelers.',
-                        style: AppTheme.caption.copyWith(
-                          color: AppTheme.lapis,
-                          decoration: TextDecoration.underline,
-                          decorationColor: AppTheme.lapis,
-                        ),
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 24),
-                  const RuleLine(),
-                  const SizedBox(height: 20),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'LEES EERST HET HOOFDSTUK',
-                              style: AppTheme.overline,
-                            ),
-                            SizedBox(height: 6),
-                            Text(
-                              'Werkt alleen bij quizzen over 1 hoofdstuk.',
-                              style: AppTheme.caption,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Switch.adaptive(
-                        value: readChapterFirst,
-                        activeTrackColor: AppTheme.ink,
-                        onChanged: isBusy ? null : onToggleReadChapterFirst,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  const Text('TEMPO PER VRAAG', style: AppTheme.overline),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      for (final seconds in _tempoOptions)
-                        Expanded(
-                          child: Padding(
-                            padding: EdgeInsets.only(
-                              right: seconds == _tempoOptions.last ? 0 : 8,
-                            ),
-                            child: _ChoiceChip(
-                              label: seconds == 0
-                                  ? 'Host bepaalt'
-                                  : '${seconds}s',
-                              selected: questionTimerSeconds == seconds,
-                              onTap: isBusy
-                                  ? null
-                                  : () => onSelectTempo(seconds),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  SiteButton(
-                    label: 'Start kamer',
-                    trailingIcon: Icons.arrow_forward,
-                    loading: isBusy,
-                    onPressed: isBusy ? null : onCreateRoom,
-                  ),
-                ],
-              );
-            },
-            loading: () => const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
-              child: AppLoader(size: 20),
-            ),
-            error: (err, _) => Text(
-              'Fout bij laden quizzen: $err',
-              style: AppTheme.bodyMuted.copyWith(color: AppTheme.destructive),
-            ),
-          ),
-        ],
       ),
     );
   }
 }
 
-/// Button-group chip, mirroring the single-player `_ChoiceChip` in
-/// `quiz_detail_screen.dart`. [onTap] is nullable so the chip greys out while
-/// the form is busy.
-class _ChoiceChip extends StatelessWidget {
-  const _ChoiceChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
+/// One saved group, with its re-invite action.
+class _SavedGroupRow extends StatelessWidget {
+  const _SavedGroupRow({
+    required this.group,
+    required this.busy,
+    required this.loading,
+    required this.onReinvite,
   });
 
-  final String label;
-  final bool selected;
-  final VoidCallback? onTap;
+  final PlayerGroup group;
+  final bool busy;
+  final bool loading;
+  final VoidCallback onReinvite;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: selected ? AppTheme.ink : AppTheme.paper,
-      borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-        onTap: onTap,
-        child: Container(
-          height: 42,
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 6),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-            border: Border.all(color: selected ? AppTheme.ink : AppTheme.rule),
-          ),
-          child: Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: selected ? AppTheme.inkInverted : AppTheme.inkSoft,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
+    final memberLabel = group.memberCount == 1
+        ? '1 speler'
+        : '${group.memberCount} spelers';
 
-class _JoinRoomForm extends StatelessWidget {
-  const _JoinRoomForm({
-    super.key,
-    required this.controller,
-    required this.isBusy,
-    required this.onJoin,
-  });
-
-  final TextEditingController controller;
-  final bool isBusy;
-  final Future<void> Function() onJoin;
-
-  @override
-  Widget build(BuildContext context) {
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Text('DEELNEMEN MET CODE', style: AppTheme.overline),
-          const SizedBox(height: 16),
-          TextField(
-            controller: controller,
-            enabled: !isBusy,
-            textCapitalization: TextCapitalization.characters,
-            cursorColor: AppTheme.ink,
-            cursorWidth: 1.4,
-            textAlign: TextAlign.center,
-            // Room codes read as data - serif, tabular, wide tracking.
-            style: const TextStyle(
-              fontFamily: AppTheme.displayFontName,
-              fontSize: 26,
-              letterSpacing: 6,
-              color: AppTheme.ink,
-              fontFeatures: [FontFeature.tabularFigures()],
-            ),
-            decoration: const InputDecoration(
-              hintText: 'AB12CD',
-              hintStyle: TextStyle(
-                fontFamily: AppTheme.displayFontName,
-                fontSize: 26,
-                letterSpacing: 6,
-                color: AppTheme.ruleStrong,
-              ),
-              contentPadding: EdgeInsets.symmetric(vertical: 18),
-            ),
-          ),
-          const SizedBox(height: 20),
-          SiteButton(
-            label: 'Deelnemen',
-            trailingIcon: Icons.arrow_forward,
-            loading: isBusy,
-            onPressed: isBusy ? null : onJoin,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// The site's numbered `01 / 02 / 03` process grid.
-class _HowItWorksGrid extends StatelessWidget {
-  const _HowItWorksGrid();
-
-  @override
-  Widget build(BuildContext context) {
-    return const RuleGrid(
-      children: [
-        _StepTile(
-          index: '01',
-          title: 'Maak of join een kamer',
-          subtitle: 'De host kiest een quiz en deelt de code',
-        ),
-        _StepTile(
-          index: '02',
-          title: 'Speel live tegelijk',
-          subtitle: 'Iedereen krijgt dezelfde vragen en timer',
-        ),
-        _StepTile(
-          index: '03',
-          title: 'Bekijk de eindranglijst',
-          subtitle: 'Vergelijk scores en daag elkaar opnieuw uit',
-        ),
-      ],
-    );
-  }
-}
-
-class _StepTile extends StatelessWidget {
-  const _StepTile({
-    required this.index,
-    required this.title,
-    required this.subtitle,
-  });
-
-  final String index;
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            index,
-            style: const TextStyle(
-              fontFamily: AppTheme.displayFontName,
-              fontSize: 14,
-              color: AppTheme.lapis,
-              fontFeatures: [FontFeature.tabularFigures()],
-            ),
+          const BqIconTile(
+            child: BqIcon(BqIcons.users, size: 20, color: AppTheme.lapis),
           ),
-          const SizedBox(width: 18),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: AppTheme.displayBase),
-                const SizedBox(height: 5),
-                Text(subtitle.toUpperCase(), style: AppTheme.overline),
+                Text(
+                  group.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.bodyStrong,
+                ),
+                Text(memberLabel, style: AppTheme.caption),
               ],
             ),
           ),
+          const SizedBox(width: 10),
+          MpSecondaryButton(
+            label: 'Uitnodigen',
+            icon: const BqIcon(BqIcons.share, size: 16, color: AppTheme.lapis),
+            height: 44,
+            expand: false,
+            fontSize: 14,
+            loading: loading,
+            onPressed: busy ? null : onReinvite,
+          ),
         ],
-      ),
-    );
-  }
-}
-
-class _QuickStartQuizzes extends StatelessWidget {
-  const _QuickStartQuizzes({
-    required this.quizzesAsync,
-    required this.isBusy,
-    required this.hasPremiumAccess,
-    required this.onStartRoom,
-    required this.onUpgrade,
-  });
-
-  final AsyncValue<List<Quiz>> quizzesAsync;
-  final bool isBusy;
-  final bool hasPremiumAccess;
-  final Future<void> Function(String quizId) onStartRoom;
-  final VoidCallback onUpgrade;
-
-  @override
-  Widget build(BuildContext context) {
-    return quizzesAsync.when(
-      data: (quizzes) {
-        if (quizzes.isEmpty) {
-          return const AppCard(
-            child: Text(
-              'Geen quizzen beschikbaar om een kamer te starten.',
-              style: AppTheme.bodyMuted,
-            ),
-          );
-        }
-
-        final visible = quizzes.take(4).toList();
-
-        return RuleGrid(
-          children: [
-            for (final quiz in visible)
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 16,
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            quiz.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTheme.displayBase,
-                          ),
-                          const SizedBox(height: 5),
-                          Text(
-                            '${quiz.questionCount} VRAGEN  ·  ${quiz.difficultyLabelNl}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTheme.overline,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    SiteOutlineButton(
-                      label: hasPremiumAccess ? 'Start' : 'Premium',
-                      icon: hasPremiumAccess ? null : Icons.lock_outline,
-                      expand: false,
-                      height: 36,
-                      onPressed: isBusy
-                          ? null
-                          : hasPremiumAccess
-                          ? () => onStartRoom(quiz.id)
-                          : onUpgrade,
-                    ),
-                  ],
-                ),
-              ),
-          ],
-        );
-      },
-      loading: () => const Padding(
-        padding: EdgeInsets.symmetric(vertical: 16),
-        child: AppLoader(size: 20),
-      ),
-      error: (err, _) => AppCard(
-        child: Text(
-          'Kan quizzen niet laden: $err',
-          style: AppTheme.bodyMuted.copyWith(color: AppTheme.destructive),
-        ),
       ),
     );
   }

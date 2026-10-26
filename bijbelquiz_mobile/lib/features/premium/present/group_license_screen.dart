@@ -5,11 +5,12 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/app_notice.dart';
-import '../../../core/ui/app_widgets.dart';
-import '../../../core/ui/custom_text_field.dart';
-import '../../../core/ui/primary_button.dart';
+import '../../../core/ui/bq.dart';
 import '../../profile/present/profile_provider.dart';
 import '../data/group_license_repository.dart';
+import 'widgets/paywall_parts.dart';
+
+const String _supportEmail = 'info@bijbelquiz.com';
 
 /// Redeem a group code, and see the group you are in.
 ///
@@ -43,9 +44,7 @@ class _GroupLicenseScreenState extends ConsumerState<GroupLicenseScreen> {
     setState(() => _isJoining = true);
 
     try {
-      final license = await ref
-          .read(groupLicenseRepositoryProvider)
-          .join(code);
+      final license = await ref.read(groupLicenseRepositoryProvider).join(code);
 
       // Premium is inherited from the group, so the profile has to be re-read
       // before any screen decides what this account may do.
@@ -67,7 +66,22 @@ class _GroupLicenseScreenState extends ConsumerState<GroupLicenseScreen> {
     final uri = Uri.parse('${AppConfig.baseUrl}/groepslicentie');
     final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!launched && mounted) {
-      AppNotice.info(context, 'Ga naar bijbelquiz.com/groepslicentie in je browser.');
+      AppNotice.info(
+        context,
+        'Ga naar bijbelquiz.com/groepslicentie in je browser.',
+      );
+    }
+  }
+
+  Future<void> _mailSupport() async {
+    final uri = Uri(
+      scheme: 'mailto',
+      path: _supportEmail,
+      queryParameters: const {'subject': 'Groepslicentie'},
+    );
+    final launched = await launchUrl(uri);
+    if (!launched && mounted) {
+      AppNotice.info(context, 'Mail ons op $_supportEmail.');
     }
   }
 
@@ -77,74 +91,278 @@ class _GroupLicenseScreenState extends ConsumerState<GroupLicenseScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.paper,
-      appBar: AppBar(
-        backgroundColor: AppTheme.paper,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        title: const Text('Groepslicentie', style: AppTheme.displaySmall),
-        iconTheme: const IconThemeData(color: AppTheme.ink),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
-        children: [
-          const SectionHeader(
-            eyebrow: 'Samen',
-            title: 'Premium voor je hele groep',
-            description:
-                'Heeft je jeugdleider, dominee of docent een groepscode? Vul '
-                'hem hieronder in en je hebt meteen Premium.',
-          ),
-          const SizedBox(height: 20),
-          CustomTextField(
-            controller: _codeController,
-            label: 'Groepscode',
-            hintText: 'Bijv. K7PQ2M',
-            enabled: !_isJoining,
-            textInputAction: TextInputAction.done,
-          ),
-          const SizedBox(height: 16),
-          PrimaryButton(
-            text: 'Meedoen',
-            isLoading: _isJoining,
-            onPressed: _join,
-          ),
-          const SizedBox(height: 32),
-          licensesAsync.when(
-            loading: () => const AppLoader(size: 20),
-            error: (_, __) => const SizedBox.shrink(),
-            data: (licenses) {
-              if (licenses.isEmpty) return const SizedBox.shrink();
-
-              return Column(
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          children: [
+            const BqTopBar(title: 'Groepslicentie', large: true),
+            const SizedBox(height: 14),
+            const Text(
+              'Heeft je jeugdleider, dominee of docent een groepscode? Vul hem '
+              'hieronder in en je hebt meteen Premium.',
+              style: AppTheme.bodyLead,
+            ),
+            const SizedBox(height: 18),
+            BqCard(
+              padding: const EdgeInsets.all(16),
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SectionHeader(eyebrow: 'Jouw groepen', title: 'Je doet mee'),
-                  const SizedBox(height: 20),
-                  for (final license in licenses) ...[
-                    _LicenseCard(license: license),
-                    const SizedBox(height: 12),
-                  ],
+                  const _CardHeading(
+                    icon: BqIcons.enter,
+                    title: 'Meedoen met code',
+                    subtitle: 'Premium via je groep',
+                  ),
+                  const SizedBox(height: 16),
+                  _CodeField(
+                    controller: _codeController,
+                    enabled: !_isJoining,
+                    onSubmitted: (_) => _join(),
+                  ),
+                  const SizedBox(height: 12),
+                  BqButton(
+                    label: 'Meedoen',
+                    style: BqButtonStyle.tint,
+                    loading: _isJoining,
+                    onPressed: _isJoining ? null : _join,
+                  ),
                 ],
-              );
-            },
+              ),
+            ),
+            licensesAsync.when(
+              loading: () => const Padding(
+                padding: EdgeInsets.only(top: 24),
+                child: Center(
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2.4),
+                  ),
+                ),
+              ),
+              error: (_, _) => const SizedBox.shrink(),
+              data: (licenses) {
+                if (licenses.isEmpty) return const SizedBox.shrink();
+
+                return Padding(
+                  padding: const EdgeInsets.only(top: 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const BqSectionHeader(title: 'Jouw groepen'),
+                      const SizedBox(height: 10),
+                      for (final license in licenses) ...[
+                        _LicenseCard(license: license),
+                        const SizedBox(height: 12),
+                      ],
+                    ],
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 24),
+            BqCard(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const _CardHeading(
+                    icon: BqIcons.users,
+                    iconColor: AppTheme.goldText,
+                    tint: AppTheme.goldTint,
+                    title: 'Premium voor je hele groep',
+                    subtitle: 'Voor kerken, scholen en verenigingen',
+                  ),
+                  const SizedBox(height: 16),
+                  const _Benefit('Alles van Premium voor elk lid'),
+                  const SizedBox(height: 8),
+                  const _Benefit('Een code die je voorleest in de zaal'),
+                  const SizedBox(height: 8),
+                  const _Benefit('Je beheert zelf wie er meedoet'),
+                  const SizedBox(height: 14),
+                  const Text(
+                    'Een groepslicentie koop je op de website, omdat een '
+                    'aankoop in de App Store aan een enkel account vastzit en '
+                    'niet aan een groep.',
+                    style: AppTheme.bodyMuted,
+                  ),
+                  const SizedBox(height: 14),
+                  BqButton(
+                    label: 'Open bijbelquiz.com',
+                    icon: const BqIcon(BqIcons.link, size: 18),
+                    onPressed: _openWebPurchase,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 6),
+            Semantics(
+              link: true,
+              label: 'Liever eerst overleggen? Mail $_supportEmail',
+              onTap: _mailSupport,
+              excludeSemantics: true,
+              child: InkWell(
+                onTap: _mailSupport,
+                borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 44),
+                  child: Center(
+                    child: Text.rich(
+                      const TextSpan(
+                        children: [
+                          TextSpan(text: 'Liever eerst overleggen? Mail '),
+                          TextSpan(
+                            text: _supportEmail,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.lapis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      textAlign: TextAlign.center,
+                      style: AppTheme.caption.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CardHeading extends StatelessWidget {
+  const _CardHeading({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    this.tint = AppTheme.lapisTint,
+    this.iconColor = AppTheme.lapis,
+  });
+
+  final String icon;
+  final String title;
+  final String subtitle;
+  final Color tint;
+  final Color iconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        BqIconTile(
+          background: tint,
+          child: BqIcon(icon, size: 22, color: iconColor),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: AppTheme.displayTitle),
+              const SizedBox(height: 2),
+              Text(subtitle, style: AppTheme.caption),
+            ],
           ),
-          const SizedBox(height: 20),
-          const RuleLine(),
-          const SizedBox(height: 20),
-          const Text('EEN LICENTIE KOPEN', style: AppTheme.overline),
-          const SizedBox(height: 10),
-          const Text(
-            'Een groepslicentie koop je op de website, omdat een aankoop in de '
-            'App Store aan een enkel account vastzit en niet aan een groep.',
-            style: AppTheme.bodyMuted,
+        ),
+      ],
+    );
+  }
+}
+
+class _Benefit extends StatelessWidget {
+  const _Benefit(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const PaywallCheck(size: 22),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Text(
+              text,
+              style: const TextStyle(
+                fontFamily: AppTheme.sansFontName,
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                height: 20 / 14,
+                color: AppTheme.ink,
+              ),
+            ),
           ),
-          const SizedBox(height: 14),
-          SiteOutlineButton(
-            label: 'Open bijbelquiz.com',
-            icon: Icons.open_in_new,
-            onPressed: _openWebPurchase,
-          ),
-        ],
+        ),
+      ],
+    );
+  }
+}
+
+class _CodeField extends StatelessWidget {
+  const _CodeField({
+    required this.controller,
+    required this.enabled,
+    required this.onSubmitted,
+  });
+
+  final TextEditingController controller;
+  final bool enabled;
+  final ValueChanged<String> onSubmitted;
+
+  @override
+  Widget build(BuildContext context) {
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+      borderSide: const BorderSide(color: AppTheme.ruleStrong),
+    );
+
+    return TextField(
+      controller: controller,
+      enabled: enabled,
+      textAlign: TextAlign.center,
+      textCapitalization: TextCapitalization.characters,
+      textInputAction: TextInputAction.done,
+      autocorrect: false,
+      enableSuggestions: false,
+      onSubmitted: onSubmitted,
+      cursorColor: AppTheme.lapis,
+      style: const TextStyle(
+        fontFamily: AppTheme.displayFontName,
+        fontSize: 22,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 3,
+        color: AppTheme.ink,
+      ),
+      decoration: InputDecoration(
+        hintText: 'Bijv. K7PQ2M',
+        hintStyle: const TextStyle(
+          fontFamily: AppTheme.sansFontName,
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0,
+          color: AppTheme.inkFaint,
+        ),
+        filled: true,
+        fillColor: AppTheme.paperRaised,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
+        border: border,
+        enabledBorder: border,
+        disabledBorder: border,
+        focusedBorder: border.copyWith(
+          borderSide: const BorderSide(color: AppTheme.lapis, width: 2),
+        ),
       ),
     );
   }
@@ -158,29 +376,53 @@ class _LicenseCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final expiry = license.expiresAt;
+    final showCode = license.isOwner && license.joinCode.isNotEmpty;
 
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppTheme.positiveTint,
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(color: AppTheme.positive.withValues(alpha: 0.35)),
-      ),
+    return BqCard(
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            license.isOwner ? 'JE BEHEERT DEZE GROEP' : 'JE DOET MEE',
-            style: AppTheme.overline.copyWith(color: AppTheme.positive),
+          BqPill(
+            label: license.isOwner ? 'Je beheert deze groep' : 'Je doet mee',
+            background: AppTheme.positiveTint,
+            foreground: AppTheme.positive,
+            icon: const BqIcon(
+              BqIcons.check,
+              size: 14,
+              color: AppTheme.positive,
+            ),
           ),
-          const SizedBox(height: 8),
-          Text(license.name, style: AppTheme.displaySmall),
-          const SizedBox(height: 6),
+          const SizedBox(height: 10),
+          Text(license.name, style: AppTheme.displayTitle),
+          const SizedBox(height: 4),
           Text(
             '${license.seatsUsed} van ${license.seats} plekken bezet'
             '${expiry == null ? '' : ' - loopt tot ${_formatDate(expiry)}'}',
             style: AppTheme.bodyMuted,
           ),
+          if (showCode) ...[
+            const SizedBox(height: 12),
+            const Divider(),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                const Expanded(
+                  child: Text('Groepscode', style: AppTheme.bodyMuted),
+                ),
+                Text(
+                  license.joinCode,
+                  style: const TextStyle(
+                    fontFamily: AppTheme.displayFontName,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 2,
+                    color: AppTheme.lapis,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -188,8 +430,18 @@ class _LicenseCard extends StatelessWidget {
 
   static String _formatDate(DateTime date) {
     const months = [
-      'januari', 'februari', 'maart', 'april', 'mei', 'juni',
-      'juli', 'augustus', 'september', 'oktober', 'november', 'december',
+      'januari',
+      'februari',
+      'maart',
+      'april',
+      'mei',
+      'juni',
+      'juli',
+      'augustus',
+      'september',
+      'oktober',
+      'november',
+      'december',
     ];
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }

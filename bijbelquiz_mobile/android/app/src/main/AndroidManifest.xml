@@ -48,6 +48,8 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="https" android:host="www.bijbelquiz.com" android:pathPrefix="/samen-spelen"/>
                 <data android:scheme="https" android:host="bijbelquiz.com" android:pathPrefix="/samen-spelen"/>
+                <data android:scheme="https" android:host="www.bijbelquiz.com" android:pathPrefix="/duel/"/>
+                <data android:scheme="https" android:host="bijbelquiz.com" android:pathPrefix="/duel/"/>
             </intent-filter>
             <!-- Flutter's deep-link handling is opt-in from Android 12 up. -->
             <meta-data

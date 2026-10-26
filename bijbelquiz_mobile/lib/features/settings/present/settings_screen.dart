@@ -165,7 +165,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             BqTopBar(
               title: 'Instellingen',
               large: true,
-              onBack: () => context.canPop() ? context.pop() : context.go('/profile'),
+              onBack: () =>
+                  context.canPop() ? context.pop() : context.go('/profile'),
             ),
             const SizedBox(height: 16),
             _AccountCard(
@@ -207,19 +208,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onTap: () => _pickTimer(preferences),
                 ),
                 _SwitchRow(
-                  icon: _Icons.bookOpen,
+                  icon: _iconBookOpen,
                   title: 'Eerst het hoofdstuk lezen',
                   value: preferences.readPassageFirst,
                   onChanged: prefs.setReadPassageFirst,
                 ),
                 _SwitchRow(
                   icon: BqIcons.book,
-                  title: 'Bijbeltekst bij uitleg',
+                  title: 'Bijbelverwijzing bij uitleg',
                   value: preferences.showBibleReferences,
                   onChanged: prefs.setShowBibleReferences,
                 ),
                 _SwitchRow(
-                  icon: _Icons.textSize,
+                  icon: _iconTextSize,
                   title: 'Grote vraagtekst',
                   value: preferences.largeQuestionText,
                   onChanged: prefs.setLargeQuestionText,
@@ -245,7 +246,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     onTap: () => context.push('/beheer'),
                   ),
                 _ValueRow(
-                  icon: _Icons.shieldPlain,
+                  icon: _iconShieldPlain,
                   title: 'Privacy',
                   onTap: _openPrivacy,
                 ),
@@ -280,20 +281,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       seconds <= 0 ? 'Uit' : '$seconds sec';
 }
 
-/// Icons from the Instellingen design that are not in [BqIcons].
-class _Icons {
-  const _Icons._();
-
-  static const String _s =
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">';
-
-  static const String shieldPlain =
-      '$_s<path d="M12 3l7.5 3v5.5c0 4.4-3.2 8.2-7.5 9.5-4.3-1.3-7.5-5.1-7.5-9.5V6z"/></svg>';
-  static const String bookOpen =
-      '$_s<path d="M3 5.5h5a4 4 0 0 1 4 4V20a3 3 0 0 0-3-3H3z"/><path d="M21 5.5h-5a4 4 0 0 0-4 4V20a3 3 0 0 1 3-3h6z"/></svg>';
-  static const String textSize =
-      '$_s<path d="M4 7V5h10v2"/><path d="M9 5v14"/><path d="M7 19h4"/><path d="M14 12v-1.5h7V12"/><path d="M17.5 10.5V19"/><path d="M16 19h3"/></svg>';
-}
+// Icons from the Instellingen design that are not in [BqIcons].
+const String _svgOpen =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">';
+const String _iconShieldPlain =
+    '$_svgOpen<path d="M12 3l7.5 3v5.5c0 4.4-3.2 8.2-7.5 9.5-4.3-1.3-7.5-5.1-7.5-9.5V6z"/></svg>';
+const String _iconBookOpen =
+    '$_svgOpen<path d="M3 5.5h5a4 4 0 0 1 4 4V20a3 3 0 0 0-3-3H3z"/><path d="M21 5.5h-5a4 4 0 0 0-4 4V20a3 3 0 0 1 3-3h6z"/></svg>';
+const String _iconTextSize =
+    '$_svgOpen<path d="M4 7V5h10v2"/><path d="M9 5v14"/><path d="M7 19h4"/><path d="M14 12v-1.5h7V12"/><path d="M17.5 10.5V19"/><path d="M16 19h3"/></svg>';
 
 // ---------------------------------------------------------------------------
 // Building blocks
@@ -483,6 +479,7 @@ class _ValueRow extends StatelessWidget {
       button: onTap != null,
       label: value == null ? title : '$title, $value',
       excludeSemantics: true,
+      onTap: onTap,
       child: onTap == null ? content : InkWell(onTap: onTap, child: content),
     );
   }
@@ -510,6 +507,7 @@ class _TextRow extends StatelessWidget {
       button: true,
       label: title,
       excludeSemantics: true,
+      onTap: loading ? null : onTap,
       child: InkWell(
         onTap: loading ? null : onTap,
         child: Container(
@@ -601,13 +599,14 @@ class _AccountCard extends StatelessWidget {
       subtitle = p.email.isEmpty ? 'Ingelogd' : 'Ingelogd als ${p.email}';
     }
 
-    return BqCard(
-      padding: EdgeInsets.zero,
+    return Semantics(
+      button: true,
+      label: '$title, $subtitle',
+      excludeSemantics: true,
       onTap: onTap,
-      child: Semantics(
-        button: true,
-        label: '$title, $subtitle',
-        excludeSemantics: true,
+      child: BqCard(
+        padding: EdgeInsets.zero,
+        onTap: onTap,
         child: Container(
           constraints: const BoxConstraints(minHeight: 64),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -688,6 +687,7 @@ class _TimerSheet extends StatelessWidget {
                     selected: choice == selected,
                     label: choice == 0 ? 'Uit' : '$choice seconden',
                     excludeSemantics: true,
+                    onTap: () => Navigator.of(context).pop(choice),
                     child: InkWell(
                       onTap: () => Navigator.of(context).pop(choice),
                       child: Container(

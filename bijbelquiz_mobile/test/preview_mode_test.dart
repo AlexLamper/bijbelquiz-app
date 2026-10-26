@@ -31,16 +31,16 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
 
     expect(tester.takeException(), isNull);
-    // Name comes from the canned profile.
-    expect(find.textContaining('Testspeler'), findsWidgets);
+    // The daily quiz comes from the canned quiz list.
+    expect(find.text('QUIZ VAN DE DAG'), findsOneWidget);
 
-    // Quiz titles sit further down the page, so scroll before asserting.
+    // Topics sit further down the page, so scroll before asserting.
     for (var i = 0; i < 8; i++) {
       await tester.drag(find.byType(Scrollable).first, const Offset(0, -400));
       await tester.pump();
     }
     expect(tester.takeException(), isNull);
-    expect(find.text('Genesis'), findsWidgets);
+    expect(find.text('Kies een onderwerp'), findsOneWidget);
   });
 
   testWidgets('preview scope serves canned data to the leaderboard', (
@@ -52,13 +52,16 @@ void main() {
 
     await tester.pumpWidget(
       PreviewData.scope(
-        MaterialApp(theme: AppTheme.lightTheme, home: const LeaderboardScreen()),
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const LeaderboardScreen(),
+        ),
       ),
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
 
     expect(tester.takeException(), isNull);
-    expect(find.text('Top spelers'), findsOneWidget);
+    expect(find.text('Ranglijst'), findsOneWidget);
   });
 }

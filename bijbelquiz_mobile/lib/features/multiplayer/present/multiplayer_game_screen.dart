@@ -1,21 +1,26 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'dart:async';
-
-import '../../../core/avatar/mascot_avatar.dart';
 import '../../../core/errors/app_error.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/app_notice.dart';
 import '../../../core/ui/app_widgets.dart';
+import '../../../core/ui/bq.dart';
 import '../../profile/present/profile_provider.dart';
 import '../../quiz/data/bible_chapter_repository.dart';
 import '../../quiz/domain/quiz_passage.dart';
 import '../data/multiplayer_api_exception.dart';
 import '../domain/multiplayer_models.dart';
 import 'multiplayer_session_controller.dart';
+import 'widgets/mp_ui.dart';
 
+/// The live group question screen, in the visual language of the solo quiz:
+/// segments on top, a white question card, 2x2 answer tiles and a white
+/// feedback sheet - plus what only a live game has: the countdown, how many
+/// players have answered and the running standings.
 class MultiplayerGameScreen extends ConsumerStatefulWidget {
   final String roomCode;
 
@@ -29,6 +34,10 @@ class MultiplayerGameScreen extends ConsumerStatefulWidget {
 class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
   bool _handledRoomMissing = false;
 
+  MultiplayerSessionController get _controller => ref.read(
+    multiplayerSessionControllerProvider(widget.roomCode).notifier,
+  );
+
   bool _isHost(MultiplayerRoom room) {
     final userId = ref.read(profileProvider).asData?.value.id;
     return room.isHost(userId);
@@ -39,19 +48,7 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
     final sessionAsync = ref.watch(
       multiplayerSessionControllerProvider(widget.roomCode),
     );
-    final room = sessionAsync.asData?.value.room;
-    final roomMissing = _isRoomMissingError(
-      sessionAsync.asData?.value.lastError,
-    );
-    final profileAsync = ref.watch(profileProvider);
-    final currentUserId = profileAsync.maybeWhen(
-      data: (profile) => profile.id,
-      orElse: () => '',
-    );
-    final isHost =
-        room != null &&
-        currentUserId.isNotEmpty &&
-        currentUserId == room.hostUserId;
+    final currentUserId = ref.watch(profileProvider).asData?.value.id ?? '';
 
     ref.listen<
       AsyncValue<MultiplayerSessionState>
@@ -82,71 +79,116 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.paper,
-      appBar: AppBar(
-        title: _buildAppBarTitle(room),
-        backgroundColor: AppTheme.paper,
-        foregroundColor: AppTheme.ink,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        automaticallyImplyLeading: false,
-        titleSpacing: 20,
-        actions: [
-          if (isHost &&
-              !roomMissing &&
-              room.status != MultiplayerRoomStatus.finished)
-            IconButton(
-              tooltip: 'Stop quiz',
-              onPressed: _confirmAndStopMatch,
-              icon: const Icon(
-                Icons.stop_circle_outlined,
-                size: 20,
-                color: AppTheme.destructive,
-              ),
-            ),
-          IconButton(
-            tooltip: 'Ververs',
-            onPressed: () {
-              ref
-                  .read(
-                    multiplayerSessionControllerProvider(
-                      widget.roomCode,
-                    ).notifier,
-                  )
-                  .refreshRoom();
-            },
-            icon: const Icon(Icons.refresh, size: 20, color: AppTheme.inkSoft),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
       body: SafeArea(
-        top: false,
+        bottom: false,
         child: sessionAsync.when(
-          data: (session) => _buildContent(context, session),
-          loading: () => const AppLoader(),
-          error: (error, _) => _buildError(context, AppError.from(error)),
+          data: (session) => _buildContent(context, session, currentUserId),
+          loading: () => Column(
+            children: [
+              _TitleHeader(
+                title: 'Samen spelen',
+                closeLabel: 'Terug naar Samen spelen',
+                onClose: () => context.go('/play-together'),
+              ),
+              const Expanded(child: AppLoader()),
+            ],
+          ),
+          error: (error, _) => Column(
+            children: [
+              _TitleHeader(
+                title: 'Samen spelen',
+                closeLabel: 'Terug naar Samen spelen',
+                onClose: () => context.go('/play-together'),
+              ),
+              Expanded(child: _buildError(context, AppError.from(error))),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildContent(BuildContext context, MultiplayerSessionState session) {
+  /// The close button: the host stops the quiz for everybody, a guest only
+  /// leaves (their score is kept if they come back). Both ask first.
+  VoidCallback _closeAction(MultiplayerRoom room, bool roomMissing) {
+    if (roomMissing) return () => context.go('/play-together');
+    if (_isHost(room) && room.status != MultiplayerRoomStatus.finished) {
+      return _confirmAndStopMatch;
+    }
+    return _confirmAndLeave;
+  }
+
+  String _closeLabel(MultiplayerRoom room) =>
+      _isHost(room) ? 'Quiz stoppen' : 'Spel verlaten';
+
+  Widget _buildContent(
+    BuildContext context,
+    MultiplayerSessionState session,
+    String currentUserId,
+  ) {
     final room = session.room;
     final question = room.currentQuestion;
     final roomMissing = _isRoomMissingError(session.lastError);
-    final sortedPlayers = room.standings;
+    final quizTitle = room.quizTitle.trim().isEmpty
+        ? 'Multiplayer quiz'
+        : room.quizTitle;
 
     // The reading phase sits between the lobby and question 1: every device
     // shows the chapter, the host presses on when the room is ready.
     if (room.status == MultiplayerRoomStatus.reading) {
-      final controller = ref.read(
-        multiplayerSessionControllerProvider(widget.roomCode).notifier,
-      );
       return _ReadingView(
         room: room,
         isHost: _isHost(room),
         lastError: session.lastError,
-        onStart: controller.advance,
+        onStart: _controller.advance,
+        closeLabel: _closeLabel(room),
+        onClose: _closeAction(room, roomMissing),
+      );
+    }
+
+    if (question == null) {
+      return Column(
+        children: [
+          _TitleHeader(
+            title: quizTitle,
+            subtitle: 'Kamer ${room.code}',
+            closeLabel: _closeLabel(room),
+            onClose: _closeAction(room, roomMissing),
+          ),
+          Expanded(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: BqCard(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const AppLoader(size: 22),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Wachten op de volgende vraag…',
+                        textAlign: TextAlign.center,
+                        style: AppTheme.bodyLead,
+                      ),
+                      if (session.lastError != null) ...[
+                        const SizedBox(height: 12),
+                        MpNotice(message: session.lastError!),
+                      ],
+                      if (roomMissing) ...[
+                        const SizedBox(height: 12),
+                        BqButton(
+                          label: 'Terug naar Samen spelen',
+                          onPressed: () => context.go('/play-together'),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       );
     }
 
@@ -154,436 +196,139 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
     // is `in_progress` precisely so a client cannot show the answer early, and
     // guessing from "everyone has answered" produced a reveal card with
     // nothing to reveal for the beat before the next poll landed.
-    final showAnswerReveal = question?.isRevealed ?? false;
-    final correctAnswerId = question?.correctAnswerId ?? '';
+    final revealed = question.isRevealed;
+    final correctAnswerId = question.correctAnswerId ?? '';
     final selectedAnswerId = session.selectedAnswerId;
+    final canAnswer = !roomMissing && !session.hasAnswered && !revealed;
+    final isHost = _isHost(room);
+    final hostTempo = room.questionTimerSeconds == 0;
 
-    if (question == null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: AppCard(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const AppLoader(size: 22),
-                const SizedBox(height: 20),
-                const Text(
-                  'Wachten op de volgende vraag…',
-                  textAlign: TextAlign.center,
-                  style: AppTheme.bodyMuted,
-                ),
-                if (session.lastError != null) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    session.lastError!,
-                    textAlign: TextAlign.center,
-                    style: AppTheme.caption.copyWith(
-                      color: AppTheme.destructive,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
+    final players = room.standings;
+    final answeredCount = players.where((p) => p.hasAnswered).length;
+    final correctCount = players.where((p) => p.answeredCorrectly == true).length;
+
+    Widget? panel;
+    if (revealed) {
+      panel = _RevealPanel(
+        question: question,
+        selectedAnswerId: selectedAnswerId,
+        correctAnswerId: correctAnswerId,
+        gained: room.playerById(currentUserId)?.scoreGained ?? 0,
+        // The host can cut the reveal pause short instead of everyone
+        // waiting out the full twelve seconds.
+        onNext:
+            isHost && room.status == MultiplayerRoomStatus.questionResult
+            ? _controller.advance
+            : null,
+        hostTempo: hostTempo,
+      );
+    } else if (session.hasAnswered || (hostTempo && isHost)) {
+      // Host-tempo mode: no timer runs, so the host ends the question by
+      // hand once the room has had long enough.
+      final showReveal =
+          hostTempo &&
+          isHost &&
+          room.status == MultiplayerRoomStatus.inProgress &&
+          !roomMissing;
+      panel = _WaitingPanel(
+        answered: session.hasAnswered,
+        onReveal: showReveal ? _controller.advance : null,
       );
     }
-
-    final controller = ref.read(
-      multiplayerSessionControllerProvider(widget.roomCode).notifier,
-    );
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildQuestionHeader(question, session, room),
-          const SizedBox(height: 28),
-          Text(
-            question.text,
-            style: const TextStyle(
-              fontFamily: AppTheme.displayFontName,
-              fontSize: 24,
-              fontWeight: FontWeight.w400,
-              height: 1.22,
-              letterSpacing: -0.36,
-              color: AppTheme.ink,
-            ),
-          ),
-          const SizedBox(height: 24),
-          for (var i = 0; i < question.answers.length; i++)
-            _buildAnswerOption(
-              answer: question.answers[i],
-              index: i,
-              question: question,
-              controller: controller,
-              session: session,
-              roomMissing: roomMissing,
-              showAnswerReveal: showAnswerReveal,
-              correctAnswerId: correctAnswerId,
-              selectedAnswerId: selectedAnswerId,
-            ),
-          if (showAnswerReveal) ...[
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: _buildAnswerOutcomeCard(
-                hasCorrectAnswer: correctAnswerId.isNotEmpty,
-                selectedAnswerId: selectedAnswerId,
-                correctAnswerId: correctAnswerId,
-              ),
-            ),
-            if (question.explanation != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: _NoticeBlock(
-                  accent: AppTheme.lapis,
-                  label: 'Toelichting',
-                  message: question.explanation!,
-                ),
-              ),
-            // The host can cut the reveal pause short instead of everyone
-            // waiting out the full twelve seconds.
-            if (_isHost(room) && room.status == MultiplayerRoomStatus.questionResult)
-              Padding(
-                padding: const EdgeInsets.only(top: 16),
-                child: SiteButton(
-                  label: 'Volgende vraag',
-                  trailingIcon: Icons.arrow_forward,
-                  onPressed: controller.advance,
-                ),
-              ),
-          ] else if (session.hasAnswered)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: _NoticeBlock(
-                accent: AppTheme.positive,
-                label: 'Ingestuurd',
-                message: 'Wachten op de andere spelers…',
-              ),
-            ),
-          // Host-tempo mode: no timer runs, so the host ends the question by
-          // hand once the room has had long enough.
-          if (!showAnswerReveal &&
-              room.questionTimerSeconds == 0 &&
-              room.status == MultiplayerRoomStatus.inProgress &&
-              _isHost(room))
-            Padding(
-              padding: const EdgeInsets.only(top: 16),
-              child: SiteButton(
-                label: 'Toon antwoorden',
-                trailingIcon: Icons.arrow_forward,
-                onPressed: controller.advance,
-              ),
-            ),
-          if (session.lastError != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: _NoticeBlock(
-                accent: AppTheme.destructive,
-                label: 'Foutmelding',
-                message: session.lastError!,
-              ),
-            ),
-          if (roomMissing)
-            Padding(
-              padding: const EdgeInsets.only(top: 16),
-              child: SiteButton(
-                label: 'Terug naar Samen spelen',
-                icon: Icons.arrow_back,
-                onPressed: () => context.go('/play-together'),
-              ),
-            ),
-          const SizedBox(height: 40),
-          const SectionHeader(eyebrow: 'Live', title: 'Voortgang'),
-          const SizedBox(height: 24),
-          _buildProgress(sortedPlayers, showAnswerReveal),
-        ],
-      ),
-    );
-  }
-
-  /// Answer option - identical treatment to the single-player quiz:
-  /// `rounded-md border border-rule bg-paper-raised`, revealed states use
-  /// `bg-positive-tint / border-positive/35` and the vermilion equivalents.
-  Widget _buildAnswerOption({
-    required MultiplayerAnswerOption answer,
-    required int index,
-    required MultiplayerQuestionState question,
-    required MultiplayerSessionController controller,
-    required MultiplayerSessionState session,
-    required bool roomMissing,
-    required bool showAnswerReveal,
-    required String correctAnswerId,
-    required String? selectedAnswerId,
-  }) {
-    final isSelected = selectedAnswerId == answer.id;
-    final isCorrect =
-        correctAnswerId.isNotEmpty && correctAnswerId == answer.id;
-    final canAnswer =
-        !roomMissing && !session.hasAnswered && !showAnswerReveal;
-
-    Color background = AppTheme.paperRaised;
-    Color borderColor = AppTheme.rule;
-    Color textColor = AppTheme.ink;
-    Color markerColor = AppTheme.inkMuted;
-
-    if (showAnswerReveal) {
-      if (isCorrect) {
-        background = AppTheme.positiveTint;
-        borderColor = AppTheme.positive.withValues(alpha: 0.35);
-        textColor = AppTheme.positive;
-        markerColor = AppTheme.positive;
-      } else if (isSelected) {
-        background = AppTheme.vermilionTint;
-        borderColor = AppTheme.destructive.withValues(alpha: 0.35);
-        textColor = AppTheme.destructive;
-        markerColor = AppTheme.destructive;
-      } else {
-        textColor = AppTheme.inkMuted;
-        markerColor = AppTheme.ruleStrong;
-      }
-    } else if (isSelected) {
-      background = AppTheme.lapisTint;
-      borderColor = AppTheme.lapis.withValues(alpha: 0.35);
-      markerColor = AppTheme.lapis;
-    }
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Material(
-        color: background,
-        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        child: InkWell(
-          onTap: canAnswer
-              ? () => controller.submitAnswer(
-                  questionId: question.id,
-                  answerId: answer.id,
-                )
-              : null,
-          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-          splashColor: AppTheme.paperSunken,
-          highlightColor: AppTheme.paperSunken,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-              border: Border.all(color: borderColor),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: 22,
-                  child: Text(
-                    String.fromCharCode(65 + index),
-                    style: TextStyle(
-                      fontFamily: AppTheme.displayFontName,
-                      fontSize: 15,
-                      color: markerColor,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Text(
-                    answer.text,
-                    style: TextStyle(
-                      fontFamily: AppTheme.sansFontName,
-                      fontSize: 15,
-                      height: 1.45,
-                      color: textColor,
-                    ),
-                  ),
-                ),
-                // How the room split. Only present after the reveal, which is
-                // also the only moment the server sends it.
-                if (showAnswerReveal && answer.count != null)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 10),
-                    child: Text(
-                      '${answer.count}x',
-                      style: AppTheme.caption.copyWith(color: textColor),
-                    ),
-                  ),
-                if (showAnswerReveal && isCorrect)
-                  const Padding(
-                    padding: EdgeInsets.only(left: 10),
-                    child: Icon(
-                      Icons.check,
-                      size: 16,
-                      color: AppTheme.positive,
-                    ),
-                  )
-                else if (showAnswerReveal && isSelected)
-                  const Padding(
-                    padding: EdgeInsets.only(left: 10),
-                    child: Icon(
-                      Icons.close,
-                      size: 16,
-                      color: AppTheme.destructive,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// `border-y border-rule` rail: question counter left, countdown right.
-  Widget _buildQuestionHeader(
-    MultiplayerQuestionState question,
-    MultiplayerSessionState session,
-    MultiplayerRoom room,
-  ) {
-    final progress = question.totalQuestions == 0
-        ? 0.0
-        : question.questionNumber / question.totalQuestions;
-
-    // Host-tempo mode has no deadline on the wire, so there is nothing to count
-    // down: the host drives every step by hand.
-    final showTimer = room.questionTimerSeconds > 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                'VRAAG ${question.questionNumber} / ${question.totalQuestions}',
-                style: AppTheme.overline.copyWith(
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
-              ),
-            ),
-            if (showTimer && !question.isRevealed)
-              _Countdown(
-                remainingMs: () => session.questionRemainingMs,
-                fallbackSeconds: question.remainingSeconds,
-                color: AppTheme.vermilion,
-              )
-            else if (session.resultPhaseRemainingMs != null)
-              _Countdown(
-                remainingMs: () => session.resultPhaseRemainingMs,
-                fallbackSeconds: 0,
-                color: AppTheme.lapis,
-                prefix: 'volgende in ',
-              ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Container(
-          height: 2,
-          color: AppTheme.rule,
-          child: FractionallySizedBox(
-            alignment: Alignment.centerLeft,
-            widthFactor: progress.clamp(0.0, 1.0),
-            child: Container(color: AppTheme.ink),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+          child: _ProgressHeader(
+            number: question.questionNumber,
+            total: question.totalQuestions,
+            closeLabel: _closeLabel(room),
+            onClose: _closeAction(room, roomMissing),
           ),
         ),
-      ],
-    );
-  }
-
-  Widget _buildProgress(List<MultiplayerPlayer> players, bool revealed) {
-    return RuleGrid(
-      children: [
-        for (final player in players)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            child: Row(
+        const SizedBox(height: 16),
+        Expanded(
+          child: RefreshIndicator(
+            color: AppTheme.lapis,
+            backgroundColor: AppTheme.paperRaised,
+            onRefresh: () => _controller.refreshRoom(),
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
               children: [
-                MascotAvatar(avatar: player.avatar, size: 30, bordered: true),
-                const SizedBox(width: 12),
-                // During the reveal the server says who was right; while
-                // answering it only says who has responded.
-                Icon(
-                  revealed
-                      ? (player.answeredCorrectly == true
-                            ? Icons.check_circle
-                            : player.answeredCorrectly == false
-                            ? Icons.cancel
-                            : Icons.remove_circle_outline)
-                      : (player.hasAnswered
-                            ? Icons.check_circle_outline
-                            : Icons.radio_button_unchecked),
-                  size: 16,
-                  color: revealed
-                      ? (player.answeredCorrectly == true
-                            ? AppTheme.positive
-                            : player.answeredCorrectly == false
-                            ? AppTheme.destructive
-                            : AppTheme.ruleStrong)
-                      : (player.hasAnswered
-                            ? AppTheme.positive
-                            : AppTheme.ruleStrong),
+                _QuestionCard(
+                  label: question.bibleReference.trim().isNotEmpty
+                      ? question.bibleReference
+                      : quizTitle,
+                  text: question.text,
+                  // Host-tempo mode has no deadline on the wire, so there is
+                  // nothing to count down: the host drives every step.
+                  timer: room.questionTimerSeconds > 0 && !revealed
+                      ? _CountdownPill(
+                          remainingMs: () => session.questionRemainingMs,
+                          fallbackSeconds: question.remainingSeconds,
+                          urgent: true,
+                        )
+                      : session.resultPhaseRemainingMs != null
+                      ? _CountdownPill(
+                          remainingMs: () => session.resultPhaseRemainingMs,
+                          fallbackSeconds: 0,
+                          prefix: 'Volgende in ',
+                        )
+                      : null,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    player.name.isEmpty ? 'Speler' : player.name,
-                    overflow: TextOverflow.ellipsis,
-                    style: player.isConnected
-                        ? AppTheme.bodyStrong
-                        : AppTheme.bodyStrong.copyWith(
-                            color: AppTheme.inkMuted,
-                          ),
-                  ),
+                const SizedBox(height: 16),
+                _AnswerGrid(
+                  answers: question.answers,
+                  selectedAnswerId: selectedAnswerId,
+                  correctAnswerId: correctAnswerId,
+                  revealed: revealed,
+                  answered: session.hasAnswered,
+                  onAnswer: canAnswer
+                      ? (answer) => _controller.submitAnswer(
+                          questionId: question.id,
+                          answerId: answer.id,
+                        )
+                      : null,
                 ),
-                if (revealed && (player.scoreGained ?? 0) > 0)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: Text(
-                      '+${player.scoreGained}',
-                      style: AppTheme.caption.copyWith(
-                        color: AppTheme.positive,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                const SizedBox(height: 14),
+                _AnsweredLine(
+                  text: revealed
+                      ? '$correctCount van ${players.length} had het goed'
+                      : '$answeredCount van ${players.length} '
+                            '${players.length == 1 ? 'speler heeft' : 'spelers hebben'} '
+                            'geantwoord',
+                ),
+                if (session.lastError != null) ...[
+                  const SizedBox(height: 16),
+                  MpNotice(message: session.lastError!),
+                ],
+                if (roomMissing) ...[
+                  const SizedBox(height: 12),
+                  BqButton(
+                    label: 'Terug naar Samen spelen',
+                    onPressed: () => context.go('/play-together'),
                   ),
-                Text(
-                  '${player.score}',
-                  style: AppTheme.statNumber.copyWith(fontSize: 18),
+                ],
+                const SizedBox(height: 24),
+                const MpSectionLabel('Stand'),
+                const SizedBox(height: 8),
+                _LiveStandings(
+                  players: players,
+                  revealed: revealed,
+                  currentUserId: currentUserId,
                 ),
               ],
             ),
           ),
+        ),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 180),
+          child: panel ?? const SizedBox(width: double.infinity),
+        ),
       ],
-    );
-  }
-
-  Widget _buildAnswerOutcomeCard({
-    required bool hasCorrectAnswer,
-    required String? selectedAnswerId,
-    required String correctAnswerId,
-  }) {
-    if (!hasCorrectAnswer) {
-      return const _NoticeBlock(
-        accent: AppTheme.inkMuted,
-        label: 'Verwerken',
-        message: 'Alle antwoorden zijn binnen. Correct antwoord volgt…',
-      );
-    }
-
-    if (selectedAnswerId == null || selectedAnswerId.isEmpty) {
-      return const _NoticeBlock(
-        accent: AppTheme.positive,
-        label: 'Antwoord',
-        message: 'Het juiste antwoord is gemarkeerd.',
-      );
-    }
-
-    final isCorrect = selectedAnswerId == correctAnswerId;
-
-    return _NoticeBlock(
-      accent: isCorrect ? AppTheme.positive : AppTheme.destructive,
-      label: isCorrect ? 'Goed gedaan' : 'Bijna',
-      message: isCorrect
-          ? 'Je antwoord is correct.'
-          : 'Jouw keuze staat gemarkeerd naast het juiste antwoord.',
     );
   }
 
@@ -592,51 +337,20 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
       icon: error.icon,
       title: error.title,
       description: error.message,
-      action: SiteOutlineButton(
+      action: MpSecondaryButton(
         label: 'Opnieuw proberen',
         expand: false,
         height: 44,
-        onPressed: () {
-          ref
-              .read(
-                multiplayerSessionControllerProvider(widget.roomCode).notifier,
-              )
-              .refreshRoom(showLoading: true);
-        },
+        onPressed: () => _controller.refreshRoom(showLoading: true),
       ),
     );
   }
-
 
   bool _isRoomMissingError(String? error) {
     final normalized = error?.toLowerCase() ?? '';
     return normalized.contains('room_not_found') ||
         normalized.contains('room not found') ||
         normalized.contains('kamer bestaat niet meer');
-  }
-
-  Widget _buildAppBarTitle(MultiplayerRoom? room) {
-    if (room == null) {
-      return const Text('SAMEN SPELEN', style: AppTheme.overline);
-    }
-
-    final quizTitle = room.quizTitle.trim().isEmpty
-        ? 'Multiplayer quiz'
-        : room.quizTitle;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text('KAMER ${room.code}', style: AppTheme.overline),
-        const SizedBox(height: 3),
-        Text(
-          quizTitle,
-          overflow: TextOverflow.ellipsis,
-          style: AppTheme.displayBase.copyWith(fontSize: 15),
-        ),
-      ],
-    );
   }
 
   Future<void> _confirmAndStopMatch() async {
@@ -658,7 +372,7 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
               style: FilledButton.styleFrom(
                 backgroundColor: AppTheme.destructive,
                 foregroundColor: AppTheme.inkInverted,
-                minimumSize: const Size(0, 40),
+                minimumSize: const Size(0, 44),
               ),
               child: const Text('Stop quiz'),
             ),
@@ -669,180 +383,97 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
 
     if (shouldStop != true || !mounted) return;
 
-    await ref
-        .read(multiplayerSessionControllerProvider(widget.roomCode).notifier)
-        .stopMatch();
+    await _controller.stopMatch();
 
     // Polling has stopped, so nothing would move this screen on by itself.
     if (!mounted) return;
     context.go('/play-together');
   }
+
+  Future<void> _confirmAndLeave() async {
+    final leave = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Spel verlaten?'),
+          content: const Text(
+            'Je score blijft bewaard als je terugkomt via Samen spelen.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Blijf'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
+              child: const Text('Verlaat spel'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (leave != true || !mounted) return;
+    await _controller.leaveRoom();
+    if (!mounted) return;
+    context.go('/play-together');
+  }
 }
 
-/// The chapter every device reads before question 1, shown while the room is
-/// in the `reading` phase. Mirrors the single-player `_PassageBody` verse list.
-class _ReadingView extends ConsumerWidget {
-  const _ReadingView({
-    required this.room,
-    required this.isHost,
-    required this.lastError,
-    required this.onStart,
+// ---------------------------------------------------------------------------
+// Headers
+// ---------------------------------------------------------------------------
+
+/// Close button, question segments and "4/10".
+class _ProgressHeader extends StatelessWidget {
+  const _ProgressHeader({
+    required this.number,
+    required this.total,
+    required this.closeLabel,
+    required this.onClose,
   });
 
-  final MultiplayerRoom room;
-  final bool isHost;
-  final String? lastError;
-  final VoidCallback onStart;
+  final int number;
+  final int total;
+  final String closeLabel;
+  final VoidCallback onClose;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final passage = room.passage;
-
-    if (passage == null) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: AppCard(
-            child: Text(
-              'Wachten tot de host de vragen start…',
-              textAlign: TextAlign.center,
-              style: AppTheme.bodyMuted,
-            ),
-          ),
-        ),
-      );
-    }
-
-    final quizPassage = QuizPassage(
-      book: passage.book,
-      chapter: passage.chapter,
-      label: passage.label,
-    );
-    final versesAsync = ref.watch(chapterVersesProvider(quizPassage));
-
-    return Column(
+  Widget build(BuildContext context) {
+    final done = number.clamp(0, total);
+    return Row(
       children: [
+        BqCircleButton(
+          icon: BqIcons.close,
+          label: closeLabel,
+          onTap: onClose,
+        ),
+        const SizedBox(width: 12),
         Expanded(
-          child: versesAsync.when(
-            data: (verses) => ListView.builder(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
-              itemCount: verses.length + 2,
-              itemBuilder: (context, index) {
-                if (index == 0) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Eyebrow('Lees eerst'),
-                        const SizedBox(height: 14),
-                        Text(passage.label, style: AppTheme.displayLarge),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Neem dit hoofdstuk rustig door. De vragen hierna '
-                          'gaan hierover, dus lezen helpt echt.',
-                          style: AppTheme.bodyLead,
-                        ),
-                        const SizedBox(height: 20),
-                        const RuleLine(),
-                      ],
-                    ),
-                  );
-                }
-
-                if (index == verses.length + 1) {
-                  return const Padding(
-                    padding: EdgeInsets.only(top: 20),
-                    child: Text('STATENVERTALING', style: AppTheme.overline),
-                  );
-                }
-
-                final verse = verses[index - 1];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 14),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                        width: 26,
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 4, right: 10),
-                          child: Text(
-                            '${verse.verse}',
-                            textAlign: TextAlign.right,
-                            style: AppTheme.caption.copyWith(
-                              fontFeatures: const [
-                                FontFeature.tabularFigures(),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          verse.text,
-                          style: const TextStyle(
-                            fontFamily: AppTheme.displayFontName,
-                            fontSize: 17,
-                            height: 1.7,
-                            color: AppTheme.ink,
-                          ),
-                        ),
-                      ),
-                    ],
+          child: Semantics(
+            label: 'Vraag $number van $total',
+            excludeSemantics: true,
+            // Past twenty questions the segments get too thin to read.
+            child: total > 0 && total <= 20
+                ? BqSegments(total: total, done: done)
+                : BqProgressBar(
+                    value: total == 0 ? 0 : done / total,
+                    color: AppTheme.lapis,
+                    track: const Color(0xFFD9D6CE),
+                    height: 6,
                   ),
-                );
-              },
-            ),
-            loading: () => const AppLoader(),
-            // A chapter that will not load must never block the game.
-            error: (error, _) => AppEmptyState(
-              icon: Icons.menu_book_outlined,
-              title: 'Hoofdstuk niet geladen',
-              description:
-                  'Dit hoofdstuk kon nu niet opgehaald worden. De host kan '
-                  'gewoon met de vragen beginnen.',
-              action: SiteOutlineButton(
-                label: 'Opnieuw proberen',
-                expand: false,
-                height: 44,
-                onPressed: () =>
-                    ref.invalidate(chapterVersesProvider(quizPassage)),
-              ),
-            ),
           ),
         ),
-        Container(
-          decoration: const BoxDecoration(
-            color: AppTheme.paperRaised,
-            border: Border(top: BorderSide(color: AppTheme.rule)),
-          ),
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (lastError != null) ...[
-                _NoticeBlock(
-                  accent: AppTheme.destructive,
-                  label: 'Foutmelding',
-                  message: lastError!,
-                ),
-                const SizedBox(height: 12),
-              ],
-              if (isHost)
-                SiteButton(
-                  label: 'Start de vragen',
-                  trailingIcon: Icons.arrow_forward,
-                  onPressed: onStart,
-                )
-              else
-                const AppCard(
-                  child: Text(
-                    'Wacht tot de host de vragen start.',
-                    style: AppTheme.bodyMuted,
-                  ),
-                ),
-            ],
+        const SizedBox(width: 12),
+        Text(
+          '$number/$total',
+          style: const TextStyle(
+            fontFamily: AppTheme.sansFontName,
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+            color: AppTheme.inkSoft,
+            fontFeatures: [FontFeature.tabularFigures()],
           ),
         ),
       ],
@@ -850,30 +481,166 @@ class _ReadingView extends ConsumerWidget {
   }
 }
 
-/// Ticking countdown against a server deadline.
+/// Close button with a 17/800 title and muted subtitle (reading, waiting).
+class _TitleHeader extends StatelessWidget {
+  const _TitleHeader({
+    required this.title,
+    required this.closeLabel,
+    required this.onClose,
+    this.subtitle,
+  });
+
+  final String title;
+  final String? subtitle;
+  final String closeLabel;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+      child: Row(
+        children: [
+          BqCircleButton(
+            icon: BqIcons.close,
+            label: closeLabel,
+            onTap: onClose,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontFamily: AppTheme.sansFontName,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    height: 22 / 17,
+                    color: AppTheme.ink,
+                  ),
+                ),
+                if (subtitle != null)
+                  Text(
+                    subtitle!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTheme.caption,
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Question
+// ---------------------------------------------------------------------------
+
+class _QuestionCard extends StatelessWidget {
+  const _QuestionCard({
+    required this.label,
+    required this.text,
+    required this.timer,
+  });
+
+  final String label;
+  final String text;
+  final Widget? timer;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppTheme.paperRaised,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: AppTheme.rule),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0F1B1A18),
+            blurRadius: 2,
+            offset: Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.lapisTint,
+                    borderRadius: BorderRadius.circular(AppTheme.radiusPill),
+                  ),
+                  child: Text(
+                    label.toUpperCase(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontFamily: AppTheme.sansFontName,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.48,
+                      color: AppTheme.lapisStrong,
+                    ),
+                  ),
+                ),
+              ),
+              if (timer != null) ...[const SizedBox(width: 8), timer!],
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            text,
+            style: AppTheme.displayMedium.copyWith(height: 31 / 24),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Ticking countdown pill against a server deadline.
 ///
 /// Reads the remaining time from the session on every tick rather than
 /// animating a fixed duration: polls land at irregular moments, and a tween
 /// restarted on each one visibly stutters. [fallbackSeconds] covers the case
 /// where the server sent no absolute deadline.
-class _Countdown extends StatefulWidget {
-  const _Countdown({
+class _CountdownPill extends StatefulWidget {
+  const _CountdownPill({
     required this.remainingMs,
     required this.fallbackSeconds,
-    required this.color,
     this.prefix = '',
+    this.urgent = false,
   });
 
   final int? Function() remainingMs;
   final int fallbackSeconds;
-  final Color color;
   final String prefix;
 
+  /// Question timer (coral) rather than the pause before the next one (lapis).
+  final bool urgent;
+
   @override
-  State<_Countdown> createState() => _CountdownState();
+  State<_CountdownPill> createState() => _CountdownPillState();
 }
 
-class _CountdownState extends State<_Countdown> {
+class _CountdownPillState extends State<_CountdownPill> {
   Timer? _ticker;
 
   @override
@@ -893,59 +660,971 @@ class _CountdownState extends State<_Countdown> {
   @override
   Widget build(BuildContext context) {
     final remaining = widget.remainingMs();
-    final seconds = remaining == null
-        ? widget.fallbackSeconds
-        : (remaining / 1000).ceil();
+    final seconds =
+        (remaining == null
+                ? widget.fallbackSeconds
+                : (remaining / 1000).ceil())
+            .clamp(0, 600);
 
-    return Text(
-      '${widget.prefix}${seconds.clamp(0, 600)}s',
-      style: AppTheme.overline.copyWith(
-        color: widget.color,
-        fontFeatures: const [FontFeature.tabularFigures()],
+    final bg = widget.urgent ? AppTheme.coralTint : AppTheme.lapisTint;
+    final fg = widget.urgent ? AppTheme.vermilion : AppTheme.lapisStrong;
+    final icon = widget.urgent ? AppTheme.coral : AppTheme.lapis;
+
+    return Semantics(
+      label: widget.urgent
+          ? 'Nog $seconds seconden'
+          : 'Volgende vraag in $seconds seconden',
+      excludeSemantics: true,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(AppTheme.radiusPill),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            BqIcon(BqIcons.clock, size: 14, color: icon),
+            const SizedBox(width: 4),
+            Text(
+              '${widget.prefix}${seconds}s',
+              style: TextStyle(
+                fontFamily: AppTheme.sansFontName,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                color: fg,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-/// Tinted notice block - `bg-<accent>-tint border-<accent>/35 rounded-lg`.
-class _NoticeBlock extends StatelessWidget {
-  const _NoticeBlock({
-    required this.accent,
-    required this.label,
-    required this.message,
+// ---------------------------------------------------------------------------
+// Answers
+// ---------------------------------------------------------------------------
+
+enum _TileState { idle, picked, dimmed, correct, wrong, muted }
+
+class _AnswerGrid extends StatelessWidget {
+  const _AnswerGrid({
+    required this.answers,
+    required this.selectedAnswerId,
+    required this.correctAnswerId,
+    required this.revealed,
+    required this.answered,
+    required this.onAnswer,
   });
 
-  final Color accent;
-  final String label;
-  final String message;
+  final List<MultiplayerAnswerOption> answers;
+  final String? selectedAnswerId;
+  final String correctAnswerId;
+  final bool revealed;
+  final bool answered;
+  final ValueChanged<MultiplayerAnswerOption>? onAnswer;
+
+  _TileState _stateFor(MultiplayerAnswerOption answer) {
+    final isSelected = selectedAnswerId == answer.id;
+    final isCorrect =
+        correctAnswerId.isNotEmpty && correctAnswerId == answer.id;
+    if (revealed) {
+      if (isCorrect) return _TileState.correct;
+      if (isSelected) return _TileState.wrong;
+      return _TileState.muted;
+    }
+    if (isSelected) return _TileState.picked;
+    return answered ? _TileState.dimmed : _TileState.idle;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final tint = accent == AppTheme.positive
-        ? AppTheme.positiveTint
-        : accent == AppTheme.destructive
-        ? AppTheme.vermilionTint
-        : accent == AppTheme.lapis
-        ? AppTheme.lapisTint
-        : AppTheme.paperSunken;
+    // Numbers and names read best big, as in the solo design; sentences
+    // need the smaller size to fit two to a row.
+    final short = answers.every((a) => a.text.trim().length <= 14);
+    final fontSize = short ? 20.0 : 16.0;
+
+    final rows = <Widget>[];
+    for (var i = 0; i < answers.length; i += 2) {
+      Widget tile(int index) {
+        final answer = answers[index];
+        return _AnswerTile(
+          text: answer.text,
+          state: _stateFor(answer),
+          // How the room split. Only present after the reveal, which is also
+          // the only moment the server sends it. Nobody = no badge.
+          count: revealed && (answer.count ?? 0) > 0 ? answer.count : null,
+          fontSize: fontSize,
+          onTap: onAnswer == null ? null : () => onAnswer!(answer),
+        );
+      }
+
+      rows.add(
+        Padding(
+          padding: EdgeInsets.only(top: i == 0 ? 0 : 12),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: tile(i)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: i + 1 < answers.length
+                      ? tile(i + 1)
+                      : const SizedBox.shrink(),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: rows,
+    );
+  }
+}
+
+class _AnswerTile extends StatelessWidget {
+  const _AnswerTile({
+    required this.text,
+    required this.state,
+    required this.count,
+    required this.fontSize,
+    required this.onTap,
+  });
+
+  final String text;
+  final _TileState state;
+  final int? count;
+  final double fontSize;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final (face, border, edge, fg) = switch (state) {
+      _TileState.idle => (
+        AppTheme.paperRaised,
+        AppTheme.rule,
+        AppTheme.ruleStrong,
+        AppTheme.ink,
+      ),
+      _TileState.picked => (
+        AppTheme.lapisTint,
+        AppTheme.lapis,
+        AppTheme.lapis,
+        AppTheme.lapisStrong,
+      ),
+      _TileState.dimmed || _TileState.muted => (
+        AppTheme.paperRaised,
+        AppTheme.rule,
+        AppTheme.ruleStrong,
+        mpTileMuted,
+      ),
+      _TileState.correct => (
+        AppTheme.positive,
+        AppTheme.positiveDeep,
+        AppTheme.positiveDeep,
+        AppTheme.inkInverted,
+      ),
+      _TileState.wrong => (
+        AppTheme.coralTint,
+        AppTheme.coral,
+        AppTheme.coral,
+        AppTheme.vermilion,
+      ),
+    };
+
+    final icon = switch (state) {
+      _TileState.correct => BqIcons.check,
+      _TileState.wrong => BqIcons.close,
+      _ => null,
+    };
+
+    final semantics = StringBuffer(text);
+    if (state == _TileState.picked || state == _TileState.wrong) {
+      semantics.write(', jouw antwoord');
+    }
+    if (state == _TileState.correct) semantics.write(', goed antwoord');
+    if (state == _TileState.wrong) semantics.write(', fout');
+    if (count != null) semantics.write(', $count keer gekozen');
+
+    final radius = BorderRadius.circular(14);
+
+    final tile = DecoratedBox(
+      decoration: BoxDecoration(color: edge, borderRadius: radius),
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 3),
+        child: Material(
+          color: face,
+          shape: RoundedRectangleBorder(
+            borderRadius: radius,
+            side: BorderSide(color: border),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 73),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                child: Center(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (icon != null) ...[
+                        BqIcon(icon, size: 20, color: fg),
+                        const SizedBox(width: 8),
+                      ],
+                      Flexible(
+                        child: Text(
+                          text,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: AppTheme.sansFontName,
+                            fontSize: fontSize,
+                            fontWeight: FontWeight.w800,
+                            height: 1.25,
+                            color: fg,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    return Semantics(
+      button: onTap != null,
+      enabled: onTap != null,
+      label: semantics.toString(),
+      excludeSemantics: true,
+      // Always laid out with a tight size (IntrinsicHeight + stretch in
+      // _AnswerGrid), so the tile fills it and the badge can overhang.
+      child: Stack(
+        clipBehavior: Clip.none,
+        fit: StackFit.expand,
+        children: [
+          tile,
+          if (count != null)
+            Positioned(top: -9, right: -6, child: _CountBadge(count: count!)),
+        ],
+      ),
+    );
+  }
+}
+
+/// "3" with a people icon, pinned to a tile's corner after the reveal.
+class _CountBadge extends StatelessWidget {
+  const _CountBadge({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 22,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.paperRaised,
+        borderRadius: BorderRadius.circular(AppTheme.radiusPill),
+        border: Border.all(color: AppTheme.rule),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const BqIcon(BqIcons.users, size: 12, color: AppTheme.lapis),
+          const SizedBox(width: 4),
+          Text(
+            '$count',
+            style: const TextStyle(
+              fontFamily: AppTheme.sansFontName,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.lapis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AnsweredLine extends StatelessWidget {
+  const _AnsweredLine({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const BqIcon(BqIcons.users, size: 16, color: AppTheme.inkMuted),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            text,
+            textAlign: TextAlign.center,
+            style: AppTheme.caption.copyWith(fontWeight: FontWeight.w700),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Standings
+// ---------------------------------------------------------------------------
+
+class _LiveStandings extends StatelessWidget {
+  const _LiveStandings({
+    required this.players,
+    required this.revealed,
+    required this.currentUserId,
+  });
+
+  final List<MultiplayerPlayer> players;
+  final bool revealed;
+  final String currentUserId;
+
+  @override
+  Widget build(BuildContext context) {
+    return BqCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < players.length; i++) ...[
+            if (i > 0)
+              const Divider(height: 1, thickness: 1, color: AppTheme.ruleSoft),
+            _StandingRow(
+              rank: i + 1,
+              player: players[i],
+              revealed: revealed,
+              isMe:
+                  currentUserId.isNotEmpty && players[i].id == currentUserId,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _StandingRow extends StatelessWidget {
+  const _StandingRow({
+    required this.rank,
+    required this.player,
+    required this.revealed,
+    required this.isMe,
+  });
+
+  final int rank;
+  final MultiplayerPlayer player;
+  final bool revealed;
+  final bool isMe;
+
+  @override
+  Widget build(BuildContext context) {
+    final name = player.name.isEmpty ? 'Speler' : player.name;
+    final offline = !player.isConnected;
+    final gained = player.scoreGained ?? 0;
+    final strong = isMe ? AppTheme.lapisStrong : AppTheme.inkSoft;
+
+    // During the reveal the server says who was right; while answering it
+    // only says who has responded.
+    final status = revealed
+        ? switch (player.answeredCorrectly) {
+            true => 'goed',
+            false => 'fout',
+            null => 'geen antwoord',
+          }
+        : player.hasAnswered
+        ? 'heeft geantwoord'
+        : 'denkt nog na';
+
+    return Semantics(
+      label:
+          '$rank. ${isMe ? 'Jij' : name}, ${player.score} punten, $status'
+          '${offline ? ', offline' : ''}',
+      excludeSemantics: true,
+      child: Container(
+        color: isMe ? AppTheme.lapisTint : null,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 22,
+              child: Text(
+                '$rank',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: AppTheme.sansFontName,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: strong,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Opacity(
+              opacity: offline ? 0.45 : 1,
+              child: BqAvatar(
+                name: name,
+                size: 36,
+                background: isMe ? AppTheme.paperRaised : null,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                isMe ? 'Jij' : name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTheme.bodyStrong.copyWith(
+                  color: offline ? AppTheme.inkMuted : AppTheme.ink,
+                ),
+              ),
+            ),
+            _StatusMark(revealed: revealed, player: player),
+            if (revealed && gained > 0) ...[
+              const SizedBox(width: 8),
+              Text(
+                '+$gained',
+                style: const TextStyle(
+                  fontFamily: AppTheme.sansFontName,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.positiveText,
+                ),
+              ),
+            ],
+            const SizedBox(width: 10),
+            ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 36),
+              child: Text(
+                '${player.score}',
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  fontFamily: AppTheme.sansFontName,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: strong,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Small round mark: answered / still thinking, then right / wrong / none.
+class _StatusMark extends StatelessWidget {
+  const _StatusMark({required this.revealed, required this.player});
+
+  final bool revealed;
+  final MultiplayerPlayer player;
+
+  @override
+  Widget build(BuildContext context) {
+    final (Color? bg, Color? ring, String? icon, Color fg) = revealed
+        ? switch (player.answeredCorrectly) {
+            true => (
+              AppTheme.positive,
+              null,
+              BqIcons.check,
+              AppTheme.inkInverted,
+            ),
+            false => (
+              AppTheme.coralDeep,
+              null,
+              BqIcons.close,
+              AppTheme.inkInverted,
+            ),
+            null => (null, AppTheme.ruleStrong, null, AppTheme.inkMuted),
+          }
+        : player.hasAnswered
+        ? (AppTheme.positiveTint, null, BqIcons.check, AppTheme.positive)
+        : (null, AppTheme.ruleStrong, null, AppTheme.inkMuted);
 
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      width: 20,
+      height: 20,
       decoration: BoxDecoration(
-        color: tint,
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(color: accent.withValues(alpha: 0.35)),
+        color: bg,
+        shape: BoxShape.circle,
+        border: ring != null ? Border.all(color: ring, width: 1.5) : null,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label.toUpperCase(),
-            style: AppTheme.overline.copyWith(color: accent),
+      alignment: Alignment.center,
+      child: icon != null ? BqIcon(icon, size: 12, color: fg) : null,
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Bottom panels
+// ---------------------------------------------------------------------------
+
+class _PanelTitle extends StatelessWidget {
+  const _PanelTitle({
+    required this.icon,
+    required this.circle,
+    required this.iconColor,
+    required this.title,
+    required this.titleColor,
+  });
+
+  final String icon;
+  final Color circle;
+  final Color iconColor;
+  final String title;
+  final Color titleColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(color: circle, shape: BoxShape.circle),
+          alignment: Alignment.center,
+          child: BqIcon(icon, size: 18, color: iconColor),
+        ),
+        const SizedBox(width: 10),
+        Flexible(
+          child: Text(
+            title,
+            style: TextStyle(
+              fontFamily: AppTheme.displayFontName,
+              fontSize: 22,
+              fontWeight: FontWeight.w600,
+              height: 1.2,
+              color: titleColor,
+            ),
           ),
-          const SizedBox(height: 8),
-          Text(message, style: AppTheme.bodyMuted),
+        ),
+      ],
+    );
+  }
+}
+
+/// White feedback sheet after the reveal, as in the solo quiz.
+class _RevealPanel extends StatelessWidget {
+  const _RevealPanel({
+    required this.question,
+    required this.selectedAnswerId,
+    required this.correctAnswerId,
+    required this.gained,
+    required this.onNext,
+    required this.hostTempo,
+  });
+
+  final MultiplayerQuestionState question;
+  final String? selectedAnswerId;
+  final String correctAnswerId;
+  final int gained;
+  final VoidCallback? onNext;
+  final bool hostTempo;
+
+  @override
+  Widget build(BuildContext context) {
+    final noAnswer = selectedAnswerId == null || selectedAnswerId!.isEmpty;
+    final isCorrect = !noAnswer && selectedAnswerId == correctAnswerId;
+
+    final title = noAnswer
+        ? const _PanelTitle(
+            icon: BqIcons.clock,
+            circle: AppTheme.ruleSoft,
+            iconColor: AppTheme.inkSoft,
+            title: 'Geen antwoord',
+            titleColor: AppTheme.inkSoft,
+          )
+        : isCorrect
+        ? const _PanelTitle(
+            icon: BqIcons.check,
+            circle: AppTheme.positive,
+            iconColor: AppTheme.inkInverted,
+            title: 'Goed!',
+            titleColor: AppTheme.positiveText,
+          )
+        : const _PanelTitle(
+            icon: BqIcons.close,
+            circle: AppTheme.coralDeep,
+            iconColor: AppTheme.inkInverted,
+            title: 'Helaas',
+            titleColor: AppTheme.vermilion,
+          );
+
+    final body =
+        question.explanation ??
+        (noAnswer
+            ? 'Het juiste antwoord is groen gemarkeerd.'
+            : isCorrect
+            ? 'Je antwoord is correct.'
+            : 'Jouw keuze staat gemarkeerd naast het juiste antwoord.');
+
+    final reference = question.bibleReference.trim();
+
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      child: MpBottomPanel(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Align(alignment: Alignment.centerLeft, child: title),
+                ),
+                if (gained > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 11,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.goldTint,
+                      borderRadius: BorderRadius.circular(AppTheme.radiusPill),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const BqIcon(BqIcons.bolt, size: 14),
+                        const SizedBox(width: 4),
+                        Text(
+                          '+$gained punten',
+                          style: const TextStyle(
+                            fontFamily: AppTheme.sansFontName,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: AppTheme.goldText,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              body,
+              style: AppTheme.bodyLead.copyWith(color: const Color(0xFF3E3C37)),
+            ),
+            if (reference.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Container(
+                  height: 30,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.lapisTint,
+                    borderRadius: BorderRadius.circular(AppTheme.radiusPill),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const BqIcon(
+                        BqIcons.book,
+                        size: 14,
+                        color: AppTheme.lapis,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        reference,
+                        style: const TextStyle(
+                          fontFamily: AppTheme.sansFontName,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.lapis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+            if (onNext != null) ...[
+              const SizedBox(height: 12),
+              BqButton(label: 'Volgende vraag', onPressed: onNext),
+            ] else if (hostTempo) ...[
+              const SizedBox(height: 12),
+              const Text(
+                'De host gaat zo door naar de volgende vraag.',
+                style: AppTheme.caption,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// After answering (or, for the host in host-tempo mode, before the reveal).
+class _WaitingPanel extends StatelessWidget {
+  const _WaitingPanel({required this.answered, required this.onReveal});
+
+  final bool answered;
+  final VoidCallback? onReveal;
+
+  @override
+  Widget build(BuildContext context) {
+    return MpBottomPanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (answered) ...[
+            const _PanelTitle(
+              icon: BqIcons.check,
+              circle: AppTheme.lapisTint,
+              iconColor: AppTheme.lapis,
+              title: 'Ingestuurd',
+              titleColor: AppTheme.lapisStrong,
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Wachten op de andere spelers…',
+              style: AppTheme.bodyLead,
+            ),
+          ] else
+            const Text(
+              'Jij bepaalt het tempo. Toon de antwoorden zodra iedereen klaar '
+              'is.',
+              style: AppTheme.bodyLead,
+            ),
+          if (onReveal != null) ...[
+            const SizedBox(height: 12),
+            BqButton(label: 'Toon antwoorden', onPressed: onReveal),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Reading phase
+// ---------------------------------------------------------------------------
+
+/// The chapter every device reads before question 1, shown while the room is
+/// in the `reading` phase. Laid out like the solo "Lezen" screen.
+class _ReadingView extends ConsumerWidget {
+  const _ReadingView({
+    required this.room,
+    required this.isHost,
+    required this.lastError,
+    required this.onStart,
+    required this.closeLabel,
+    required this.onClose,
+  });
+
+  final MultiplayerRoom room;
+  final bool isHost;
+  final String? lastError;
+  final VoidCallback onStart;
+  final String closeLabel;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final passage = room.passage;
+    final quizTitle = room.quizTitle.trim().isEmpty
+        ? 'Multiplayer quiz'
+        : room.quizTitle;
+
+    final footer = MpBottomPanel(
+      rounded: false,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (lastError != null) ...[
+            MpNotice(message: lastError!),
+            const SizedBox(height: 12),
+          ],
+          if (isHost)
+            BqButton(label: 'Start de vragen', onPressed: onStart)
+          else
+            const _WaitingRow(text: 'Wacht tot de host de vragen start.'),
+        ],
+      ),
+    );
+
+    if (passage == null) {
+      return Column(
+        children: [
+          _TitleHeader(
+            title: quizTitle,
+            subtitle: 'Kamer ${room.code}',
+            closeLabel: closeLabel,
+            onClose: onClose,
+          ),
+          const Expanded(
+            child: Center(
+              child: Padding(
+                padding: EdgeInsets.all(20),
+                child: BqCard(
+                  padding: EdgeInsets.all(20),
+                  child: Text(
+                    'Wachten tot de host de vragen start…',
+                    textAlign: TextAlign.center,
+                    style: AppTheme.bodyLead,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          footer,
+        ],
+      );
+    }
+
+    final quizPassage = QuizPassage(
+      book: passage.book,
+      chapter: passage.chapter,
+      label: passage.label,
+    );
+    final versesAsync = ref.watch(chapterVersesProvider(quizPassage));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _TitleHeader(
+          title: passage.label,
+          subtitle: 'Lees voor de quiz $quizTitle',
+          closeLabel: closeLabel,
+          onClose: onClose,
+        ),
+        const SizedBox(height: 16),
+        Expanded(
+          child: versesAsync.when(
+            data: (verses) => SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Neem dit hoofdstuk rustig door. De vragen hierna gaan '
+                    'hierover, dus lezen helpt echt.',
+                    style: AppTheme.bodyMuted,
+                  ),
+                  const SizedBox(height: 14),
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        for (final verse in verses) ...[
+                          WidgetSpan(
+                            alignment: PlaceholderAlignment.baseline,
+                            baseline: TextBaseline.alphabetic,
+                            child: Transform.translate(
+                              offset: const Offset(0, -3),
+                              child: Padding(
+                                padding: const EdgeInsets.only(right: 3),
+                                child: Text(
+                                  '${verse.verse}',
+                                  style: const TextStyle(
+                                    fontFamily: AppTheme.sansFontName,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                    height: 1,
+                                    color: AppTheme.lapis,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          // Word joiner: a verse number never ends a line
+                          // on its own.
+                          TextSpan(text: '⁠${verse.text} '),
+                        ],
+                      ],
+                    ),
+                    style: const TextStyle(
+                      fontFamily: AppTheme.sansFontName,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      height: 25 / 16,
+                      color: AppTheme.ink,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('STATENVERTALING', style: AppTheme.eyebrow),
+                ],
+              ),
+            ),
+            loading: () => const AppLoader(),
+            // A chapter that will not load must never block the game.
+            error: (error, _) => AppEmptyState(
+              icon: Icons.menu_book_outlined,
+              title: 'Hoofdstuk niet geladen',
+              description:
+                  'Dit hoofdstuk kon nu niet opgehaald worden. De host kan '
+                  'gewoon met de vragen beginnen.',
+              action: MpSecondaryButton(
+                label: 'Opnieuw proberen',
+                expand: false,
+                height: 44,
+                onPressed: () =>
+                    ref.invalidate(chapterVersesProvider(quizPassage)),
+              ),
+            ),
+          ),
+        ),
+        footer,
+      ],
+    );
+  }
+}
+
+class _WaitingRow extends StatelessWidget {
+  const _WaitingRow({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 52,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.2,
+              color: AppTheme.lapis,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Flexible(
+            child: Text(
+              text,
+              maxLines: 2,
+              textAlign: TextAlign.center,
+              style: AppTheme.bodyStrong,
+            ),
+          ),
         ],
       ),
     );

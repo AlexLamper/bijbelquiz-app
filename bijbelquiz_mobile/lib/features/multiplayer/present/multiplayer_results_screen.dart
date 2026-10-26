@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/avatar/avatar_catalog.dart';
-import '../../../core/avatar/mascot_avatar.dart';
 import '../../../core/errors/app_error.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/app_notice.dart';
 import '../../../core/ui/app_widgets.dart';
+import '../../../core/ui/bq.dart';
 import '../../groups/data/player_group_repository.dart';
+import '../../profile/present/profile_provider.dart';
 import '../domain/multiplayer_models.dart';
 import 'multiplayer_session_controller.dart';
+import 'widgets/mp_ui.dart';
 
+/// Eindstand of a group game: a podium for the top three in the style of the
+/// Ranglijst tab, the full ranking below it, the offer to keep the group, and
+/// the way out.
 class MultiplayerResultsScreen extends ConsumerStatefulWidget {
   final String roomCode;
 
@@ -27,7 +32,12 @@ class _MultiplayerResultsScreenState
   bool _requestedResults = false;
   bool _savingGroup = false;
   bool _groupDismissed = false;
+  bool _leaving = false;
   String? _savedGroupName;
+
+  MultiplayerSessionController get _controller => ref.read(
+    multiplayerSessionControllerProvider(widget.roomCode).notifier,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -55,27 +65,15 @@ class _MultiplayerResultsScreenState
 
     return Scaffold(
       backgroundColor: AppTheme.paper,
-      appBar: AppBar(
-        backgroundColor: AppTheme.paper,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        automaticallyImplyLeading: false,
-        title: const Text('EINDRANGLIJST', style: AppTheme.overline),
-      ),
       body: SafeArea(
-        top: false,
+        bottom: false,
         child: sessionAsync.when(
           data: (session) {
             if (!_requestedResults && session.leaderboard.isEmpty) {
               _requestedResults = true;
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                ref
-                    .read(
-                      multiplayerSessionControllerProvider(
-                        widget.roomCode,
-                      ).notifier,
-                    )
-                    .loadResults();
+                if (!mounted) return;
+                _controller.loadResults();
               });
             }
             return _buildResults(context, session);
@@ -99,112 +97,92 @@ class _MultiplayerResultsScreenState
         return a.playerName.toLowerCase().compareTo(b.playerName.toLowerCase());
       });
 
+    final room = session.room;
+    final currentUserId = ref.watch(profileProvider).asData?.value.id ?? '';
+    final quizTitle = room.quizTitle.isEmpty ? 'Quiz voltooid' : room.quizTitle;
+    final playerCount = sorted.isNotEmpty ? sorted.length : room.players.length;
     final winner = sorted.isEmpty ? null : sorted.first;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
       children: [
-        const Eyebrow('Afgerond'),
-        const SizedBox(height: 16),
-        Text(
-          session.room.quizTitle.isEmpty
-              ? 'Quiz voltooid'
-              : session.room.quizTitle,
-          style: AppTheme.displayLarge,
+        const Text('Eindstand', style: AppTheme.displayLarge),
+        const SizedBox(height: 2),
+        Row(
+          children: [
+            const BqIcon(BqIcons.trophy, size: 16, color: AppTheme.goldText),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                playerCount > 0
+                    ? '$quizTitle · $playerCount '
+                          '${playerCount == 1 ? 'speler' : 'spelers'}'
+                    : quizTitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AppTheme.bodyMuted,
+              ),
+            ),
+          ],
         ),
-        if (winner != null) ...[
-          const SizedBox(height: 14),
-          Text.rich(
-            TextSpan(
-              style: AppTheme.bodyLead,
+        const SizedBox(height: 16),
+        if (sorted.isEmpty)
+          const BqCard(
+            child: Row(
               children: [
-                const TextSpan(text: 'Winnaar: '),
-                TextSpan(
-                  text: winner.playerName.isEmpty
-                      ? 'Speler'
-                      : winner.playerName,
-                  style: const TextStyle(
+                SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.4,
                     color: AppTheme.lapis,
-                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Resultaten worden geladen…',
+                    style: AppTheme.bodyLead,
                   ),
                 ),
               ],
             ),
-          ),
-        ],
-        const SizedBox(height: 28),
-        StatStrip(
-          stacked: true,
-          items: [
-            StatItem(value: '${sorted.length}', label: 'Spelers'),
-            StatItem(
-              value: winner == null ? '-' : '${winner.score}',
-              label: 'Topscore',
-              ruleColor: AppTheme.positive,
-            ),
-          ],
-        ),
-        const SizedBox(height: 36),
-        const SectionHeader(eyebrow: 'Ranglijst', title: 'Eindstand'),
-        const SizedBox(height: 24),
-        if (sorted.isEmpty)
-          const AppCard(
-            child: Text(
-              'Resultaten worden geladen…',
-              style: AppTheme.bodyMuted,
-            ),
           )
-        else
-          RuleGrid(
-            children: [
-              for (var i = 0; i < sorted.length; i++)
-                _ResultRow(
-                  entry: sorted[i],
-                  rank: i + 1,
-                  // The results payload carries no mascot, so it is read off
-                  // the room snapshot, which still holds every player.
-                  avatar: session.room
-                      .playerById(sorted[i].playerId)
-                      ?.avatar,
-                ),
-            ],
+        else ...[
+          Semantics(
+            label: winner == null
+                ? null
+                : 'Winnaar: ${_nameOf(winner)} met ${winner.score} punten',
+            child: _Podium(top: sorted.take(3).toList()),
           ),
-        if (session.lastError != null) ...[
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppTheme.vermilionTint,
-              borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-              border: Border.all(
-                color: AppTheme.destructive.withValues(alpha: 0.35),
-              ),
-            ),
-            child: Text(
-              session.lastError!,
-              style: AppTheme.bodyMuted.copyWith(color: AppTheme.destructive),
-            ),
+          // The podium blocks stand directly on the list card, as on the
+          // Ranglijst tab.
+          _RankingCard(
+            entries: sorted,
+            totalQuestions: room.totalQuestions,
+            currentUserId: currentUserId,
           ),
         ],
-        const SizedBox(height: 32),
+        if (session.lastError != null) ...[
+          const SizedBox(height: 16),
+          MpNotice(message: session.lastError!),
+        ],
+        const SizedBox(height: 24),
         _buildSaveGroupPrompt(session),
-        SiteButton(
+        BqButton(
           label: 'Terug naar home',
+          loading: _leaving,
           onPressed: () async {
-            await ref
-                .read(
-                  multiplayerSessionControllerProvider(
-                    widget.roomCode,
-                  ).notifier,
-                )
-                .leaveRoom();
+            setState(() => _leaving = true);
+            await _controller.leaveRoom();
             if (!context.mounted) return;
             context.go('/home');
           },
         ),
         const SizedBox(height: 12),
-        SiteOutlineButton(
+        MpSecondaryButton(
           label: 'Nieuwe kamer starten',
+          height: 52,
           onPressed: () => context.go('/play-together'),
         ),
       ],
@@ -223,16 +201,33 @@ class _MultiplayerResultsScreenState
 
     if (_savedGroupName != null) {
       return Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: AppCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.only(bottom: 16),
+        child: BqCard(
+          child: Row(
             children: [
-              Text('"$_savedGroupName" is bewaard.', style: AppTheme.bodyStrong),
-              const SizedBox(height: 6),
-              Text(
-                'Je vindt de stand van deze groep op de ranglijst.',
-                style: AppTheme.bodyMuted,
+              const BqIconTile(
+                background: AppTheme.positiveTint,
+                child: BqIcon(
+                  BqIcons.check,
+                  size: 20,
+                  color: AppTheme.positive,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '"$_savedGroupName" is bewaard.',
+                      style: AppTheme.bodyStrong,
+                    ),
+                    const Text(
+                      'Je vindt de stand van deze groep op de ranglijst.',
+                      style: AppTheme.caption,
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -241,35 +236,48 @@ class _MultiplayerResultsScreenState
     }
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: AppTheme.lapisTint,
-          borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-          border: Border.all(color: AppTheme.lapis.withValues(alpha: 0.35)),
-        ),
+      padding: const EdgeInsets.only(bottom: 16),
+      child: BqCard(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Deze groep bewaren?', style: AppTheme.bodyStrong),
-            const SizedBox(height: 6),
+            Row(
+              children: [
+                const BqIconTile(
+                  child: BqIcon(BqIcons.users, size: 22, color: AppTheme.lapis),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Deze groep bewaren?',
+                    style: AppTheme.displayTitle.copyWith(
+                      fontSize: 20,
+                      height: 26 / 20,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
             Text(
               'Dan houd je een eigen ranglijst bij met deze '
               '${session.room.players.length} spelers, en nodig je ze de '
               'volgende keer met een tik weer uit.',
-              style: AppTheme.bodyMuted,
+              style: AppTheme.bodyLead,
             ),
-            const SizedBox(height: 16),
-            SiteButton(
+            const SizedBox(height: 14),
+            BqButton(
               label: 'Groep bewaren',
+              style: BqButtonStyle.tint,
+              height: 48,
               loading: _savingGroup,
               onPressed: _savingGroup ? null : _saveGroup,
             ),
             const SizedBox(height: 8),
-            SiteOutlineButton(
+            MpSecondaryButton(
               label: 'Nee, bedankt',
-              height: 40,
+              height: 44,
+              fontSize: 15,
               onPressed: () => setState(() => _groupDismissed = true),
             ),
           ],
@@ -307,94 +315,358 @@ class _MultiplayerResultsScreenState
       icon: error.icon,
       title: error.title,
       description: error.message,
-      action: SiteOutlineButton(
+      action: MpSecondaryButton(
         label: 'Opnieuw proberen',
         expand: false,
         height: 44,
-        onPressed: () {
-          ref
-              .read(
-                multiplayerSessionControllerProvider(widget.roomCode).notifier,
-              )
-              .refreshRoom(showLoading: true);
-        },
+        onPressed: () => _controller.refreshRoom(showLoading: true),
       ),
     );
   }
-
 }
 
-class _ResultRow extends StatelessWidget {
-  const _ResultRow({
-    required this.entry,
-    required this.rank,
-    required this.avatar,
+String _nameOf(MultiplayerLeaderboardEntry entry) =>
+    entry.playerName.isEmpty ? 'Speler' : entry.playerName;
+
+// ---------------------------------------------------------------------------
+// Podium
+// ---------------------------------------------------------------------------
+
+class _PlaceStyle {
+  const _PlaceStyle({
+    required this.avatarSize,
+    required this.letterSize,
+    required this.medal,
+    required this.text,
+    required this.block,
+    required this.blockHeight,
   });
 
-  final MultiplayerLeaderboardEntry entry;
-  final int rank;
-  final AvatarConfig? avatar;
+  final double avatarSize;
+  final double letterSize;
+
+  /// Avatar ring and rank badge.
+  final Color medal;
+
+  /// Score and block number.
+  final Color text;
+  final Color block;
+  final double blockHeight;
+
+  static const gold = _PlaceStyle(
+    avatarSize: 66,
+    letterSize: 27,
+    medal: AppTheme.gold,
+    text: AppTheme.goldText,
+    block: Color(0xFFF0D48A),
+    blockHeight: 70,
+  );
+
+  static const silver = _PlaceStyle(
+    avatarSize: 54,
+    letterSize: 21,
+    medal: Color(0xFFA9AFBB),
+    text: Color(0xFF5C6370),
+    block: Color(0xFFD5D9E1),
+    blockHeight: 46,
+  );
+
+  static const bronze = _PlaceStyle(
+    avatarSize: 54,
+    letterSize: 21,
+    medal: Color(0xFFC98A5A),
+    text: Color(0xFF8A5530),
+    block: Color(0xFFE6C9B1),
+    blockHeight: 32,
+  );
+}
+
+const String _crownSvg =
+    '<svg viewBox="0 0 30 22" xmlns="http://www.w3.org/2000/svg"><path d="M3 18L5 5l6 6 4-9 4 9 6-6 2 13z" fill="#E9B12E" stroke="#A87C14" stroke-width="2" stroke-linejoin="round"/></svg>';
+
+/// Second, first, third - first in the middle and tallest.
+class _Podium extends StatelessWidget {
+  const _Podium({required this.top});
+
+  final List<MultiplayerLeaderboardEntry> top;
 
   @override
   Widget build(BuildContext context) {
-    final isLeader = rank == 1;
+    Widget slot(int index, int place, _PlaceStyle style) {
+      if (index >= top.length) return const SizedBox.shrink();
+      return _PodiumPlace(entry: top[index], place: place, style: style);
+    }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 6),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          Container(
-            height: 32,
-            constraints: const BoxConstraints(minWidth: 32),
+          Expanded(child: slot(1, 2, _PlaceStyle.silver)),
+          const SizedBox(width: 10),
+          Expanded(child: slot(0, 1, _PlaceStyle.gold)),
+          const SizedBox(width: 10),
+          Expanded(child: slot(2, 3, _PlaceStyle.bronze)),
+        ],
+      ),
+    );
+  }
+}
+
+class _PodiumPlace extends StatelessWidget {
+  const _PodiumPlace({
+    required this.entry,
+    required this.place,
+    required this.style,
+  });
+
+  final MultiplayerLeaderboardEntry entry;
+  final int place;
+  final _PlaceStyle style;
+
+  @override
+  Widget build(BuildContext context) {
+    final name = _nameOf(entry);
+    final tint = BqAvatar.tintFor(name);
+    final letter = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
+
+    return Semantics(
+      label: '$place. $name, ${entry.score} punten',
+      excludeSemantics: true,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (place == 1) ...[
+            SvgPicture.string(_crownSvg, width: 30, height: 22),
+            const SizedBox(height: 2),
+          ],
+          Stack(
+            clipBehavior: Clip.none,
             alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: 4),
+            children: [
+              Container(
+                width: style.avatarSize,
+                height: style.avatarSize,
+                decoration: BoxDecoration(
+                  color: tint.$1,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: style.medal, width: 3),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  letter,
+                  style: TextStyle(
+                    fontFamily: AppTheme.displayFontName,
+                    fontWeight: FontWeight.w600,
+                    fontSize: style.letterSize,
+                    height: 1,
+                    color: tint.$2,
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: -8,
+                child: Container(
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    color: style.medal,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppTheme.paperRaised, width: 2),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    '$place',
+                    style: const TextStyle(
+                      fontFamily: AppTheme.sansFontName,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      height: 1,
+                      color: AppTheme.inkInverted,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontFamily: AppTheme.sansFontName,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.ink,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '${entry.score} punten',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontFamily: AppTheme.sansFontName,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: style.text,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Container(
+            width: double.infinity,
+            height: style.blockHeight,
+            padding: const EdgeInsets.only(top: 6),
+            alignment: Alignment.topCenter,
             decoration: BoxDecoration(
-              color: isLeader ? AppTheme.lapisTint : AppTheme.paperSunken,
-              border: Border.all(
-                color: isLeader
-                    ? AppTheme.lapis.withValues(alpha: 0.35)
-                    : AppTheme.rule,
+              color: style.block,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(12),
               ),
             ),
             child: Text(
-              '#$rank',
+              '$place',
               style: TextStyle(
-                fontFamily: AppTheme.sansFontName,
-                fontSize: 12,
+                fontFamily: AppTheme.displayFontName,
                 fontWeight: FontWeight.w600,
-                color: isLeader ? AppTheme.lapis : AppTheme.inkSoft,
-                fontFeatures: const [FontFeature.tabularFigures()],
+                fontSize: 22,
+                height: 1.1,
+                color: style.text,
               ),
             ),
           ),
-          const SizedBox(width: 12),
-          MascotAvatar(
-            avatar: avatar ?? AvatarConfig.fromSeed(entry.playerId),
-            size: 36,
-            bordered: true,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  entry.playerName.isEmpty ? 'Speler' : entry.playerName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTheme.bodyStrong,
-                ),
-                const SizedBox(height: 5),
-                Text('${entry.correctAnswers} GOED', style: AppTheme.overline),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            '${entry.score}',
-            style: AppTheme.statNumber.copyWith(fontSize: 18),
-          ),
         ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Full ranking
+// ---------------------------------------------------------------------------
+
+class _RankingCard extends StatelessWidget {
+  const _RankingCard({
+    required this.entries,
+    required this.totalQuestions,
+    required this.currentUserId,
+  });
+
+  final List<MultiplayerLeaderboardEntry> entries;
+  final int totalQuestions;
+  final String currentUserId;
+
+  @override
+  Widget build(BuildContext context) {
+    return BqCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < entries.length; i++) ...[
+            if (i > 0)
+              const Divider(height: 1, thickness: 1, color: AppTheme.ruleSoft),
+            _RankingRow(
+              rank: i + 1,
+              entry: entries[i],
+              totalQuestions: totalQuestions,
+              isMe:
+                  currentUserId.isNotEmpty &&
+                  entries[i].playerId == currentUserId,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _RankingRow extends StatelessWidget {
+  const _RankingRow({
+    required this.rank,
+    required this.entry,
+    required this.totalQuestions,
+    required this.isMe,
+  });
+
+  final int rank;
+  final MultiplayerLeaderboardEntry entry;
+  final int totalQuestions;
+  final bool isMe;
+
+  @override
+  Widget build(BuildContext context) {
+    final name = _nameOf(entry);
+    final correct = totalQuestions > 0
+        ? '${entry.correctAnswers} van $totalQuestions goed'
+        : '${entry.correctAnswers} goed';
+    final strong = isMe ? AppTheme.lapisStrong : AppTheme.inkSoft;
+
+    return Semantics(
+      label:
+          '$rank. ${isMe ? '$name (jij)' : name}, ${entry.score} punten, '
+          '$correct',
+      excludeSemantics: true,
+      child: Container(
+        color: isMe ? AppTheme.lapisTint : null,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 22,
+              child: Text(
+                '$rank',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: AppTheme.sansFontName,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: strong,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            BqAvatar(
+              name: name,
+              background: isMe ? AppTheme.paperRaised : null,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTheme.bodyStrong,
+                  ),
+                  Text(
+                    correct,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTheme.caption.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: isMe ? AppTheme.lapis : AppTheme.inkMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              '${entry.score} punten',
+              style: TextStyle(
+                fontFamily: AppTheme.sansFontName,
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: strong,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

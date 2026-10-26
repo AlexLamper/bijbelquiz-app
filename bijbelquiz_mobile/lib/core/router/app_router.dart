@@ -226,6 +226,15 @@ class _NavItem extends StatelessWidget {
 /// typed code.
 String? _redirectWebInviteLinks(BuildContext context, GoRouterState state) {
   final segments = state.uri.pathSegments;
+
+  // Duel invite: `/duel/<token>` from the website opens the challenge.
+  if (segments.length >= 2 && segments.first == 'duel') {
+    return Uri(
+      path: '/duels/new',
+      queryParameters: {'invite': segments[1]},
+    ).toString();
+  }
+
   if (segments.isEmpty || segments.first != 'samen-spelen') return null;
 
   // `/samen-spelen` on its own is the entry page, not a room.

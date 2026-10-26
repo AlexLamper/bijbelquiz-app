@@ -212,7 +212,9 @@ class BqListCard extends StatelessWidget {
     final items = <Widget>[];
     for (var i = 0; i < children.length; i++) {
       if (i > 0) {
-        items.add(const Divider(height: 1, thickness: 1, color: AppTheme.ruleSoft));
+        items.add(
+          const Divider(height: 1, thickness: 1, color: AppTheme.ruleSoft),
+        );
       }
       items.add(children[i]);
     }
@@ -284,7 +286,11 @@ class BqListRow extends StatelessWidget {
           if (trailing != null) ...[const SizedBox(width: 10), trailing!],
           if (chevron) ...[
             const SizedBox(width: 8),
-            const BqIcon(BqIcons.chevronRight, size: 18, color: AppTheme.inkFaint),
+            const BqIcon(
+              BqIcons.chevronRight,
+              size: 18,
+              color: AppTheme.inkFaint,
+            ),
           ],
         ],
       ),
@@ -613,15 +619,42 @@ class _BqButtonState extends State<BqButton> {
   (Color bg, Color edge, Color fg, Color? border) get _colors {
     switch (widget.style) {
       case BqButtonStyle.primary:
-        return (AppTheme.lapis, AppTheme.lapisStrong, AppTheme.inkInverted, null);
+        return (
+          AppTheme.lapis,
+          AppTheme.lapisStrong,
+          AppTheme.inkInverted,
+          null,
+        );
       case BqButtonStyle.coral:
-        return (AppTheme.coralDeep, AppTheme.coralEdge, AppTheme.inkInverted, null);
+        return (
+          AppTheme.coralDeep,
+          AppTheme.coralEdge,
+          AppTheme.inkInverted,
+          null,
+        );
       case BqButtonStyle.tint:
-        return (AppTheme.lapisTint, const Color(0xFFC3CEE6), AppTheme.lapisStrong, null);
+        return (
+          AppTheme.lapisTint,
+          const Color(0xFFC3CEE6),
+          AppTheme.lapisStrong,
+          null,
+        );
       case BqButtonStyle.white:
-        return (AppTheme.paperRaised, const Color(0xFFC9D2E6), AppTheme.lapisStrong, null);
+        return (
+          AppTheme.paperRaised,
+          const Color(0xFFC9D2E6),
+          AppTheme.lapisStrong,
+          null,
+        );
       case BqButtonStyle.secondary:
-        return (AppTheme.paperRaised, AppTheme.ruleStrong, AppTheme.ink, AppTheme.rule);
+        // One border colour: Flutter can't paint a rounded border whose sides
+        // have different colours. Matches the design (1px #DEDBD3, 3px bottom).
+        return (
+          AppTheme.paperRaised,
+          AppTheme.rule,
+          AppTheme.ink,
+          AppTheme.rule,
+        );
     }
   }
 
@@ -687,6 +720,8 @@ class _BqButtonState extends State<BqButton> {
       enabled: enabled,
       label: widget.label,
       excludeSemantics: true,
+      // Screen readers activate through this; the children are excluded.
+      onTap: enabled ? widget.onPressed : null,
       child: Opacity(
         opacity: enabled || widget.loading ? 1 : 0.5,
         child: GestureDetector(

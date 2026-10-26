@@ -266,10 +266,7 @@ class _HostSetupSheetState extends ConsumerState<_HostSetupSheet> {
           ),
         );
       },
-      loading: () => const Padding(
-        padding: EdgeInsets.symmetric(vertical: 40),
-        child: AppLoader(size: 24),
-      ),
+      loading: () => const SizedBox(height: 140, child: AppLoader(size: 24)),
       error: (error, _) => Padding(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
         child: MpNotice(
@@ -460,10 +457,13 @@ class _HostSetupSheetState extends ConsumerState<_HostSetupSheet> {
 }
 
 String _quizSubtitle(Quiz quiz) {
+  // The label is written for an uppercase badge; here it reads as a word.
+  final difficulty = quiz.difficultyLabelNl.trim();
   final parts = <String>[
     if (quiz.questionCount > 0)
       quiz.questionCount == 1 ? '1 vraag' : '${quiz.questionCount} vragen',
-    quiz.difficultyLabelNl,
+    if (difficulty.isNotEmpty)
+      '${difficulty[0].toUpperCase()}${difficulty.substring(1).toLowerCase()}',
   ];
   return parts.join(' · ');
 }

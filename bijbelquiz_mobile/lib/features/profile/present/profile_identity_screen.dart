@@ -9,7 +9,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/app_notice.dart';
 import '../../../core/ui/app_widgets.dart';
 import '../../../core/ui/custom_text_field.dart';
-import '../../../core/ui/primary_button.dart';
+import '../../../core/ui/bq.dart';
 import '../../leaderboard/data/leaderboard_repository.dart';
 import '../data/profile_repository.dart';
 import 'profile_provider.dart';
@@ -122,58 +122,108 @@ class _ProfileIdentityScreenState extends ConsumerState<ProfileIdentityScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.paper,
-      appBar: AppBar(
-        backgroundColor: AppTheme.paper,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        title: const Text('Profiel bewerken', style: AppTheme.displaySmall),
-        iconTheme: const IconThemeData(color: AppTheme.ink),
-      ),
-      body: profileAsync.when(
-        loading: () => const AppLoader(),
-        error: (error, _) => Padding(
-          padding: const EdgeInsets.all(24),
-          child: AppEmptyState(
-            icon: Icons.error_outline,
-            title: 'Profiel kon niet laden',
-            description: '$error',
-          ),
-        ),
-        data: (profile) {
-          _seedFrom(
-            profile.avatar,
-            profile.name,
-            profile.nameChangeAllowedInDays,
-          );
-          final draft = _draft ?? profile.avatar;
-          final nameLocked = _cooldownDays > 0;
-
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
-            children: [
-              Center(
-                child: Column(
-                  children: [
-                    MascotAvatar(avatar: draft, size: 132, bordered: true),
-                    const SizedBox(height: 12),
-                    Text(describeAvatar(draft), style: AppTheme.bodyMuted),
-                  ],
-                ),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+              child: BqTopBar(
+                title: 'Profiel bewerken',
+                large: true,
+                onBack: () => Navigator.of(context).maybePop(),
               ),
-              const SizedBox(height: 24),
-              Center(
-                child: TextButton.icon(
-                  onPressed: _isSaving ? null : _surpriseMe,
-                  icon: const Icon(Icons.casino_outlined, size: 18),
-                  label: const Text('Verras me'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppTheme.inkSoft,
+            ),
+            Expanded(
+              child: profileAsync.when(
+                loading: () => const AppLoader(),
+                error: (error, _) => Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: AppEmptyState(
+                    icon: Icons.error_outline,
+                    title: 'Profiel kon niet laden',
+                    description: '$error',
                   ),
                 ),
+                data: (profile) {
+                  _seedFrom(
+                    profile.avatar,
+                    profile.name,
+                    profile.nameChangeAllowedInDays,
+                  );
+                  return _buildEditor(profile.avatar);
+                },
               ),
-              const SizedBox(height: 24),
-              const SectionHeader(eyebrow: 'Naam', title: 'Weergavenaam'),
-              const SizedBox(height: 16),
+            ),
+            // The save bar stays in reach while scrolling through the parts.
+            if (profileAsync.hasValue)
+              Container(
+                decoration: const BoxDecoration(
+                  color: AppTheme.paperRaised,
+                  border: Border(top: BorderSide(color: AppTheme.rule)),
+                ),
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
+                child: BqButton(
+                  label: 'Opslaan',
+                  loading: _isSaving,
+                  onPressed: _save,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEditor(AvatarConfig fallback) {
+    final draft = _draft ?? fallback;
+    final nameLocked = _cooldownDays > 0;
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+      children: [
+        BqCard(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+          child: Column(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppTheme.lapisTint, width: 4),
+                ),
+                child: ClipOval(child: MascotAvatar(avatar: draft, size: 124)),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                describeAvatar(draft),
+                textAlign: TextAlign.center,
+                style: AppTheme.bodyMuted,
+              ),
+              const SizedBox(height: 14),
+              // Unconstrained so the button hugs its label instead of
+              // stretching across the card.
+              UnconstrainedBox(
+                child: BqButton(
+                  label: 'Verras me',
+                  style: BqButtonStyle.tint,
+                  icon: const BqIcon(BqIcons.shuffle, size: 18),
+                  height: 44,
+                  expand: false,
+                  fontSize: 15,
+                  onPressed: _isSaving ? null : _surpriseMe,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        const _SectionTitle('Weergavenaam'),
+        const SizedBox(height: 8),
+        BqCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               CustomTextField(
                 controller: _nameController,
                 label: 'Naam',
@@ -189,12 +239,16 @@ class _ProfileIdentityScreenState extends ConsumerState<ProfileIdentityScreen> {
                           'Eens per 30 dagen te wijzigen.',
                 style: AppTheme.caption,
               ),
-              const SizedBox(height: 32),
-              const SectionHeader(
-                eyebrow: 'Mascotte',
-                title: 'Stel je figuur samen',
-              ),
-              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        const _SectionTitle('Stel je mascotte samen'),
+        const SizedBox(height: 8),
+        BqCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
               _PartPicker(
                 label: 'Figuur',
                 options: avatarCharacters
@@ -209,7 +263,7 @@ class _ProfileIdentityScreenState extends ConsumerState<ProfileIdentityScreen> {
                 selected: draft.character,
                 onSelect: (value) => _setPart(character: value),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
               _PartPicker(
                 label: 'Kleur',
                 options: avatarColors
@@ -224,7 +278,7 @@ class _ProfileIdentityScreenState extends ConsumerState<ProfileIdentityScreen> {
                 selected: draft.color,
                 onSelect: (value) => _setPart(color: value),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
               _PartPicker(
                 label: 'Achtergrond',
                 options: avatarBackgrounds
@@ -239,7 +293,7 @@ class _ProfileIdentityScreenState extends ConsumerState<ProfileIdentityScreen> {
                 selected: draft.background,
                 onSelect: (value) => _setPart(background: value),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
               _PartPicker(
                 label: 'Accessoire',
                 options: avatarAccessories
@@ -254,15 +308,32 @@ class _ProfileIdentityScreenState extends ConsumerState<ProfileIdentityScreen> {
                 selected: draft.accessory,
                 onSelect: (value) => _setPart(accessory: value),
               ),
-              const SizedBox(height: 32),
-              PrimaryButton(
-                text: 'Opslaan',
-                isLoading: _isSaving,
-                onPressed: _save,
-              ),
             ],
-          );
-        },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      header: true,
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontFamily: AppTheme.sansFontName,
+          fontSize: 16,
+          height: 22 / 16,
+          fontWeight: FontWeight.w800,
+          color: AppTheme.ink,
+        ),
       ),
     );
   }
@@ -308,53 +379,72 @@ class _PartPicker extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label.toUpperCase(), style: AppTheme.eyebrow),
-        const SizedBox(height: 12),
+        Text(
+          label,
+          style: const TextStyle(
+            fontFamily: AppTheme.sansFontName,
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+            color: AppTheme.inkSoft,
+          ),
+        ),
+        const SizedBox(height: 10),
         Wrap(
-          spacing: 10,
-          runSpacing: 10,
+          spacing: 8,
+          runSpacing: 8,
           children: options.map((option) {
             final active = option.id == selected;
 
-            return Material(
-              color: active ? AppTheme.lapisTint : AppTheme.paperRaised,
-              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-              child: InkWell(
+            return Semantics(
+              button: true,
+              selected: active,
+              label: '$label: ${option.label}',
+              excludeSemantics: true,
+              onTap: () => onSelect(option.id),
+              child: Material(
+                color: active ? AppTheme.lapisTint : AppTheme.paperRaised,
                 borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                onTap: () => onSelect(option.id),
-                child: Container(
-                  width: 74,
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                    border: Border.all(
-                      color: active ? AppTheme.lapis : AppTheme.rule,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                  onTap: () => onSelect(option.id),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 140),
+                    width: 70,
+                    padding: const EdgeInsets.symmetric(vertical: 9),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                      border: Border.all(
+                        color: active ? AppTheme.lapis : AppTheme.rule,
+                        width: active ? 2 : 1,
+                      ),
                     ),
-                  ),
-                  child: Column(
-                    children: [
-                      if (option.preview != null)
-                        MascotAvatar(avatar: option.preview!, size: 44)
-                      else
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: option.swatch,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: AppTheme.rule),
+                    child: Column(
+                      children: [
+                        if (option.preview != null)
+                          MascotAvatar(avatar: option.preview!, size: 42)
+                        else
+                          Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: option.swatch,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: AppTheme.rule),
+                            ),
+                          ),
+                        const SizedBox(height: 6),
+                        Text(
+                          option.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTheme.caption.copyWith(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: active ? AppTheme.lapisStrong : AppTheme.inkMuted,
                           ),
                         ),
-                      const SizedBox(height: 8),
-                      Text(
-                        option.label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTheme.caption.copyWith(
-                          color: active ? AppTheme.ink : AppTheme.inkMuted,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),

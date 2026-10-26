@@ -156,6 +156,7 @@ class _RoundIconButton extends StatelessWidget {
       button: true,
       label: label,
       excludeSemantics: true,
+      onTap: onTap,
       child: Material(
         type: MaterialType.transparency,
         child: InkResponse(
@@ -264,7 +265,7 @@ class _ProfileCard extends StatelessWidget {
     final isMaxLevel = xpRemaining == 0;
     final subtitle = rank == null
         ? profile.levelTitle
-        : '${profile.levelTitle} - plek $rank op de ranglijst';
+        : '${profile.levelTitle} - plek $rank';
 
     return Semantics(
       container: true,
@@ -358,6 +359,7 @@ class _EditableAvatar extends StatelessWidget {
       button: true,
       label: 'Profiel bewerken',
       excludeSemantics: true,
+      onTap: onTap,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
@@ -539,6 +541,7 @@ class _AchievementsSection extends ConsumerWidget {
               label: 'Alle prestaties bekijken, ${unlocked.length} van '
                   '${overview.length} behaald',
               excludeSemantics: true,
+              onTap: onViewAll,
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: onViewAll,
@@ -697,7 +700,7 @@ class _GuestProfileContent extends StatelessWidget {
                 const SizedBox(height: 10),
                 BqButton(
                   label: 'Inloggen',
-                  style: BqButtonStyle.secondary,
+                  style: BqButtonStyle.tint,
                   onPressed: () => context.push('/login'),
                 ),
               ],

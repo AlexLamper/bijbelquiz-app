@@ -437,6 +437,7 @@ class PaywallPlanCard extends StatelessWidget {
       button: true,
       selected: selected,
       inMutuallyExclusiveGroup: true,
+      onTap: onTap,
       label: [
         title,
         '$price $period',
@@ -446,6 +447,8 @@ class PaywallPlanCard extends StatelessWidget {
       excludeSemantics: true,
       child: Stack(
         clipBehavior: Clip.none,
+        // The card takes the full width its grid cell gives it.
+        fit: StackFit.passthrough,
         children: [
           Material(
             color: AppTheme.paperRaised,
@@ -655,12 +658,14 @@ class PaywallLink extends StatelessWidget {
     this.color = AppTheme.lapis,
     this.fontSize = 14,
     this.link = false,
+    this.padding = const EdgeInsets.symmetric(horizontal: 8),
   });
 
   final String label;
   final VoidCallback? onTap;
   final Color color;
   final double fontSize;
+  final EdgeInsetsGeometry padding;
 
   /// Opens a web page rather than acting in the app.
   final bool link;
@@ -677,7 +682,7 @@ class PaywallLink extends StatelessWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 44),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            padding: padding,
             child: Center(
               widthFactor: 1,
               child: Text(

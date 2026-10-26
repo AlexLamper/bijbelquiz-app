@@ -13,6 +13,7 @@ import '../../auth/present/auth_controller.dart';
 import '../../profile/data/profile_model.dart';
 import '../../profile/present/profile_provider.dart';
 import '../../settings/data/quiz_preferences_controller.dart';
+import '../data/free_quiz_limit.dart';
 import '../data/pending_attempt_store.dart';
 import '../data/quiz_repository.dart';
 import '../domain/answer.dart';
@@ -41,6 +42,11 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
   /// Set once we have bounced a non-premium player off a premium quiz, so the
   /// redirect fires exactly once even though `build` runs many times.
   bool _paywallRedirected = false;
+
+  /// The free-quiz limit is checked once, before the first answer: a quiz
+  /// that has started is never taken away halfway.
+  bool _freeLimitChecked = false;
+  bool _overFreeLimit = false;
 
   /// Which option index was picked per question index, so the server can
   /// re-grade the attempt instead of trusting a client-side tally.
@@ -363,6 +369,39 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
                     );
                 context.pushReplacement(
                   '/premium?reden=${PaywallTrigger.premiumQuizLocked}',
+                );
+              });
+            }
+            return const SafeArea(child: AppLoader());
+          }
+
+          // Free players get [kFreeQuizLimit] different quizzes; a new quiz
+          // after that opens the locked paywall. Replays stay free.
+          final allowance = ref.watch(freeQuizAllowanceProvider).asData?.value;
+          if (!_freeLimitChecked &&
+              allowance != null &&
+              _currentIndex == 0 &&
+              !_isAnswered) {
+            _freeLimitChecked = true;
+            _overFreeLimit =
+                !isPremium && !allowance.canPlay(quiz.id, slug: quiz.slug);
+          }
+          if (_overFreeLimit) {
+            if (!_paywallRedirected) {
+              _paywallRedirected = true;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                ref
+                    .read(analyticsProvider)
+                    .track(
+                      AnalyticsEvents.paywallShown,
+                      props: {
+                        'trigger': PaywallTrigger.freeLimit,
+                        'surface': 'quiz_player',
+                      },
+                    );
+                context.pushReplacement(
+                  '/premium?reden=${PaywallTrigger.freeLimit}',
                 );
               });
             }

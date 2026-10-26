@@ -4,10 +4,14 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/app_widgets.dart';
+import '../../../core/ui/bq.dart';
 import '../data/badge_catalog.dart';
 import '../data/profile_model.dart';
 import 'profile_provider.dart';
+import 'widgets/badge_medal.dart';
 
+/// Prestaties: every achievement, earned ones as medals, the rest as a list
+/// that says what to do for them.
 class ProfileAchievementsScreen extends ConsumerWidget {
   const ProfileAchievementsScreen({super.key});
 
@@ -19,39 +23,38 @@ class ProfileAchievementsScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppTheme.paper,
-      appBar: AppBar(
-        backgroundColor: AppTheme.paper,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, size: 20),
-          onPressed: () => context.pop(),
-        ),
-      ),
-      body: RefreshIndicator(
-        color: AppTheme.ink,
-        backgroundColor: AppTheme.paperRaised,
-        onRefresh: () async {
-          ref.invalidate(profileProvider);
-          ref.invalidate(badgeCatalogProvider);
-          await ref.read(profileProvider.future);
-        },
-        child: profileAsync.when(
-          data: (profile) =>
-              _AchievementsContent(profile: profile, catalog: catalog),
-          loading: () => ListView(
+      body: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
+          color: AppTheme.lapis,
+          backgroundColor: AppTheme.paperRaised,
+          onRefresh: () async {
+            ref.invalidate(profileProvider);
+            ref.invalidate(badgeCatalogProvider);
+            await ref.read(profileProvider.future);
+          },
+          child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            children: const [SizedBox(height: 280), AppLoader()],
-          ),
-          error: (err, _) => ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
             children: [
-              const SizedBox(height: 100),
-              AppEmptyState(
-                icon: Icons.error_outline,
-                title: 'Prestaties konden niet laden',
-                description: '$err',
+              BqTopBar(
+                title: 'Prestaties',
+                large: true,
+                onBack: () =>
+                    context.canPop() ? context.pop() : context.go('/profile'),
+              ),
+              const SizedBox(height: 16),
+              ...profileAsync.when(
+                data: (profile) => _content(profile, catalog),
+                loading: () => const [SizedBox(height: 200), AppLoader()],
+                error: (err, _) => [
+                  const SizedBox(height: 60),
+                  AppEmptyState(
+                    icon: Icons.error_outline,
+                    title: 'Prestaties konden niet laden',
+                    description: '$err',
+                  ),
+                ],
               ),
             ],
           ),
@@ -59,150 +62,207 @@ class ProfileAchievementsScreen extends ConsumerWidget {
       ),
     );
   }
-}
 
-class _AchievementsContent extends StatelessWidget {
-  const _AchievementsContent({required this.profile, required this.catalog});
-
-  final ProfileModel profile;
-  final List<BadgeDefinition> catalog;
-
-  @override
-  Widget build(BuildContext context) {
+  List<Widget> _content(ProfileModel profile, List<BadgeDefinition> catalog) {
     final earned = profile.badges
         .map((badge) => badge.trim())
         .where((badge) => badge.isNotEmpty)
         .toList();
 
     // A badge the profile carries but the catalogue does not describe still
-    // belongs on the screen, so the overview is the catalogue plus whatever
-    // extra the account holds.
-    final overview = <BadgeDefinition>[
-      ...catalog,
-      ...earned
-          .where((badge) => !catalog.any((entry) => entry.matches(badge)))
-          .map((badge) => resolveBadge(badge, catalog)),
-    ];
+    // belongs on the screen.
+    final overview = badgeOverview(earned, catalog);
+    final unlocked = overview.where((d) => d.isUnlockedBy(earned)).toList();
+    final locked = overview.where((d) => !d.isUnlockedBy(earned)).toList();
 
-    final unlockedCount = overview
-        .where((definition) => definition.isUnlockedBy(earned))
-        .length;
-
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 40),
-      children: [
-        const GradientHeader(
-          eyebrow: 'Prestaties',
-          title: 'Jouw badges',
-          subtitle:
-              'Speel quizzen, houd je reeks vast en ontgrendel elke prestatie.',
-        ),
-        const SizedBox(height: 28),
-        StatStrip(
-          stacked: true,
-          items: [
-            StatItem(value: '$unlockedCount', label: 'Ontgrendeld'),
-            StatItem(value: '${overview.length}', label: 'Totaal'),
-            StatItem(
-              value: '${earned.length}',
-              label: 'Badges',
-              ruleColor: AppTheme.positive,
-            ),
-          ],
-        ),
-        const SizedBox(height: 40),
-        const SectionHeader(eyebrow: 'Account', title: 'Badges uit je account'),
-        const SizedBox(height: 24),
-        if (earned.isEmpty)
-          const AppCard(
-            child: Text(
-              'Nog geen badges behaald. Speel quizzen om je eerste badge vrij '
-              'te spelen.',
-              style: AppTheme.bodyMuted,
-            ),
-          )
-        else
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: earned
-                .map(
-                  (badge) => SiteBadge.lapis(resolveBadge(badge, catalog).label),
-                )
-                .toList(),
+    return [
+      _SummaryCard(unlocked: unlocked.length, total: overview.length),
+      const SizedBox(height: 16),
+      _SectionTitle('Behaald · ${unlocked.length}'),
+      const SizedBox(height: 8),
+      if (unlocked.isEmpty)
+        const BqCard(
+          child: Text(
+            'Nog geen badges behaald. Speel quizzen om je eerste badge vrij '
+            'te spelen.',
+            style: AppTheme.bodyMuted,
           ),
-        const SizedBox(height: 40),
-        const SectionHeader(eyebrow: 'Overzicht', title: 'Alle prestaties'),
-        const SizedBox(height: 24),
-        RuleGrid(
+        )
+      else
+        _MedalGrid(badges: unlocked),
+      if (locked.isNotEmpty) ...[
+        const SizedBox(height: 16),
+        _SectionTitle('Nog te halen · ${locked.length}'),
+        const SizedBox(height: 8),
+        BqListCard(
           children: [
-            for (final definition in overview)
-              _AchievementTile(
-                definition: definition,
-                unlocked: definition.isUnlockedBy(earned),
-              ),
+            for (final definition in locked) _LockedRow(definition: definition),
           ],
         ),
       ],
-    );
+    ];
   }
 }
 
-class _AchievementTile extends StatelessWidget {
-  const _AchievementTile({required this.definition, required this.unlocked});
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.text);
 
-  final BadgeDefinition definition;
-  final bool unlocked;
+  final String text;
 
   @override
   Widget build(BuildContext context) {
-    final accent = unlocked ? AppTheme.positive : AppTheme.inkMuted;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: Row(
-        children: [
-          Icon(
-            definition.icon,
-            size: 20,
-            color: unlocked ? AppTheme.ink : AppTheme.ruleStrong,
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  definition.label,
-                  style: AppTheme.displayBase.copyWith(
-                    color: unlocked ? AppTheme.ink : AppTheme.inkMuted,
-                  ),
-                ),
-                if (definition.description.isNotEmpty) ...[
-                  const SizedBox(height: 5),
-                  Text(
-                    definition.description,
-                    style: AppTheme.bodyMuted,
-                  ),
-                ],
-                const SizedBox(height: 5),
-                Text(
-                  unlocked ? 'ONTGRENDELD' : 'NOG NIET BEHAALD',
-                  style: AppTheme.overline.copyWith(color: accent),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Icon(
-            unlocked ? Icons.check : Icons.lock_outline,
-            color: accent,
-            size: 16,
-          ),
-        ],
+    return Semantics(
+      header: true,
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontFamily: AppTheme.sansFontName,
+          fontSize: 16,
+          height: 22 / 16,
+          fontWeight: FontWeight.w800,
+          color: AppTheme.ink,
+        ),
       ),
     );
   }
 }
 
+class _SummaryCard extends StatelessWidget {
+  const _SummaryCard({required this.unlocked, required this.total});
+
+  final int unlocked;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    final left = total - unlocked;
+    return Semantics(
+      label: '$unlocked van $total badges behaald',
+      excludeSemantics: true,
+      child: BqCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const BqIconTile(
+                  background: AppTheme.goldTint,
+                  child: BqIcon(
+                    BqIcons.trophy,
+                    size: 22,
+                    color: AppTheme.goldText,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    '$unlocked van $total badges',
+                    style: AppTheme.displayTitle,
+                  ),
+                ),
+                Text(
+                  left == 0 ? 'Alles behaald' : 'Nog $left te halen',
+                  style: AppTheme.metaLabel,
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            if (total > 0 && total <= 12)
+              BqSegments(
+                total: total,
+                done: unlocked,
+                color: AppTheme.gold,
+                track: AppTheme.ruleSoft,
+              )
+            else
+              BqProgressBar(value: total == 0 ? 0 : unlocked / total),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Earned medals, three to a row.
+class _MedalGrid extends StatelessWidget {
+  const _MedalGrid({required this.badges});
+
+  final List<BadgeDefinition> badges;
+
+  static const int _perRow = 3;
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = <Widget>[];
+    for (var start = 0; start < badges.length; start += _perRow) {
+      if (rows.isNotEmpty) rows.add(const SizedBox(height: 16));
+      rows.add(
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (var i = start; i < start + _perRow; i++) ...[
+              if (i > start) const SizedBox(width: 8),
+              Expanded(
+                child: i < badges.length
+                    ? BadgeMedalTile(
+                        definition: badges[i],
+                        unlocked: true,
+                        size: 64,
+                      )
+                    : const SizedBox(),
+              ),
+            ],
+          ],
+        ),
+      );
+    }
+
+    return BqCard(
+      padding: const EdgeInsets.fromLTRB(10, 16, 10, 14),
+      child: Column(children: rows),
+    );
+  }
+}
+
+class _LockedRow extends StatelessWidget {
+  const _LockedRow({required this.definition});
+
+  final BadgeDefinition definition;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label:
+          '${definition.label}, nog niet behaald'
+          '${definition.description.isEmpty ? '' : '. ${definition.description}'}',
+      excludeSemantics: true,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Opacity(
+              opacity: 0.7,
+              child: BadgeMedal(
+                definition: definition,
+                unlocked: false,
+                size: 44,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(definition.label, style: AppTheme.bodyStrong),
+                  if (definition.description.isNotEmpty)
+                    Text(definition.description, style: AppTheme.caption),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

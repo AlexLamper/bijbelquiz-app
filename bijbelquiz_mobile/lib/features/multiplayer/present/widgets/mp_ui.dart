@@ -84,7 +84,8 @@ class MpTextLink extends StatelessWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 44, minWidth: 44),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
+            // Flush right, like the design's text link.
+            padding: const EdgeInsets.only(left: 8),
             child: Center(
               widthFactor: 1,
               child: Text(
@@ -220,8 +221,12 @@ class _MpSecondaryButtonState extends State<MpSecondaryButton> {
                     bottom: BorderSide(color: AppTheme.rule, width: edge),
                   ),
                 ),
-                alignment: Alignment.center,
-                child: content,
+                // An alignment would make the container fill its parent, so a
+                // shrink-wrapped button centres its face with a Center instead.
+                alignment: widget.expand ? Alignment.center : null,
+                child: widget.expand
+                    ? content
+                    : Center(widthFactor: 1, child: content),
               ),
             ),
           ),

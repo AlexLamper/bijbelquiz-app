@@ -48,23 +48,26 @@ void expectNoLayoutError(WidgetTester tester) {
   );
 }
 
-/// Registers the real Inter / Newsreader files with the test engine.
+/// Registers the real Nunito / Fredoka files with the test engine.
 ///
 /// Without this the test engine substitutes a placeholder font whose glyphs are
 /// all one em wide, which makes every string roughly twice its real width and
 /// produces overflow errors that never happen on a device.
 Future<void> loadAppFonts() async {
   for (final entry in const {
-    'Inter': [
-      'assets/fonts/Inter-Regular.ttf',
-      'assets/fonts/Inter-Medium.ttf',
-      'assets/fonts/Inter-SemiBold.ttf',
-      'assets/fonts/Inter-Bold.ttf',
+    'Nunito': [
+      'assets/fonts/Nunito-400.ttf',
+      'assets/fonts/Nunito-500.ttf',
+      'assets/fonts/Nunito-600.ttf',
+      'assets/fonts/Nunito-700.ttf',
+      'assets/fonts/Nunito-800.ttf',
+      'assets/fonts/Nunito-900.ttf',
     ],
-    'Newsreader': [
-      'assets/fonts/Newsreader-Regular.ttf',
-      'assets/fonts/Newsreader-Medium.ttf',
-      'assets/fonts/Newsreader-SemiBold.ttf',
+    'Fredoka': [
+      'assets/fonts/Fredoka-400.ttf',
+      'assets/fonts/Fredoka-500.ttf',
+      'assets/fonts/Fredoka-600.ttf',
+      'assets/fonts/Fredoka-700.ttf',
     ],
   }.entries) {
     final loader = FontLoader(entry.key);
@@ -249,11 +252,10 @@ void main() {
     await pumpAtPhoneSize(tester, const HomeScreen());
 
     expect(tester.takeException(), isNull);
-    expect(find.text('Uitdaging van de dag'), findsOneWidget);
+    expect(find.text('QUIZ VAN DE DAG'), findsOneWidget);
 
     await scrollThrough(tester);
-    expect(find.text('Populair'), findsOneWidget);
-    expect(find.text('Genesis'), findsWidgets);
+    expect(find.text('Kies een onderwerp'), findsOneWidget);
   });
 
   testWidgets('library renders quiz cards without layout errors', (
@@ -281,7 +283,7 @@ void main() {
     await pumpAtPhoneSize(tester, const ProfileAchievementsScreen());
 
     expectNoLayoutError(tester);
-    expect(find.text('Jouw badges'), findsOneWidget);
+    expect(find.text('Prestaties'), findsWidgets);
     await scrollThrough(tester);
   });
 
@@ -289,26 +291,22 @@ void main() {
     await pumpAtPhoneSize(tester, const LeaderboardScreen());
 
     expect(tester.takeException(), isNull);
-    expect(find.text('Top spelers'), findsOneWidget);
+    expect(find.text('Ranglijst'), findsOneWidget);
 
     await scrollThrough(tester);
     expect(find.text('Bas Graveland'), findsOneWidget);
   });
 
-  testWidgets('premium paywall renders the plan ladder', (tester) async {
+  testWidgets('premium paywall renders both plans', (tester) async {
     // No store in a test, so every price falls back to its hardcoded label -
     // which is exactly the state the per-week figures have to survive.
     await pumpAtPhoneSize(tester, const PremiumScreen());
 
     expectNoLayoutError(tester);
-    expect(find.text('Kies je plan'), findsOneWidget);
-    // 39,99 / (12 * 4.345), quoted next to the amount actually charged.
-    expect(find.text('€0,77'), findsWidgets);
-    // Once on the plan row, once in the order summary underneath it.
-    expect(find.text('€39,99 per jaar'), findsWidgets);
+    expect(find.text('Jaarlijks'), findsOneWidget);
+    expect(find.text('Maandelijks'), findsOneWidget);
 
     await scrollThrough(tester);
-    expect(find.text('JOUW KEUZE'), findsOneWidget);
   });
 
   testWidgets('quiz detail renders without layout errors', (tester) async {
@@ -339,17 +337,12 @@ void main() {
     await scrollThrough(tester);
   });
 
-  testWidgets('onboarding renders all pages without layout errors', (
-    tester,
-  ) async {
+  testWidgets('onboarding renders without layout errors', (tester) async {
     await pumpAtPhoneSize(tester, const OnboardingScreen());
     expect(tester.takeException(), isNull);
 
-    for (var i = 0; i < 2; i++) {
-      await tester.tap(find.text('Volgende'));
-      await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull, reason: 'onboarding page $i');
-    }
-    expect(find.text('Aan de slag'), findsOneWidget);
+    expect(find.text('Hoe goed ken jij de Bijbel?'), findsOneWidget);
+    await scrollThrough(tester);
+    expect(find.text('Eerst spelen zonder account'), findsOneWidget);
   });
 }

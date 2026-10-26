@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/app_widgets.dart';
+import '../../../core/ui/bq.dart';
 import '../data/bible_chapter_repository.dart';
 import '../data/quiz_repository.dart';
 import '../domain/quiz_passage.dart';
@@ -12,44 +13,13 @@ import '../domain/quiz_passage.dart';
 ///
 /// The point of the "lees eerst" option: answering about Daniël 2 having just
 /// read Daniël 2 turns a memory test into a reading exercise, which is what
-/// most people opened a Bible quiz for. Set as one column with the verse
-/// numbers in the margin - a page, not a list of items.
+/// most people opened a Bible quiz for. Full-screen running text with the
+/// verse numbers inline - a page, not a list of items - and the way on pinned
+/// to the bottom.
 class QuizPassageScreen extends ConsumerWidget {
   const QuizPassageScreen({super.key, required this.idOrSlug});
 
   final String idOrSlug;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final quizAsync = ref.watch(quizDetailProvider(idOrSlug));
-    final passage = quizAsync.asData?.value.passage;
-
-    return Scaffold(
-      backgroundColor: AppTheme.paper,
-      appBar: AppBar(
-        backgroundColor: AppTheme.paper,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        iconTheme: const IconThemeData(color: AppTheme.inkSoft),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, size: 20),
-          onPressed: () => context.pop(),
-        ),
-        title: Text(passage?.label ?? 'Lees eerst', style: AppTheme.overline),
-        centerTitle: true,
-      ),
-      body: passage == null
-          ? const AppLoader()
-          : _PassageBody(idOrSlug: idOrSlug, passage: passage),
-    );
-  }
-}
-
-class _PassageBody extends ConsumerWidget {
-  const _PassageBody({required this.idOrSlug, required this.passage});
-
-  final String idOrSlug;
-  final QuizPassage passage;
 
   void _startQuiz(BuildContext context) {
     // Replaces rather than pushes: coming back out of a quiz should land on the
@@ -57,99 +27,114 @@ class _PassageBody extends ConsumerWidget {
     context.pushReplacement('/quiz/$idOrSlug/play');
   }
 
+  void _back(BuildContext context) {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/quiz/$idOrSlug');
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final versesAsync = ref.watch(chapterVersesProvider(passage));
+    final quizAsync = ref.watch(quizDetailProvider(idOrSlug));
+    final quiz = quizAsync.asData?.value;
+    final passage = quiz?.passage;
 
-    return SafeArea(
-      top: false,
-      child: Column(
+    final Widget body = quizAsync.when(
+      data: (quiz) => quiz.passage == null
+          // Quizzes spanning several books have no single chapter. Never a
+          // dead end: the quiz can still be started below.
+          ? const AppEmptyState(
+              icon: Icons.menu_book_outlined,
+              title: 'Geen hoofdstuk om te lezen',
+              description:
+                  'Deze quiz gaat over meer dan een hoofdstuk. Je kunt gewoon met de quiz beginnen.',
+            )
+          : _PassageText(passage: quiz.passage!),
+      loading: () => const AppLoader(),
+      error: (err, _) => AppEmptyState(
+        icon: Icons.menu_book_outlined,
+        title: 'Hoofdstuk niet geladen',
+        description:
+            'Dit hoofdstuk kon nu niet opgehaald worden. Je kunt gewoon met de quiz beginnen.',
+        action: BqButton(
+          label: 'Opnieuw proberen',
+          style: BqButtonStyle.secondary,
+          height: 44,
+          expand: false,
+          onPressed: () => ref.invalidate(quizDetailProvider(idOrSlug)),
+        ),
+      ),
+    );
+
+    return Scaffold(
+      backgroundColor: AppTheme.paper,
+      body: Column(
         children: [
           Expanded(
-            child: versesAsync.when(
-              data: (verses) => ListView.builder(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
-                itemCount: verses.length + 2,
-                itemBuilder: (context, index) {
-                  if (index == 0) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Eyebrow('Lees eerst'),
-                          const SizedBox(height: 14),
-                          Text(passage.label, style: AppTheme.displayLarge),
-                          const SizedBox(height: 12),
-                          Text(
-                            'Neem dit hoofdstuk rustig door. De vragen hierna '
-                            'gaan hierover, dus lezen helpt echt.',
-                            style: AppTheme.bodyLead,
-                          ),
-                          const SizedBox(height: 20),
-                          const RuleLine(),
-                        ],
-                      ),
-                    );
-                  }
-
-                  if (index == verses.length + 1) {
-                    return const Padding(
-                      padding: EdgeInsets.only(top: 20),
-                      child: Text('STATENVERTALING', style: AppTheme.overline),
-                    );
-                  }
-
-                  final verse = verses[index - 1];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
+            child: SafeArea(
+              bottom: false,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
+                    // 18 rather than 20: the 44px tap area around the 40px
+                    // circle, so the circle itself lines up with the text.
+                    padding: const EdgeInsets.fromLTRB(18, 18, 20, 0),
                     child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         SizedBox(
-                          width: 26,
-                          child: Padding(
-                            padding: const EdgeInsets.only(top: 4, right: 10),
-                            child: Text(
-                              '${verse.verse}',
-                              textAlign: TextAlign.right,
-                              style: AppTheme.caption.copyWith(
-                                fontFeatures: const [
-                                  FontFeature.tabularFigures(),
-                                ],
-                              ),
+                          width: 44,
+                          height: 44,
+                          child: Center(
+                            child: BqCircleButton(
+                              icon: BqIcons.chevronLeft,
+                              label: 'Terug',
+                              onTap: () => _back(context),
                             ),
                           ),
                         ),
+                        const SizedBox(width: 8),
                         Expanded(
-                          child: Text(
-                            verse.text,
-                            style: const TextStyle(
-                              fontFamily: AppTheme.displayFontName,
-                              fontSize: 17,
-                              height: 1.7,
-                              color: AppTheme.ink,
-                            ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                passage?.label ?? 'Lees eerst',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontFamily: AppTheme.sansFontName,
+                                  fontSize: 17,
+                                  height: 22 / 17,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppTheme.ink,
+                                ),
+                              ),
+                              if (quiz != null)
+                                Text(
+                                  'Lees voor de quiz ${quiz.title}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontFamily: AppTheme.sansFontName,
+                                    fontSize: 13,
+                                    height: 18 / 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.inkMuted,
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                  );
-                },
-              ),
-              loading: () => const AppLoader(),
-              // A chapter that will not load must never block the quiz.
-              error: (error, _) => AppEmptyState(
-                icon: Icons.menu_book_outlined,
-                title: 'Hoofdstuk niet geladen',
-                description:
-                    'Dit hoofdstuk kon nu niet opgehaald worden. Je kunt gewoon met de quiz beginnen.',
-                action: SiteOutlineButton(
-                  label: 'Opnieuw proberen',
-                  expand: false,
-                  height: 44,
-                  onPressed: () => ref.invalidate(chapterVersesProvider(passage)),
-                ),
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(child: body),
+                ],
               ),
             ),
           ),
@@ -161,14 +146,152 @@ class _PassageBody extends ConsumerWidget {
               color: AppTheme.paperRaised,
               border: Border(top: BorderSide(color: AppTheme.rule)),
             ),
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-            child: SiteButton(
-              label: 'Start de quiz',
-              trailingIcon: Icons.arrow_forward,
-              onPressed: () => _startQuiz(context),
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+                child: BqButton(
+                  label: 'Start de quiz',
+                  onPressed: () => _startQuiz(context),
+                ),
+              ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _PassageText extends ConsumerWidget {
+  const _PassageText({required this.passage});
+
+  final QuizPassage passage;
+
+  static const TextStyle _textStyle = TextStyle(
+    fontFamily: AppTheme.sansFontName,
+    fontSize: 16,
+    height: 25 / 16,
+    fontWeight: FontWeight.w500,
+    color: AppTheme.ink,
+  );
+
+  static const TextStyle _numberStyle = TextStyle(
+    fontFamily: AppTheme.sansFontName,
+    fontSize: 12,
+    height: 1,
+    fontWeight: FontWeight.w800,
+    color: AppTheme.lapis,
+  );
+
+  static final RegExp _sentenceEnd = RegExp('[.!?][\'"’”)]*\$');
+
+  /// The API sends verses, not paragraphs. Break after a verse that ends a
+  /// sentence once a paragraph has a few verses, so the chapter reads as
+  /// running text without ever splitting a sentence.
+  static List<List<ChapterVerse>> _paragraphs(List<ChapterVerse> verses) {
+    final paragraphs = <List<ChapterVerse>>[];
+    var current = <ChapterVerse>[];
+    for (final verse in verses) {
+      current.add(verse);
+      if (current.length >= 4 && _sentenceEnd.hasMatch(verse.text.trim())) {
+        paragraphs.add(current);
+        current = <ChapterVerse>[];
+      }
+    }
+    if (current.isNotEmpty) paragraphs.add(current);
+    return paragraphs;
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final versesAsync = ref.watch(chapterVersesProvider(passage));
+
+    return versesAsync.when(
+      data: (verses) {
+        if (verses.isEmpty) {
+          return const AppEmptyState(
+            icon: Icons.menu_book_outlined,
+            title: 'Hoofdstuk niet geladen',
+            description:
+                'Dit hoofdstuk kon nu niet opgehaald worden. Je kunt gewoon met de quiz beginnen.',
+          );
+        }
+        final paragraphs = _paragraphs(verses);
+        return ListView.builder(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+          itemCount: paragraphs.length + 1,
+          itemBuilder: (context, index) {
+            if (index == paragraphs.length) {
+              return Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  'Statenvertaling',
+                  style: AppTheme.caption.copyWith(color: AppTheme.inkFaint),
+                ),
+              );
+            }
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _Paragraph(verses: paragraphs[index]),
+            );
+          },
+        );
+      },
+      loading: () => const AppLoader(),
+      // A chapter that will not load must never block the quiz.
+      error: (error, _) => AppEmptyState(
+        icon: Icons.menu_book_outlined,
+        title: 'Hoofdstuk niet geladen',
+        description:
+            'Dit hoofdstuk kon nu niet opgehaald worden. Je kunt gewoon met de quiz beginnen.',
+        action: BqButton(
+          label: 'Opnieuw proberen',
+          style: BqButtonStyle.secondary,
+          height: 44,
+          expand: false,
+          onPressed: () => ref.invalidate(chapterVersesProvider(passage)),
+        ),
+      ),
+    );
+  }
+}
+
+class _Paragraph extends StatelessWidget {
+  const _Paragraph({required this.verses});
+
+  final List<ChapterVerse> verses;
+
+  @override
+  Widget build(BuildContext context) {
+    final spans = <InlineSpan>[];
+    for (var i = 0; i < verses.length; i++) {
+      final verse = verses[i];
+      spans.add(
+        WidgetSpan(
+          alignment: PlaceholderAlignment.baseline,
+          baseline: TextBaseline.alphabetic,
+          child: Transform.translate(
+            offset: const Offset(0, -3),
+            child: Padding(
+              padding: const EdgeInsets.only(right: 3),
+              child: Text('${verse.verse}', style: _PassageText._numberStyle),
+            ),
+          ),
+        ),
+      );
+      // U+2060 (word joiner) keeps the verse number on the same line as the
+      // first word of its verse.
+      spans.add(
+        TextSpan(text: '⁠${verse.text}${i < verses.length - 1 ? ' ' : ''}'),
+      );
+    }
+
+    return Semantics(
+      label: verses.map((v) => '${v.verse} ${v.text}').join(' '),
+      excludeSemantics: true,
+      child: Text.rich(
+        TextSpan(style: _PassageText._textStyle, children: spans),
       ),
     );
   }
