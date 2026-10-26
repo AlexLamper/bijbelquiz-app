@@ -430,6 +430,7 @@ class _CoverCard extends StatelessWidget {
               children: [
                 QuizCover(
                   imagePath: quiz.imageOrFallback,
+                  thumbnailPath: quiz.thumbnail,
                   background: AppTheme.lapisTint,
                 ),
                 Positioned(

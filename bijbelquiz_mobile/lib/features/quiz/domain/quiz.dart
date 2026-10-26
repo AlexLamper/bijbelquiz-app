@@ -11,6 +11,10 @@ class Quiz {
   final String? categoryId;
   final Category? category;
   final String image;
+
+  /// Small WebP of [image] for lists, empty when the server sent none. Covers
+  /// are large drawings; a card a few hundred pixels wide should not fetch one.
+  final String thumbnail;
   final int xpReward;
   final int questionCount;
   final bool isPremium;
@@ -34,6 +38,7 @@ class Quiz {
     this.categoryId,
     this.category,
     required this.image,
+    this.thumbnail = '',
     required this.xpReward,
     this.questionCount = 0,
     this.isPremium = false,
@@ -67,6 +72,7 @@ class Quiz {
           ? Category.fromJson(json['category'] as Map<String, dynamic>)
           : null,
       image: parsedImage,
+      thumbnail: json['thumbnailUrl']?.toString() ?? '',
       xpReward:
           (json['xpReward'] as num?)?.toInt() ??
           (json['rewardXp'] as num?)?.toInt() ??
@@ -97,6 +103,7 @@ class Quiz {
       'categoryId': categoryId,
       'category': category?.toJson(),
       'imageUrl': image,
+      'thumbnailUrl': thumbnail,
       'xpReward': xpReward,
       'questionCount': questionCount,
       'isPremium': isPremium,

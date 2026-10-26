@@ -199,16 +199,28 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         );
 
     final List<Widget> content = quizzesAsync.when(
+      skipLoadingOnReload: true,
+      skipLoadingOnRefresh: true,
       data: (quizzes) => _buildContent(quizzes, playedQuizIds),
-      loading: () => const [SizedBox(height: 160), AppLoader()],
+      loading: () => const [
+        SliverToBoxAdapter(
+          child: Column(children: [SizedBox(height: 160), AppLoader()]),
+        ),
+      ],
       error: (err, _) => [
-        const SizedBox(height: 60),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: AppEmptyState(
-            icon: Icons.error_outline,
-            title: 'Quizzen konden niet laden',
-            description: '$err',
+        SliverToBoxAdapter(
+          child: Column(
+            children: [
+              const SizedBox(height: 60),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: AppEmptyState(
+                  icon: Icons.error_outline,
+                  title: 'Quizzen konden niet laden',
+                  description: '$err',
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -221,30 +233,41 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           color: AppTheme.lapis,
           backgroundColor: AppTheme.paperRaised,
           onRefresh: _refreshData,
-          child: ListView(
+          // Slivers, so the long list of quizzes builds only the rows that are
+          // on screen (plus a little ahead) instead of all of them at once.
+          child: CustomScrollView(
             controller: _scrollController,
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(0, 20, 0, 32),
-            children: [
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20),
-                child: Text('Quizzen', style: AppTheme.displayLarge),
-              ),
-              const SizedBox(height: 12),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: _SearchField(
-                  controller: _searchController,
-                  hasText: _searchQuery.isNotEmpty,
+            slivers: [
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 20),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      child: Text('Quizzen', style: AppTheme.displayLarge),
+                    ),
+                    const SizedBox(height: 12),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: _SearchField(
+                        controller: _searchController,
+                        hasText: _searchQuery.isNotEmpty,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    _CategoryChips(
+                      categoriesAsync: categoriesAsync,
+                      selectedCategory: _selectedCategory,
+                      onSelect: (value) =>
+                          setState(() => _selectedCategory = value),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 14),
-              _CategoryChips(
-                categoriesAsync: categoriesAsync,
-                selectedCategory: _selectedCategory,
-                onSelect: (value) => setState(() => _selectedCategory = value),
-              ),
               ...content,
+              const SliverToBoxAdapter(child: SizedBox(height: 32)),
             ],
           ),
         ),
@@ -280,8 +303,22 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       onOpen: _openQuiz,
     );
 
+    final rows = _QuizRowsSliver(
+      quizzes: listed,
+      playedIds: playedIds,
+      onOpen: _openQuiz,
+    );
+
     if (filtering) {
-      return [const SizedBox(height: 18), listSection];
+      return [
+        SliverToBoxAdapter(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [const SizedBox(height: 18), listSection],
+          ),
+        ),
+        rows,
+      ];
     }
 
     final popular = _sorted(
@@ -294,7 +331,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         ? books
         : books.take(_booksCollapsed).toList();
 
-    return [
+    final head = <Widget>[
       if (popular.isNotEmpty) ...[
         const SizedBox(height: 3),
         Padding(
@@ -335,6 +372,16 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       ],
       const SizedBox(height: 22),
       listSection,
+    ];
+
+    return [
+      SliverToBoxAdapter(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: head,
+        ),
+      ),
+      rows,
     ];
   }
 
@@ -644,6 +691,7 @@ class _PopularCard extends StatelessWidget {
                   children: [
                     QuizCover(
                       imagePath: quiz.imageOrFallback,
+                  thumbnailPath: quiz.thumbnail,
                       background: tint.background,
                     ),
                     if (quiz.isPremium)
@@ -1041,29 +1089,48 @@ class _AllQuizzesSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: quizzes.isEmpty
-              ? const BqCard(
-                  child: Text(
-                    'Geen quizzen gevonden met de huidige filters.',
-                    style: AppTheme.bodyMuted,
-                  ),
-                )
-              : Column(
-                  children: [
-                    for (var i = 0; i < quizzes.length; i++) ...[
-                      if (i > 0) const SizedBox(height: 10),
-                      _QuizRow(
-                        quiz: quizzes[i],
-                        played: playedIds.contains(quizzes[i].id),
-                        onTap: () => onOpen(quizzes[i]),
-                      ),
-                    ],
-                  ],
-                ),
-        ),
+        if (quizzes.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: BqCard(
+              child: Text(
+                'Geen quizzen gevonden met de huidige filters.',
+                style: AppTheme.bodyMuted,
+              ),
+            ),
+          ),
       ],
+    );
+  }
+}
+
+/// The rows under "Alle quizzen", as a lazy sliver: with hundreds of quizzes,
+/// only the ones near the screen are built, and only those fetch a cover.
+class _QuizRowsSliver extends StatelessWidget {
+  const _QuizRowsSliver({
+    required this.quizzes,
+    required this.playedIds,
+    required this.onOpen,
+  });
+
+  final List<Quiz> quizzes;
+  final Set<String> playedIds;
+  final ValueChanged<Quiz> onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      sliver: SliverList.separated(
+        itemCount: quizzes.length,
+        separatorBuilder: (_, _) => const SizedBox(height: 10),
+        itemBuilder: (context, i) => _QuizRow(
+          key: ValueKey<String>(quizzes[i].id),
+          quiz: quizzes[i],
+          played: playedIds.contains(quizzes[i].id),
+          onTap: () => onOpen(quizzes[i]),
+        ),
+      ),
     );
   }
 }
@@ -1152,6 +1219,7 @@ class _SortSelector extends StatelessWidget {
 /// One quiz in the full list: cover thumbnail, reference, title, meta.
 class _QuizRow extends StatelessWidget {
   const _QuizRow({
+    super.key,
     required this.quiz,
     required this.played,
     required this.onTap,
@@ -1193,6 +1261,7 @@ class _QuizRow extends StatelessWidget {
                 height: 64,
                 child: QuizCover(
                   imagePath: quiz.imageOrFallback,
+                  thumbnailPath: quiz.thumbnail,
                   background: tint.background,
                 ),
               ),

@@ -66,7 +66,6 @@ class QuizOfTheDayRepository {
       // A tiny payload: if it is not here quickly, the fallback is better
       // than waiting out the default ten seconds.
       options: Options(
-        sendTimeout: const Duration(seconds: 5),
         receiveTimeout: const Duration(seconds: 5),
       ),
     );

@@ -6,6 +6,7 @@ import '../../features/leaderboard/data/leaderboard_repository.dart';
 import '../../features/leaderboard/domain/leaderboard_entry.dart';
 import '../../features/profile/data/profile_model.dart';
 import '../../features/profile/present/profile_provider.dart';
+import '../../features/quiz/data/quiz_of_the_day.dart';
 import '../../features/quiz/data/quiz_repository.dart';
 import '../../features/quiz/domain/answer.dart';
 import '../../features/quiz/domain/category.dart';
@@ -278,6 +279,9 @@ class PreviewData {
           }
           return quizzes;
         }),
+        quizOfTheDayProvider.overrideWith(
+          (ref) => Stream.value(pickFromCatalogue(quizzes)),
+        ),
         quizDetailProvider.overrideWith((ref, idOrSlug) async {
           return quizzes.firstWhere(
             (quiz) => quiz.slug == idOrSlug || quiz.id == idOrSlug,
