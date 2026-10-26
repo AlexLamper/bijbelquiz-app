@@ -59,7 +59,7 @@ class PaywallPreview extends StatelessWidget {
       label:
           'Gratis speel je $kFreeQuizLimit quizzen. Met Premium gaan alle '
           'bijbelboeken open, ook Psalmen en Openbaring.',
-      child: const ExcludeSemantics(
+      child: ExcludeSemantics(
         child: SizedBox(
           height: 200,
           child: OverflowBox(
@@ -68,10 +68,10 @@ class PaywallPreview extends StatelessWidget {
             maxHeight: 236,
             child: Opacity(
               opacity: 0.88,
-              child: Transform(
+              child: Transform.scale(
+                scale: 0.84,
                 alignment: Alignment.topCenter,
-                transform: _scale84,
-                child: _PreviewStack(),
+                child: const _PreviewStack(),
               ),
             ),
           ),
@@ -80,13 +80,6 @@ class PaywallPreview extends StatelessWidget {
     );
   }
 }
-
-const Matrix4 _scale84 = Matrix4.fromList([
-  0.84, 0, 0, 0, //
-  0, 0.84, 0, 0, //
-  0, 0, 1, 0, //
-  0, 0, 0, 1, //
-]);
 
 class _PreviewStack extends StatelessWidget {
   const _PreviewStack();
@@ -447,8 +440,8 @@ class PaywallPlanCard extends StatelessWidget {
       label: [
         title,
         '$price $period',
-        ?noteText,
-        ?badgeText?.toLowerCase(),
+        if (noteText != null) noteText,
+        if (badgeText != null) badgeText.toLowerCase(),
       ].join(', '),
       excludeSemantics: true,
       child: Stack(
@@ -579,7 +572,12 @@ class PaywallLifetimeOption extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!selected) {
-      return PaywallLink(label: 'Of eenmalig: levenslang Premium', onTap: onTap);
+      return Center(
+        child: PaywallLink(
+          label: 'Of eenmalig: levenslang Premium',
+          onTap: onTap,
+        ),
+      );
     }
 
     return Padding(

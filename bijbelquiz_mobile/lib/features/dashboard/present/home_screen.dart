@@ -89,7 +89,7 @@ class HomeScreen extends ConsumerWidget {
                   );
                 },
                 loading: () => const _DailyLoadingCard(),
-                error: (_, __) => _HomeErrorCard(
+                error: (_, _) => _HomeErrorCard(
                   onRetry: () => ref.invalidate(quizzesProvider(_homeQuery)),
                 ),
               ),
@@ -539,15 +539,10 @@ class _ContinueCard extends StatelessWidget {
     final passage = quiz?.passage;
     final categoryName = quiz?.category?.name;
 
-    final BookTint tint;
-    if (passage != null) {
-      tint = BibleBooks.tintFor(passage.book);
-    } else if (categoryName != null &&
-        categoryName.toLowerCase().contains('oude')) {
-      tint = BookTint.oldTestament;
-    } else {
-      tint = BookTint.newTestament;
-    }
+    final tint = BibleBooks.tintForQuiz(
+      book: passage?.book,
+      category: categoryName,
+    );
 
     final label = passage?.book ?? categoryName ?? 'Quiz';
     final total = progress.totalQuestions;
@@ -578,31 +573,35 @@ class _ContinueCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Flexible(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: tint.background,
-                      borderRadius: BorderRadius.circular(AppTheme.radiusPill),
-                    ),
-                    child: Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: AppTheme.sansFontName,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color: tint.foreground,
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: tint.background,
+                        borderRadius: BorderRadius.circular(
+                          AppTheme.radiusPill,
+                        ),
+                      ),
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: AppTheme.sansFontName,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: tint.foreground,
+                        ),
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
-                const Spacer(),
                 BqRing(
                   value: total > 0 ? score / total : 0,
                   color: tint.foreground,
@@ -880,8 +879,8 @@ class _DuelCard extends StatelessWidget {
         child: Row(
           children: [
             SizedBox(
-              width: 50,
-              height: 50,
+              width: 46,
+              height: 46,
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
@@ -905,8 +904,8 @@ class _DuelCard extends StatelessWidget {
                     ),
                   ),
                   Positioned(
-                    left: 23,
-                    top: 23,
+                    left: 27,
+                    top: 27,
                     child: Container(
                       width: 24,
                       height: 24,
@@ -922,7 +921,7 @@ class _DuelCard extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -933,7 +932,7 @@ class _DuelCard extends StatelessWidget {
                       Container(
                         width: 7,
                         height: 7,
-                        margin: const EdgeInsets.only(left: 3, right: 9),
+                        margin: const EdgeInsets.only(right: 6),
                         decoration: const BoxDecoration(
                           color: AppTheme.coral,
                           shape: BoxShape.circle,

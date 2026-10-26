@@ -5,11 +5,12 @@ import 'package:go_router/go_router.dart';
 import '../../../core/analytics/analytics.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/app_notice.dart';
-import '../../../core/ui/app_widgets.dart';
+import '../../../core/ui/bq.dart';
 import '../../profile/present/profile_provider.dart';
 import '../data/purchase_service.dart';
 import '../domain/plan_pricing.dart';
 import 'premium_controller.dart';
+import 'widgets/paywall_parts.dart';
 
 /// A compact paywall that opens over whatever the player was doing.
 ///
@@ -28,10 +29,10 @@ Future<bool> showPremiumUpgradeSheet(
   final result = await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: AppTheme.paperRaised,
+    backgroundColor: AppTheme.paper,
     elevation: 0,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
     builder: (_) =>
         _PremiumUpgradeSheet(trigger: trigger, title: title, message: message),
@@ -126,27 +127,24 @@ class _PremiumUpgradeSheetState extends ConsumerState<_PremiumUpgradeSheet> {
     final monthlyPrice = monthlyPackage?.storeProduct.priceString ?? '€5,99';
     final yearlyPrice = yearlyPackage?.storeProduct.priceString ?? '€39,99';
 
-    // Same framing as the full paywall: the week leads, the billed amount
-    // follows. A sheet that quotes per year and a screen that quotes per week
-    // read as two different prices for the same plan.
-    final yearlyPerWeek = pricePerWeek(yearlyPrice, months: 12);
-    final monthlyPerWeek = pricePerWeek(monthlyPrice, months: 1);
+    final yearlyTrial = PurchaseService.trialOffer(yearlyPackage);
+    final monthlyTrial = PurchaseService.trialOffer(monthlyPackage);
+    final trial = _plan == _SheetPlan.yearly ? yearlyTrial : monthlyTrial;
 
-    final trial = PurchaseService.trialOffer(
-      _plan == _SheetPlan.yearly ? yearlyPackage : monthlyPackage,
-    );
+    final savings = yearlySavingsPercent(monthlyPrice, yearlyPrice);
+    final yearlyPerMonth = monthlyEquivalentOfYearly(yearlyPrice);
 
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Center(
               child: Container(
-                width: 36,
-                height: 3,
+                width: 40,
+                height: 4,
                 decoration: BoxDecoration(
                   color: AppTheme.ruleStrong,
                   borderRadius: BorderRadius.circular(2),
@@ -154,50 +152,66 @@ class _PremiumUpgradeSheetState extends ConsumerState<_PremiumUpgradeSheet> {
               ),
             ),
             const SizedBox(height: 20),
-            const Text('PREMIUM', style: AppTheme.overline),
-            const SizedBox(height: 10),
-            Text(widget.title, style: AppTheme.displaySmall),
+            Semantics(
+              header: true,
+              child: Text(
+                widget.title,
+                textAlign: TextAlign.center,
+                style: AppTheme.displayMedium,
+              ),
+            ),
             const SizedBox(height: 8),
-            Text(widget.message, style: AppTheme.bodyMuted),
-            const SizedBox(height: 20),
+            Text(
+              widget.message,
+              textAlign: TextAlign.center,
+              style: AppTheme.bodyMuted,
+            ),
+            const SizedBox(height: 16),
+            const PaywallBenefits(),
+            // Room for the badge on the top edge of the yearly card.
+            const SizedBox(height: 30),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: _SheetPlanTile(
-                    label: 'Per jaar',
-                    price: yearlyPerWeek ?? yearlyPrice,
-                    priceNote: yearlyPerWeek == null ? null : 'per week',
-                    caption: yearlyPerWeek == null
-                        ? 'Laagste maandprijs'
-                        : '$yearlyPrice per jaar',
+                  child: PaywallPlanCard(
+                    title: 'Jaarlijks',
+                    price: yearlyPrice,
+                    period: 'per jaar',
+                    note: yearlyPerMonth == null
+                        ? null
+                        : '= $yearlyPerMonth per maand',
+                    badge:
+                        yearlyTrial?.label ??
+                        (savings == null ? null : 'Bespaar $savings%'),
                     selected: _plan == _SheetPlan.yearly,
-                    onTap: () => setState(() => _plan = _SheetPlan.yearly),
+                    onTap: isLoading
+                        ? null
+                        : () => setState(() => _plan = _SheetPlan.yearly),
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: _SheetPlanTile(
-                    label: 'Per maand',
-                    price: monthlyPerWeek ?? monthlyPrice,
-                    priceNote: monthlyPerWeek == null ? null : 'per week',
-                    caption: monthlyPerWeek == null
-                        ? 'Flexibel opzegbaar'
-                        : '$monthlyPrice per maand',
+                  child: PaywallPlanCard(
+                    title: 'Maandelijks',
+                    price: monthlyPrice,
+                    period: 'per maand',
+                    note: monthlyTrial?.label ?? 'Geen proefperiode',
                     selected: _plan == _SheetPlan.monthly,
-                    onTap: () => setState(() => _plan = _SheetPlan.monthly),
+                    onTap: isLoading
+                        ? null
+                        : () => setState(() => _plan = _SheetPlan.monthly),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 18),
-            SiteButton(
+            const SizedBox(height: 16),
+            BqButton(
+              label: paywallCtaLabel(trial),
+              height: 53,
+              fontSize: 17,
+              radius: 14,
               loading: isLoading,
-              label: isLoading
-                  ? 'Verwerken…'
-                  : trial != null
-                  ? 'Start ${trial.label}'
-                  : 'Word Premium',
-              trailingIcon: isLoading ? null : Icons.arrow_forward,
               onPressed: isLoading
                   ? null
                   : () {
@@ -213,76 +227,22 @@ class _PremiumUpgradeSheetState extends ConsumerState<_PremiumUpgradeSheet> {
                     },
             ),
             const SizedBox(height: 10),
-            TextButton(
-              onPressed: isLoading
-                  ? null
-                  : () {
-                      Navigator.of(context).pop(false);
-                      context.push('/premium?reden=${widget.trigger}');
-                    },
-              style: TextButton.styleFrom(foregroundColor: AppTheme.inkMuted),
-              child: const Text('Alle plannen bekijken'),
+            PaywallReassurance(
+              paywallReassuranceText(trial: trial, isSubscription: true),
+            ),
+            const SizedBox(height: 4),
+            Center(
+              child: PaywallLink(
+                label: 'Alle plannen bekijken',
+                onTap: isLoading
+                    ? null
+                    : () {
+                        Navigator.of(context).pop(false);
+                        context.push('/premium?reden=${widget.trigger}');
+                      },
+              ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SheetPlanTile extends StatelessWidget {
-  const _SheetPlanTile({
-    required this.label,
-    required this.price,
-    required this.caption,
-    required this.selected,
-    required this.onTap,
-    this.priceNote,
-  });
-
-  final String label;
-  final String price;
-  final String caption;
-  final bool selected;
-  final VoidCallback onTap;
-
-  /// Unit the headline figure is in, when it is a derived one ("per week").
-  final String? priceNote;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: selected ? AppTheme.lapisTint : AppTheme.paper,
-      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-            border: Border.all(
-              color: selected ? AppTheme.lapis : AppTheme.rule,
-              width: selected ? 1.5 : 1,
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label.toUpperCase(), style: AppTheme.overline),
-              const SizedBox(height: 8),
-              Text(price, style: AppTheme.displaySmall),
-              if (priceNote != null) ...[
-                const SizedBox(height: 2),
-                Text(
-                  priceNote!.toUpperCase(),
-                  style: AppTheme.overline.copyWith(color: AppTheme.lapis),
-                ),
-              ],
-              const SizedBox(height: 4),
-              Text(caption, style: AppTheme.caption),
-            ],
-          ),
         ),
       ),
     );

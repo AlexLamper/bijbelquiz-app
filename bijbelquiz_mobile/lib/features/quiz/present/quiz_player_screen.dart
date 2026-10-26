@@ -8,16 +8,20 @@ import '../../../core/analytics/analytics.dart';
 import '../../../core/notifications/streak_reminder.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/app_widgets.dart';
+import '../../../core/ui/bq.dart';
 import '../../auth/present/auth_controller.dart';
 import '../../profile/data/profile_model.dart';
 import '../../profile/present/profile_provider.dart';
-import '../data/bible_verse_repository.dart';
+import '../../settings/data/quiz_preferences_controller.dart';
 import '../data/pending_attempt_store.dart';
 import '../data/quiz_repository.dart';
 import '../domain/answer.dart';
-import '../domain/question.dart';
 import '../domain/quiz.dart';
-import '../../settings/data/quiz_preferences_controller.dart';
+import '../domain/quiz_submission_result.dart';
+import 'player/answer_feedback_sheet.dart';
+import 'player/answer_grid.dart';
+import 'player/question_view.dart';
+import 'player/quiz_result_view.dart';
 
 class QuizPlayerScreen extends ConsumerStatefulWidget {
   final String idOrSlug;
@@ -42,27 +46,35 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
   /// re-grade the attempt instead of trusting a client-side tally.
   final Map<int, int> _selectedIndexes = <int, int>{};
 
-  /// XP the server actually awarded, once the attempt has been reported.
-  int? _awardedXp;
+  /// What the server made of the attempt, once it has answered.
+  QuizSubmissionResult? _result;
 
-  /// True once the server has answered, whatever the awarded amount was.
-  bool _resultConfirmed = false;
+  /// The attempt is on its way to the server.
+  bool _submitting = false;
+
+  /// The server could not be reached or sent nothing usable; the result page
+  /// offers to try again.
+  bool _submitFailed = false;
   bool _resultSubmitted = false;
+
+  /// Whether this account had finished the quiz before, read from the profile
+  /// before the submission refreshes it. A replay only earns XP by beating the
+  /// earlier best, so a replay that earns XP is a new best score.
+  bool? _playedBefore;
+  bool _isNewBest = false;
 
   /// Played signed out: the attempt is parked on the device rather than
   /// reported, and the result screen offers an account to keep it.
   bool _parkedForAccount = false;
 
+  /// After reading an explanation the reader may have scrolled; without a
+  /// reset the next question would open halfway down itself.
+  final ScrollController _scrollController = ScrollController();
+
   // ── Per-question timer ──────────────────────────────────────────────────
   // Off unless the reader switched it on from the quiz overview. Shown as one
-  // number and a thin depleting rule in the row that is already there: on a
-  // phone there is no room for a clock, and a Bible quiz should not feel like
-  // an exam unless somebody asked for that.
-  /// The answer list scrolls, and after reading an explanation the reader is
-  /// somewhere down it. Without resetting, the next question opens halfway
-  /// through itself - once per question, for a whole quiz.
-  final ScrollController _answersScrollController = ScrollController();
-
+  // small pill in the question card: a Bible quiz should not feel like an
+  // exam unless somebody asked for that.
   Timer? _ticker;
   int _secondsLeft = 0;
   int _timerSeconds = 0;
@@ -108,13 +120,13 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
   @override
   void dispose() {
     _ticker?.cancel();
-    _answersScrollController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
-  void _scrollAnswersToTop() {
-    if (!_answersScrollController.hasClients) return;
-    _answersScrollController.jumpTo(0);
+  void _scrollToTop() {
+    if (!_scrollController.hasClients) return;
+    _scrollController.jumpTo(0);
   }
 
   /// "1:05" / "0:24" - minutes only appear once there are any.
@@ -149,11 +161,12 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
         _isAnswered = false;
       } else {
         _currentIndex++;
+        _submitting = true;
       }
     });
 
     if (_currentIndex < totalQuestions) {
-      _scrollAnswersToTop();
+      _scrollToTop();
       _restartTimer();
     } else {
       _ticker?.cancel();
@@ -164,9 +177,22 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
     }
   }
 
+  void _retrySubmit(Quiz quiz) {
+    if (_submitting) return;
+    _resultSubmitted = false;
+    _submitResult(quiz);
+  }
+
   Future<void> _submitResult(Quiz quiz) async {
     if (_resultSubmitted) return;
     _resultSubmitted = true;
+
+    if (mounted) {
+      setState(() {
+        _submitting = true;
+        _submitFailed = false;
+      });
+    }
 
     final totalQuestions = quiz.questions.length;
     final answers = List<int?>.generate(
@@ -194,9 +220,22 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
       ref.invalidate(pendingAttemptsProvider);
 
       if (!mounted) return;
-      setState(() => _parkedForAccount = true);
+      setState(() {
+        _parkedForAccount = true;
+        _submitting = false;
+      });
       return;
     }
+
+    // Read before the refresh below replaces it with the post-quiz profile.
+    _playedBefore ??=
+        ref
+            .read(profileProvider)
+            .asData
+            ?.value
+            .playedQuizIds
+            .contains(quiz.id) ??
+        false;
 
     final result = await ref
         .read(quizRepositoryProvider)
@@ -209,8 +248,11 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
 
     if (!mounted) return;
     setState(() {
-      _awardedXp = result?.xpEarned;
-      _resultConfirmed = result != null;
+      _submitting = false;
+      _result = result;
+      _submitFailed = result == null;
+      _isNewBest =
+          result != null && _playedBefore == true && result.xpEarned > 0;
     });
 
     // The profile header, streak and badges all move on a finished quiz.
@@ -300,448 +342,158 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.paper,
-      body: SafeArea(
-        child: quizAsync.when(
-          data: (quiz) {
-            // Hard gate: a premium quiz reached by deep link, the library, or
-            // the multiplayer picker must not simply play. Bounce to the
-            // paywall the same way the website redirects.
-            if (quiz.isPremium && !isPremium) {
-              if (!_paywallRedirected) {
-                _paywallRedirected = true;
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (!mounted) return;
-                  ref
-                      .read(analyticsProvider)
-                      .track(
-                        AnalyticsEvents.paywallShown,
-                        props: {
-                          'trigger': PaywallTrigger.premiumQuizLocked,
-                          'surface': 'quiz_player',
-                        },
-                      );
-                  context.pushReplacement(
-                    '/premium?reden=${PaywallTrigger.premiumQuizLocked}',
-                  );
-                });
-              }
-              return const Center(child: AppLoader());
+      body: quizAsync.when(
+        data: (quiz) {
+          // Hard gate: a premium quiz reached by deep link, the library, or
+          // the multiplayer picker must not simply play. Bounce to the
+          // paywall the same way the website redirects.
+          if (quiz.isPremium && !isPremium) {
+            if (!_paywallRedirected) {
+              _paywallRedirected = true;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                ref
+                    .read(analyticsProvider)
+                    .track(
+                      AnalyticsEvents.paywallShown,
+                      props: {
+                        'trigger': PaywallTrigger.premiumQuizLocked,
+                        'surface': 'quiz_player',
+                      },
+                    );
+                context.pushReplacement(
+                  '/premium?reden=${PaywallTrigger.premiumQuizLocked}',
+                );
+              });
             }
+            return const SafeArea(child: AppLoader());
+          }
 
-            if (quiz.questions.isEmpty) {
-              return _buildEmptyState();
-            }
+          if (quiz.questions.isEmpty) {
+            return SafeArea(child: _buildEmptyState());
+          }
 
-            if (_currentIndex >= quiz.questions.length) {
-              return _buildFinishedScreen(quiz);
-            }
-
-            final question = quiz.questions[_currentIndex];
-            final totalQuestions = quiz.questions.length;
-            final progress = (_currentIndex + 1) / totalQuestions;
-
-            // Adopting during build rather than in initState: the preference
-            // arrives from the account a beat after the first frame, and
-            // starting a clock the reader switched off would be worse than
-            // starting one a moment late.
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) _syncTimer(preferences.questionTimerSeconds);
-            });
-
-            return Column(
-              children: [
-                // Header rail - close button + `text-[10px] uppercase
-                // tracking-[0.16em]` counter.
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 4, 20, 4),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(
-                          Icons.close,
-                          color: AppTheme.inkSoft,
-                          size: 20,
-                        ),
-                        onPressed: () => context.pop(),
-                      ),
-                      Expanded(
-                        child: Text(
-                          'VRAAG ${_currentIndex + 1} / $totalQuestions',
-                          style: AppTheme.overline.copyWith(
-                            fontFeatures: const [FontFeature.tabularFigures()],
-                          ),
-                        ),
-                      ),
-
-                      // The countdown lives in the row that already exists.
-                      if (_timerSeconds > 0)
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.timer_outlined,
-                              size: 14,
-                              color: _timedOut || _secondsLeft <= 5
-                                  ? AppTheme.vermilion
-                                  : AppTheme.inkMuted,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              _timedOut
-                                  ? 'TIJD OM'
-                                  : _formatSeconds(_secondsLeft),
-                              style: AppTheme.overline.copyWith(
-                                color: _timedOut || _secondsLeft <= 5
-                                    ? AppTheme.vermilion
-                                    : AppTheme.ink,
-                                fontFeatures: const [
-                                  FontFeature.tabularFigures(),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                    ],
-                  ),
-                ),
-
-                // A hairline that empties as the seconds run out. Sits directly
-                // under the counter so it reads as one piece of information
-                // rather than a second widget competing for attention.
-                if (_timerSeconds > 0)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 2, 20, 0),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(1),
-                      child: LinearProgressIndicator(
-                        value: _secondsLeft / _timerSeconds,
-                        minHeight: 2,
-                        backgroundColor: AppTheme.rule,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          _secondsLeft <= 5
-                              ? AppTheme.vermilion
-                              : AppTheme.lapis,
-                        ),
-                      ),
-                    ),
-                  ),
-                // Hairline progress track - the site keeps bars at 2px.
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Container(
-                    height: 2,
-                    width: double.infinity,
-                    color: AppTheme.rule,
-                    child: FractionallySizedBox(
-                      alignment: Alignment.centerLeft,
-                      widthFactor: progress.clamp(0.0, 1.0),
-                      child: Container(color: AppTheme.ink),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 28),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      question.text,
-                      style: const TextStyle(
-                        fontFamily: AppTheme.displayFontName,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w400,
-                        height: 1.22,
-                        letterSpacing: -0.36,
-                        color: AppTheme.ink,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: SingleChildScrollView(
-                      controller: _answersScrollController,
-                      child: Column(
-                        children: [
-                          for (var i = 0; i < question.answers.length; i++)
-                            _buildAnswerButton(question.answers[i], i),
-                          if (_isAnswered)
-                            _buildExplanationCard(question, isPremium),
-                          const SizedBox(height: 20),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                if (_isAnswered)
-                  Container(
-                    width: double.infinity,
-                    decoration: const BoxDecoration(
-                      color: AppTheme.paperRaised,
-                      border: Border(top: BorderSide(color: AppTheme.rule)),
-                    ),
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-                    child: SafeArea(
-                      top: false,
-                      child: _buildNextQuestionButton(quiz),
-                    ),
-                  ),
-              ],
+          if (_currentIndex >= quiz.questions.length) {
+            return SafeArea(
+              child: QuizResultView(
+                quiz: quiz,
+                correctCount: _correctCount,
+                picks: _selectedIndexes,
+                parkedForAccount: _parkedForAccount,
+                submitting: _submitting,
+                submitFailed: _submitFailed,
+                result: _result,
+                isNewBest: _isNewBest,
+                onRetrySubmit: () => _retrySubmit(quiz),
+              ),
             );
-          },
-          loading: () => const AppLoader(),
-          error: (e, st) => _buildErrorState(e.toString()),
-        ),
+          }
+
+          // Adopting during build rather than in initState: the preference
+          // arrives from the account a beat after the first frame, and
+          // starting a clock the reader switched off would be worse than
+          // starting one a moment late.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _syncTimer(preferences.questionTimerSeconds);
+          });
+
+          return _buildQuestion(quiz, isPremium);
+        },
+        loading: () => const SafeArea(child: AppLoader()),
+        error: (e, st) => SafeArea(child: _buildErrorState(e.toString())),
       ),
     );
   }
 
-  /// Answer option.
-  ///
-  /// Idle     : `rounded-md border border-rule bg-paper-raised text-ink`
-  /// Correct  : `border-positive/35 bg-positive-tint text-positive`
-  /// Incorrect: `border-destructive/35 bg-vermilion-tint text-destructive`
-  Widget _buildAnswerButton(Answer answer, int index) {
-    final bool isSelected = _selectedAnswer == answer;
+  Widget _buildQuestion(Quiz quiz, bool isPremium) {
+    final question = quiz.questions[_currentIndex];
+    final totalQuestions = quiz.questions.length;
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
 
-    Color background = AppTheme.paperRaised;
-    Color borderColor = AppTheme.rule;
-    Color textColor = AppTheme.ink;
-    Color markerColor = AppTheme.inkMuted;
+    // The chapter the quiz is about ("Johannes 6"), else its category.
+    final passageLabel = quiz.passage?.label.trim() ?? '';
+    final categoryName = quiz.category?.name.trim() ?? '';
+    final chipLabel = passageLabel.isNotEmpty
+        ? passageLabel
+        : (categoryName.isNotEmpty ? categoryName : null);
 
-    if (_isAnswered) {
-      if (answer.isCorrect) {
-        background = AppTheme.positiveTint;
-        borderColor = AppTheme.positive.withValues(alpha: 0.35);
-        textColor = AppTheme.positive;
-        markerColor = AppTheme.positive;
-      } else if (isSelected) {
-        background = AppTheme.vermilionTint;
-        borderColor = AppTheme.destructive.withValues(alpha: 0.35);
-        textColor = AppTheme.destructive;
-        markerColor = AppTheme.destructive;
-      } else {
-        background = AppTheme.paperRaised;
-        textColor = AppTheme.inkMuted;
-        markerColor = AppTheme.ruleStrong;
-      }
-    }
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Material(
-        color: background,
-        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        child: InkWell(
-          onTap: () => _handleOptionSelected(answer, index),
-          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-          splashColor: AppTheme.paperSunken,
-          highlightColor: AppTheme.paperSunken,
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-              border: Border.all(color: borderColor),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Serif letter marker, like the site's `01`/`02` list markers.
-                SizedBox(
-                  width: 22,
-                  child: Text(
-                    String.fromCharCode(65 + index),
-                    style: TextStyle(
-                      fontFamily: AppTheme.displayFontName,
-                      fontSize: 15,
-                      color: markerColor,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Text(
-                    answer.text,
-                    style: TextStyle(
-                      fontFamily: AppTheme.sansFontName,
-                      fontSize: 15,
-                      height: 1.45,
-                      color: textColor,
-                    ),
-                  ),
-                ),
-                if (_isAnswered && answer.isCorrect)
-                  const Padding(
-                    padding: EdgeInsets.only(left: 10),
-                    child: Icon(
-                      Icons.check,
-                      size: 16,
-                      color: AppTheme.positive,
-                    ),
-                  ),
-                if (_isAnswered && isSelected && !answer.isCorrect)
-                  const Padding(
-                    padding: EdgeInsets.only(left: 10),
-                    child: Icon(
-                      Icons.close,
-                      size: 16,
-                      color: AppTheme.destructive,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildExplanationCard(Question question, bool isPremium) {
-    final bool gotItRight = _selectedAnswer?.isCorrect ?? false;
-    final bool hasExplanation = question.explanation.isNotEmpty;
-    final bool hasReference =
-        question.bibleReference.isNotEmpty && question.bibleReference != '-';
-    final teasedExplanation = _teaseExplanation(question.explanation);
-
-    final accent = gotItRight ? AppTheme.positive : AppTheme.destructive;
+    final urgent = _timedOut || (_timerSeconds > 0 && _secondsLeft <= 5);
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: 18),
-        AppCard(
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Eyebrow(
-                gotItRight ? 'Goed gedaan' : 'Onjuist',
-                color: accent,
-                ruleColor: accent,
-              ),
-              if (hasExplanation) ...[
-                const SizedBox(height: 18),
-                const RuleLine(),
-                const SizedBox(height: 18),
-                const Text('UITLEG', style: AppTheme.overline),
-                const SizedBox(height: 8),
-                if (isPremium)
-                  Text(question.explanation, style: AppTheme.bodyMuted)
-                else
-                  _buildFadedPreviewText(
-                    teasedExplanation,
-                    maxLines: 3,
-                    style: AppTheme.bodyMuted,
-                  ),
-              ],
-              // Free for everyone, as on the website: looking up what the
-              // Bible actually says is the point of the quiz, not a paid
-              // extra. Only the written uitleg above sits behind Premium.
-              if (hasReference) ...[
-                const SizedBox(height: 18),
-                const RuleLine(),
-                const SizedBox(height: 18),
-                const Text('REFERENTIE', style: AppTheme.overline),
-                const SizedBox(height: 8),
-                _BibleReferenceBlock(reference: question.bibleReference),
-              ],
-              if (!isPremium && hasExplanation) ...[
-                const SizedBox(height: 18),
-                SiteOutlineButton(
-                  // A player who just got it wrong wants to know why more than
-                  // at any other moment, so the ask names that instead of the
-                  // product.
-                  label: gotItRight
-                      ? 'Ontgrendel Premium voor uitleg'
-                      : 'Lees waarom dit fout was',
-                  height: 40,
-                  onPressed: () {
-                    ref
-                        .read(analyticsProvider)
-                        .track(
-                          AnalyticsEvents.paywallShown,
-                          props: {
-                            'trigger': PaywallTrigger.explanationLocked,
-                            'surface': 'quiz_explanation',
-                            'afterWrongAnswer': !gotItRight,
-                          },
-                        );
-                    context.push('/premium?reden=explanation_locked');
-                  },
-                ),
-              ],
-            ],
+        SafeArea(
+          bottom: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+            child: PlayerHeader(
+              current: _currentIndex + 1,
+              total: totalQuestions,
+              onClose: () => context.pop(),
+            ),
           ),
         ),
+        Expanded(
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            padding: EdgeInsets.fromLTRB(
+              20,
+              14,
+              20,
+              20 + (_isAnswered ? 0 : bottomInset),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                QuestionCard(
+                  text: question.text,
+                  chipLabel: chipLabel,
+                  timer: _timerSeconds > 0
+                      ? QuestionTimerPill(
+                          label: _timedOut
+                              ? 'Tijd om'
+                              : _formatSeconds(_secondsLeft),
+                          secondsLeft: _secondsLeft,
+                          urgent: urgent,
+                          timedOut: _timedOut,
+                        )
+                      : null,
+                ),
+                const SizedBox(height: 16),
+                AnswerGrid(
+                  answers: question.answers,
+                  isAnswered: _isAnswered,
+                  selected: _selectedAnswer,
+                  onSelect: _handleOptionSelected,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (_isAnswered)
+          TweenAnimationBuilder<double>(
+            key: ValueKey<int>(_currentIndex),
+            tween: Tween<double>(begin: 0, end: 1),
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            builder: (context, t, child) => FractionalTranslation(
+              translation: Offset(0, 1 - t),
+              child: child,
+            ),
+            child: AnswerFeedbackSheet(
+              key: ValueKey<String>('feedback-$_currentIndex'),
+              question: question,
+              outcome: _timedOut
+                  ? AnswerOutcome.timedOut
+                  : ((_selectedAnswer?.isCorrect ?? false)
+                        ? AnswerOutcome.correct
+                        : AnswerOutcome.wrong),
+              isPremium: isPremium,
+              isLastQuestion: _currentIndex == totalQuestions - 1,
+              onNext: () => _nextQuestion(quiz),
+            ),
+          ),
       ],
     );
-  }
-
-  Widget _buildNextQuestionButton(Quiz quiz) {
-    final bool isLastQuestion = _currentIndex == quiz.questions.length - 1;
-
-    return SiteButton(
-      label: isLastQuestion ? 'Rond quiz af' : 'Volgende vraag',
-      trailingIcon: Icons.arrow_forward,
-      onPressed: () => _nextQuestion(quiz),
-    );
-  }
-
-  Widget _buildFadedPreviewText(
-    String text, {
-    required TextStyle style,
-    required int maxLines,
-  }) {
-    final gradient = maxLines == 1
-        ? const LinearGradient(
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-            colors: <Color>[Colors.black, Colors.black, Colors.transparent],
-            stops: <double>[0.0, 0.78, 1.0],
-          )
-        : const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: <Color>[Colors.black, Colors.black, Colors.transparent],
-            stops: <double>[0.0, 0.68, 1.0],
-          );
-
-    return ShaderMask(
-      blendMode: BlendMode.dstIn,
-      shaderCallback: (Rect bounds) {
-        return gradient.createShader(bounds);
-      },
-      child: Text(
-        text,
-        maxLines: maxLines,
-        overflow: TextOverflow.clip,
-        style: style,
-      ),
-    );
-  }
-
-  String _teaseExplanation(String explanation) {
-    final normalized = explanation.trim().replaceAll(RegExp(r'\s+'), ' ');
-    if (normalized.isEmpty) {
-      return '';
-    }
-
-    const maxChars = 90;
-    if (normalized.length <= maxChars) {
-      if (normalized.length <= 10) {
-        return '${normalized.substring(0, 1)}...';
-      }
-
-      final cutIndex = (normalized.length * 0.4).round().clamp(
-        10,
-        normalized.length - 1,
-      );
-      return '${normalized.substring(0, cutIndex).trimRight()}...';
-    }
-
-    return '${normalized.substring(0, maxChars).trimRight()}...';
   }
 
   Widget _buildEmptyState() {
@@ -749,8 +501,9 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
       icon: Icons.menu_book_outlined,
       title: 'Nog geen vragen',
       description: 'Deze quiz heeft nog geen vragen.',
-      action: SiteOutlineButton(
+      action: BqButton(
         label: 'Ga terug',
+        style: BqButtonStyle.tint,
         expand: false,
         height: 44,
         onPressed: () => context.pop(),
@@ -763,486 +516,12 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
       icon: Icons.error_outline,
       title: 'Er ging iets mis',
       description: error,
-      action: SiteOutlineButton(
+      action: BqButton(
         label: 'Ga terug',
+        style: BqButtonStyle.tint,
         expand: false,
         height: 44,
         onPressed: () => context.pop(),
-      ),
-    );
-  }
-
-  /// Result page, in the site's centred CTA-section layout:
-  /// eyebrow -> `font-display text-[26px]` -> lead -> rule-divided stats.
-  Widget _buildFinishedScreen(Quiz quiz) {
-    final totalQuestions = quiz.questions.length;
-    // Only the server awards XP, and a replay that beats no earlier attempt
-    // awards none. Estimating here would promise XP the account never gets.
-    final earnedXp = _awardedXp;
-    final percentage = totalQuestions == 0
-        ? 0
-        : (_correctCount * 100 / totalQuestions).round();
-
-    // Signed out: what a new account would get for this attempt, by the same
-    // rule the server applies (the quiz's reward scaled by the share correct).
-    // A first attempt on a quiz has no earlier best to beat, so unlike the
-    // signed-in case this is not a promise the account cannot keep.
-    final previewXp = _parkedForAccount
-        ? (totalQuestions == 0
-              ? 0
-              : (quiz.xpReward * _correctCount / totalQuestions).round())
-        : null;
-
-    final xpSentence = _parkedForAccount
-        ? 'Je speelt zonder account, dus deze score is nog niet opgeslagen.'
-        : _resultConfirmed
-        ? (earnedXp == null || earnedXp == 0
-              ? 'Je verdiende deze keer geen extra XP - een herhaling telt '
-                    'alleen mee als je jezelf verbetert.'
-              : 'Je verdiende $earnedXp XP.')
-        : 'Je resultaat wordt opgeslagen zodra je weer verbinding hebt.';
-
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Center(child: Eyebrow('Afgerond')),
-            const SizedBox(height: 20),
-            const Text(
-              'Quiz voltooid',
-              textAlign: TextAlign.center,
-              style: AppTheme.displayMedium,
-            ),
-            const SizedBox(height: 14),
-            Text(
-              'Je had $_correctCount van de $totalQuestions vragen goed. '
-              '$xpSentence Ga door om je reeks in stand te houden en verder '
-              'te stijgen op de ranglijst.',
-              textAlign: TextAlign.center,
-              style: AppTheme.bodyLead,
-            ),
-            const SizedBox(height: 32),
-            StatStrip(
-              stacked: true,
-              items: [
-                StatItem(
-                  value: '$_correctCount/$totalQuestions',
-                  label: 'Goed',
-                ),
-                StatItem(value: '$percentage%', label: 'Score'),
-                StatItem(
-                  value: previewXp != null
-                      ? '$previewXp'
-                      : (earnedXp == null ? '-' : '$earnedXp'),
-                  label: 'XP',
-                  ruleColor: AppTheme.positive,
-                ),
-              ],
-            ),
-            const SizedBox(height: 28),
-            if (_parkedForAccount) ...[
-              _SaveScoreCard(previewXp: previewXp ?? 0),
-              const SizedBox(height: 28),
-            ],
-            _QuizReviewSection(quiz: quiz, picks: Map.of(_selectedIndexes)),
-            const SizedBox(height: 28),
-            SiteButton(
-              label: 'Terug naar home',
-              onPressed: () => context.go('/home'),
-            ),
-            const SizedBox(height: 12),
-            SiteOutlineButton(
-              label: 'Bekijk ranglijst',
-              onPressed: () => context.go('/leaderboard'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// The offer to keep a signed-out score, in the website's result-screen card:
-/// `rounded-lg border border-lapis/45 bg-paper-raised p-5`.
-///
-/// Both buttons lead to the auth screens, which land on the profile tab on
-/// success; the parked attempt is written on the way (see
-/// `PendingAttemptClaimer`), so the XP named here is what appears there.
-class _SaveScoreCard extends StatelessWidget {
-  const _SaveScoreCard({required this.previewXp});
-
-  final int previewXp;
-
-  @override
-  Widget build(BuildContext context) {
-    return AppCard(
-      borderColor: AppTheme.lapis.withValues(alpha: 0.45),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Eyebrow('Nog niet opgeslagen'),
-          const SizedBox(height: 12),
-          Text(
-            'Bewaar je score, $previewXp XP en je reeks',
-            style: AppTheme.displaySmall,
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Log in of maak een gratis account, dan wordt deze score direct '
-            'bijgeschreven. Je quizzen tellen dan mee voor je niveau en de '
-            'ranglijst.',
-            style: AppTheme.bodyMuted,
-          ),
-          const SizedBox(height: 16),
-          SiteButton(
-            label: 'Gratis account aanmaken',
-            onPressed: () => context.push('/register'),
-          ),
-          const SizedBox(height: 10),
-          SiteOutlineButton(
-            label: 'Inloggen',
-            onPressed: () => context.push('/login'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// The question's reference, with the verse text one tap away.
-///
-/// Collapsed by default: a reader who already knows the passage should not have
-/// to scroll past it to reach the next question, and the lookup is a network
-/// call that only pays for itself when somebody actually wants to read.
-class _BibleReferenceBlock extends ConsumerStatefulWidget {
-  const _BibleReferenceBlock({required this.reference});
-
-  final String reference;
-
-  @override
-  ConsumerState<_BibleReferenceBlock> createState() =>
-      _BibleReferenceBlockState();
-}
-
-class _BibleReferenceBlockState extends ConsumerState<_BibleReferenceBlock> {
-  bool _expanded = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          widget.reference,
-          style: const TextStyle(
-            fontFamily: AppTheme.displayFontName,
-            fontSize: 16,
-            fontStyle: FontStyle.italic,
-            color: AppTheme.ink,
-          ),
-        ),
-        const SizedBox(height: 10),
-        SiteOutlineButton(
-          label: _expanded ? 'Verberg de tekst' : 'Lees de tekst',
-          icon: _expanded ? Icons.expand_less : Icons.menu_book_outlined,
-          expand: false,
-          height: 36,
-          onPressed: () => setState(() => _expanded = !_expanded),
-        ),
-        if (_expanded) ...[
-          const SizedBox(height: 12),
-          _VerseText(reference: widget.reference),
-        ],
-      ],
-    );
-  }
-}
-
-/// The looked-up verse, or a quiet line saying it could not be fetched.
-///
-/// A failed lookup is never an error state here: the reference itself is
-/// already on screen above, which is the part the reader came for.
-class _VerseText extends ConsumerWidget {
-  const _VerseText({required this.reference});
-
-  final String reference;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.paperSunken,
-        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        border: Border.all(color: AppTheme.rule),
-      ),
-      child: ref
-          .watch(bibleVerseProvider(reference))
-          .when(
-            loading: () => const Center(child: AppLoader(size: 18)),
-            error: (_, __) => const Text(
-              'De tekst kon niet worden opgehaald.',
-              style: AppTheme.caption,
-            ),
-            data: (verse) {
-              if (verse == null) {
-                return const Text(
-                  'De tekst kon niet worden opgehaald.',
-                  style: AppTheme.caption,
-                );
-              }
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '“${verse.text}”',
-                    style: const TextStyle(
-                      fontFamily: AppTheme.displayFontName,
-                      fontSize: 15,
-                      height: 1.55,
-                      fontStyle: FontStyle.italic,
-                      color: AppTheme.ink,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    '${verse.reference} - Statenvertaling',
-                    style: AppTheme.caption,
-                  ),
-                ],
-              );
-            },
-          ),
-    );
-  }
-}
-
-/// Post-quiz answer review.
-///
-/// Premium: a per-question breakdown - your answer, the correct one, and the
-/// explanation. Free: the same right/wrong list, but the explanations are
-/// blurred behind one Premium CTA. This is a deliberate, late-in-the-loop
-/// paywall - the player just spent five minutes and wants to know which ones
-/// they missed.
-class _QuizReviewSection extends ConsumerStatefulWidget {
-  const _QuizReviewSection({required this.quiz, required this.picks});
-
-  final Quiz quiz;
-
-  /// Question index -> the answer index the player picked.
-  final Map<int, int> picks;
-
-  @override
-  ConsumerState<_QuizReviewSection> createState() => _QuizReviewSectionState();
-}
-
-class _QuizReviewSectionState extends ConsumerState<_QuizReviewSection> {
-  bool _expanded = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final isPremium = ref
-        .watch(profileProvider)
-        .maybeWhen(data: (p) => p.isPremium, orElse: () => false);
-    final questions = widget.quiz.questions;
-    if (questions.isEmpty) return const SizedBox.shrink();
-
-    final wrong = <int>[];
-    for (var i = 0; i < questions.length; i++) {
-      final picked = widget.picks[i];
-      final correct =
-          picked != null &&
-          picked >= 0 &&
-          picked < questions[i].answers.length &&
-          questions[i].answers[picked].isCorrect;
-      if (!correct) wrong.add(i);
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.paperRaised,
-        border: Border.all(color: AppTheme.rule),
-        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('JOUW ANTWOORDEN', style: AppTheme.overline),
-                const SizedBox(height: 6),
-                Text(
-                  wrong.isEmpty
-                      ? 'Alles goed. Bekijk de uitleg bij elke vraag.'
-                      : '${wrong.length} van de ${questions.length} vragen fout.',
-                  style: AppTheme.bodyMuted,
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1, color: AppTheme.rule),
-          if (!_expanded)
-            SiteOutlineButton(
-              label: 'Bekijk je antwoorden',
-              icon: Icons.expand_more,
-              height: 46,
-              onPressed: () => setState(() => _expanded = true),
-            )
-          else ...[
-            for (var i = 0; i < questions.length; i++)
-              _ReviewRow(
-                index: i + 1,
-                question: questions[i],
-                pickedIndex: widget.picks[i],
-                showExplanation: isPremium,
-              ),
-            if (!isPremium)
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      'De volledige uitleg bij elke vraag is onderdeel van Premium.',
-                      style: AppTheme.caption.copyWith(color: AppTheme.inkSoft),
-                    ),
-                    const SizedBox(height: 12),
-                    SiteButton(
-                      label: 'Ontgrendel de volledige review',
-                      trailingIcon: Icons.lock_open_outlined,
-                      onPressed: () {
-                        ref
-                            .read(analyticsProvider)
-                            .track(
-                              AnalyticsEvents.paywallShown,
-                              props: {
-                                'trigger': PaywallTrigger.reviewLocked,
-                                'surface': 'quiz_review',
-                              },
-                            );
-                        context.push(
-                          '/premium-intro?reden=${PaywallTrigger.reviewLocked}',
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _ReviewRow extends StatelessWidget {
-  const _ReviewRow({
-    required this.index,
-    required this.question,
-    required this.pickedIndex,
-    required this.showExplanation,
-  });
-
-  final int index;
-  final Question question;
-  final int? pickedIndex;
-  final bool showExplanation;
-
-  @override
-  Widget build(BuildContext context) {
-    final answers = question.answers;
-    final picked =
-        (pickedIndex != null &&
-            pickedIndex! >= 0 &&
-            pickedIndex! < answers.length)
-        ? answers[pickedIndex!]
-        : null;
-    final wasCorrect = picked?.isCorrect ?? false;
-    final correctAnswer = answers.where((a) => a.isCorrect).isNotEmpty
-        ? answers.firstWhere((a) => a.isCorrect)
-        : null;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppTheme.rule)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                wasCorrect ? Icons.check_circle_outline : Icons.cancel_outlined,
-                size: 16,
-                color: wasCorrect ? AppTheme.positive : AppTheme.vermilion,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  '$index. ${question.text}',
-                  style: AppTheme.bodyStrong,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Jouw antwoord: ${picked?.text ?? 'geen'}',
-            style: AppTheme.caption.copyWith(
-              color: wasCorrect ? AppTheme.positive : AppTheme.vermilion,
-            ),
-          ),
-          if (!wasCorrect && correctAnswer != null) ...[
-            const SizedBox(height: 2),
-            Text(
-              'Goed antwoord: ${correctAnswer.text}',
-              style: AppTheme.caption.copyWith(color: AppTheme.inkSoft),
-            ),
-          ],
-          if (question.explanation.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            if (showExplanation)
-              Text(question.explanation, style: AppTheme.bodyMuted)
-            else
-              _BlurredLine(text: question.explanation),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-/// A teaser of locked text - the first line, faded out.
-class _BlurredLine extends StatelessWidget {
-  const _BlurredLine({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return ShaderMask(
-      shaderCallback: (rect) => const LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [AppTheme.ink, Color(0x11000000)],
-      ).createShader(rect),
-      blendMode: BlendMode.srcIn,
-      child: Text(
-        text,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-        style: AppTheme.bodyMuted,
       ),
     );
   }

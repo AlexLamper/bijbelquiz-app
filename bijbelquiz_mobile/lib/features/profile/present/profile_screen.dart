@@ -3,18 +3,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/avatar/mascot_avatar.dart';
-import '../../../core/notifications/streak_reminder.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/ui/app_notice.dart';
 import '../../../core/ui/app_widgets.dart';
+import '../../../core/ui/bq.dart';
+import '../../auth/present/auth_controller.dart';
 import '../../leaderboard/data/leaderboard_repository.dart';
 import '../../leaderboard/domain/leaderboard_entry.dart';
-import '../../auth/present/auth_controller.dart';
 import '../../quiz/data/pending_attempt_store.dart';
 import '../data/badge_catalog.dart';
 import '../data/profile_model.dart';
 import 'profile_provider.dart';
+import 'widgets/badge_medal.dart';
 
+/// Profiel - BijbelQuiz 2.0 (`R-Profiel`).
+///
+/// Profile card with level bar, four stat tiles, the achievements row and the
+/// Premium entry. Everything that used to live in the settings sheet here
+/// (reminder, admin, logout) moved to the Instellingen screen behind the gear.
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
@@ -38,43 +43,46 @@ class ProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppTheme.paper,
-      body: RefreshIndicator(
-        color: AppTheme.ink,
-        backgroundColor: AppTheme.paperRaised,
-        onRefresh: () async {
-          ref.invalidate(profileProvider);
-          await ref.read(profileProvider.future);
-        },
-        child: profileAsync.when(
-          data: (profile) => _ProfileContent(
-            profile: profile,
-            rank: _findLeaderboardRank(
+      body: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
+          color: AppTheme.lapis,
+          backgroundColor: AppTheme.paperRaised,
+          onRefresh: () async {
+            ref.invalidate(profileProvider);
+            ref.invalidate(badgeCatalogProvider);
+            await ref.read(profileProvider.future);
+          },
+          child: profileAsync.when(
+            data: (profile) => _ProfileContent(
               profile: profile,
-              entries: leaderboardAsync.asData?.value,
-            ),
-            onOpenSettings: () => _openSettingsSheet(context, ref, profile),
-            onViewAllAchievements: () {
-              context.push('/profile/achievements');
-            },
-            onEditIdentity: () {
-              context.push('/profile/edit');
-            },
-          ),
-          loading: () => ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            children: const [SizedBox(height: 260), AppLoader()],
-          ),
-          error: (err, _) => ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(24),
-            children: [
-              const SizedBox(height: 100),
-              AppEmptyState(
-                icon: Icons.error_outline,
-                title: 'Profiel kon niet laden',
-                description: '$err',
+              rank: _findLeaderboardRank(
+                profile: profile,
+                entries: leaderboardAsync.asData?.value,
               ),
-            ],
+            ),
+            loading: () => ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+              children: const [
+                _PageHeader(),
+                SizedBox(height: 200),
+                AppLoader(),
+              ],
+            ),
+            error: (err, _) => ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+              children: [
+                const _PageHeader(),
+                const SizedBox(height: 60),
+                AppEmptyState(
+                  icon: Icons.error_outline,
+                  title: 'Profiel kon niet laden',
+                  description: '$err',
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -104,370 +112,532 @@ class ProfileScreen extends ConsumerWidget {
 
     return index >= 0 ? index + 1 : null;
   }
-
-  /// Sheet styled like the site's dropdown menu:
-  /// `rounded-lg border border-rule bg-paper-raised p-1.5`.
-  Future<void> _openSettingsSheet(
-    BuildContext context,
-    WidgetRef ref,
-    ProfileModel profile,
-  ) async {
-    await showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: AppTheme.paperRaised,
-      elevation: 0,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-      ),
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 12),
-              Center(
-                child: Container(width: 36, height: 3, color: AppTheme.rule),
-              ),
-              const SizedBox(height: 18),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20),
-                child: Text('INSTELLINGEN', style: AppTheme.overline),
-              ),
-              const SizedBox(height: 14),
-              const RuleLine(),
-              if (!profile.isPremium)
-                _SheetTile(
-                  icon: Icons.workspace_premium_outlined,
-                  label: 'Ontdek Premium',
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    context.push('/premium-intro');
-                  },
-                ),
-              if (profile.isAdmin)
-                _SheetTile(
-                  icon: Icons.shield_outlined,
-                  label: 'Beheer',
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    context.push('/beheer');
-                  },
-                ),
-              _StreakReminderTile(profile: profile),
-              _SheetTile(
-                icon: Icons.refresh,
-                label: 'Profiel vernieuwen',
-                onTap: () {
-                  Navigator.of(sheetContext).pop();
-                  ref.invalidate(profileProvider);
-                },
-              ),
-              _SheetTile(
-                icon: Icons.logout,
-                label: 'Uitloggen',
-                color: AppTheme.destructive,
-                showRule: false,
-                onTap: () async {
-                  Navigator.of(sheetContext).pop();
-
-                  // The controller also signs Google and RevenueCat out and
-                  // flips `hasSessionProvider`, which is what every screen
-                  // now reads to decide between its two renderings.
-                  await ref.read(authControllerProvider.notifier).logout();
-                  ref.invalidate(profileProvider);
-
-                  // Signed out is a normal state: back to the home screen,
-                  // not to a login form.
-                  if (context.mounted) {
-                    context.go('/home');
-                  }
-                },
-              ),
-              const SizedBox(height: 12),
-            ],
-          ),
-        );
-      },
-    );
-  }
 }
 
-/// The evening reminder switch.
-///
-/// Off until switched on here or accepted in the prompt after a quiz. Flipping
-/// it on is what triggers the OS permission dialog, and a refusal there puts
-/// the switch straight back to off rather than pretending it worked.
-class _StreakReminderTile extends ConsumerWidget {
-  const _StreakReminderTile({required this.profile});
-
-  final ProfileModel profile;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final enabled =
-        ref.watch(streakReminderEnabledProvider).asData?.value ?? false;
-
-    Future<void> toggle(bool value) async {
-      final result = await StreakReminder.instance.setEnabled(
-        value,
-        streak: profile.streak,
-        lastPlayedAt: profile.lastPlayedAt,
-      );
-
-      ref.invalidate(streakReminderEnabledProvider);
-
-      if (!context.mounted) return;
-      if (value && !result) {
-        AppNotice.info(
-          context,
-          'Meldingen staan uit voor BijbelQuiz. Zet ze aan in de '
-          'instellingen van je telefoon.',
-        );
-      }
-    }
-
-    return RuleListTile(
-      onTap: () => toggle(!enabled),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      child: Row(
-        children: [
-          const Icon(Icons.notifications_none, size: 18, color: AppTheme.ink),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Reeksherinnering', style: AppTheme.bodyStrong),
-                const SizedBox(height: 2),
-                Text(
-                  'Elke avond om 19:00, alleen als je nog niet '
-                  'gespeeld hebt.',
-                  style: AppTheme.bodyMuted,
-                ),
-              ],
-            ),
-          ),
-          Switch(
-            value: enabled,
-            activeColor: AppTheme.paper,
-            activeTrackColor: AppTheme.ink,
-            onChanged: toggle,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SheetTile extends StatelessWidget {
-  const _SheetTile({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.color = AppTheme.ink,
-    this.showRule = true,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final Color color;
-  final bool showRule;
+/// "Profiel" + the gear that opens Instellingen.
+class _PageHeader extends StatelessWidget {
+  const _PageHeader();
 
   @override
   Widget build(BuildContext context) {
-    return RuleListTile(
-      onTap: onTap,
-      showRule: showRule,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: color),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Text(
-              label,
-              style: AppTheme.bodyStrong.copyWith(color: color),
+    return Row(
+      children: [
+        Expanded(
+          child: Semantics(
+            header: true,
+            child: const Text('Profiel', style: AppTheme.displayLarge),
+          ),
+        ),
+        _RoundIconButton(
+          icon: BqIcons.gear,
+          label: 'Instellingen',
+          onTap: () => context.push('/settings'),
+        ),
+      ],
+    );
+  }
+}
+
+/// 40px white round button with a 44px tap area.
+class _RoundIconButton extends StatelessWidget {
+  const _RoundIconButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final String icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: label,
+      excludeSemantics: true,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkResponse(
+          onTap: onTap,
+          radius: 24,
+          child: SizedBox(
+            width: 44,
+            height: 44,
+            child: Center(
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(
+                  color: AppTheme.paperRaised,
+                  shape: BoxShape.circle,
+                  border: Border.fromBorderSide(
+                    BorderSide(color: AppTheme.rule),
+                  ),
+                ),
+                alignment: Alignment.center,
+                child: BqIcon(icon, size: 20, color: AppTheme.lapis),
+              ),
             ),
           ),
-          const Icon(Icons.arrow_forward, size: 13, color: AppTheme.inkMuted),
-        ],
+        ),
       ),
     );
   }
 }
 
 class _ProfileContent extends StatelessWidget {
-  const _ProfileContent({
-    required this.profile,
-    required this.rank,
-    required this.onOpenSettings,
-    required this.onViewAllAchievements,
-    required this.onEditIdentity,
-  });
+  const _ProfileContent({required this.profile, required this.rank});
 
   final ProfileModel profile;
   final int? rank;
-  final VoidCallback onOpenSettings;
-  final VoidCallback onViewAllAchievements;
-  final VoidCallback onEditIdentity;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+      children: [
+        const _PageHeader(),
+        const SizedBox(height: 14),
+        _ProfileCard(profile: profile, rank: rank),
+        const SizedBox(height: 16),
+        const _SectionTitle('Statistieken'),
+        const SizedBox(height: 8),
+        _StatsGrid(profile: profile),
+        // The "Alle N van M" link is 44 high to tap, which adds its own
+        // breathing room around the section title.
+        const SizedBox(height: 6),
+        _AchievementsSection(
+          badges: profile.badges,
+          onViewAll: () => context.push('/profile/achievements'),
+        ),
+        const SizedBox(height: 16),
+        _PremiumRow(isPremium: profile.isPremium),
+        if (profile.recentProgress.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          const _SectionTitle('Recent gespeeld'),
+          const SizedBox(height: 8),
+          _RecentActivityList(recentProgress: profile.recentProgress),
+        ],
+      ],
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      header: true,
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontFamily: AppTheme.sansFontName,
+          fontSize: 16,
+          height: 22 / 16,
+          fontWeight: FontWeight.w800,
+          color: AppTheme.ink,
+        ),
+      ),
+    );
+  }
+}
+
+/// White card: mascot, name, level pill and the gold XP bar.
+class _ProfileCard extends StatelessWidget {
+  const _ProfileCard({required this.profile, required this.rank});
+
+  final ProfileModel profile;
+  final int? rank;
 
   @override
   Widget build(BuildContext context) {
     // Every figure below is the server's, not ours. The XP ladder is not
     // linear (500, 1000, 1500, ... per level), so any local band arithmetic
     // would disagree with both the website and the level shown right here.
-    final averageScore = profile.averageScore;
-    final progress = profile.levelFraction;
     final xpRemaining = profile.xpToNextLevel;
     final isMaxLevel = xpRemaining == 0;
+    final subtitle = rank == null
+        ? profile.levelTitle
+        : '${profile.levelTitle} - plek $rank op de ranglijst';
 
-    return SafeArea(
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Eyebrow('Profiel'),
-                    const SizedBox(height: 14),
-                    Text(profile.name, style: AppTheme.displayLarge),
-                    const SizedBox(height: 10),
-                    Text(profile.email, style: AppTheme.bodyLead),
-                  ],
+    return Semantics(
+      container: true,
+      label: '${profile.name}, level ${profile.level}',
+      child: BqCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                _EditableAvatar(
+                  profile: profile,
+                  onTap: () => context.push('/profile/edit'),
                 ),
-              ),
-              const SizedBox(width: 12),
-              // Tapping the mascot is the primary way into the customiser;
-              // the pencil below it is there for anyone who does not read a
-              // picture as a button.
-              GestureDetector(
-                onTap: onEditIdentity,
-                child: Column(
-                  children: [
-                    MascotAvatar(
-                      avatar: profile.avatar,
-                      size: 72,
-                      bordered: true,
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        Icon(
-                          Icons.edit_outlined,
-                          size: 12,
-                          color: AppTheme.inkMuted,
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        profile.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: AppTheme.displayFontName,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 22,
+                          height: 26 / 22,
+                          color: AppTheme.ink,
                         ),
-                        SizedBox(width: 4),
-                        Text('Bewerken', style: AppTheme.caption),
-                      ],
-                    ),
-                  ],
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        subtitle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTheme.caption,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Top-aligned like the design, while avatar and name stay
+                // vertically centred.
+                SizedBox(
+                  height: 68,
+                  child: Align(
+                    alignment: Alignment.topRight,
+                    child: BqPill(label: 'Level ${profile.level}'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Semantics(
+              label: isMaxLevel
+                  ? 'Hoogste level bereikt'
+                  : 'Voortgang naar level ${profile.level + 1}',
+              child: BqProgressBar(
+                value: isMaxLevel ? 1 : profile.levelFraction,
+                height: 8,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              isMaxLevel
+                  ? 'Hoogste level bereikt'
+                  : 'Nog ${_formatNumber(xpRemaining)} XP tot level '
+                        '${profile.level + 1}',
+              style: AppTheme.metaLabel,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The mascot is the way into the customiser; a small pencil makes that
+/// visible for anyone who does not read a picture as a button.
+class _EditableAvatar extends StatelessWidget {
+  const _EditableAvatar({required this.profile, required this.onTap});
+
+  final ProfileModel profile;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Profiel bewerken',
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: SizedBox(
+          width: 68,
+          height: 68,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 68,
+                height: 68,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppTheme.lapisTint, width: 3),
+                ),
+                child: ClipOval(
+                  child: MascotAvatar(avatar: profile.avatar, size: 62),
                 ),
               ),
-              const SizedBox(width: 12),
-              // `h-9 w-9 rounded-md border-rule bg-paper-raised text-ink`
-              Material(
-                color: AppTheme.paperRaised,
-                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                  onTap: onOpenSettings,
-                  child: Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                      border: Border.all(color: AppTheme.rule),
-                    ),
-                    child: const Icon(
-                      Icons.settings_outlined,
-                      color: AppTheme.inkSoft,
-                      size: 18,
-                    ),
+              Positioned(
+                right: -2,
+                bottom: -2,
+                child: Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: AppTheme.paperRaised,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppTheme.rule),
+                  ),
+                  alignment: Alignment.center,
+                  child: const BqIcon(
+                    BqIcons.edit,
+                    size: 12,
+                    color: AppTheme.lapis,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 18),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              SiteBadge.neutral('Level ${profile.level}'),
-              SiteBadge.lapis(rank == null ? 'Rang -' : 'Rang #$rank'),
-              if (profile.isPremium) SiteBadge.vermilion('Premium'),
-            ],
-          ),
-          const SizedBox(height: 28),
-          StatStrip(
-            stacked: true,
-            items: [
-              StatItem(value: '${profile.quizzesPlayed}', label: 'Quizzen'),
-              StatItem(
-                value: '$averageScore%',
-                label: 'Score',
-                ruleColor: AppTheme.positive,
-              ),
-              StatItem(value: _formatNumber(profile.xp), label: 'Punten'),
-            ],
-          ),
-          const SizedBox(height: 40),
-          const SectionHeader(
-            eyebrow: 'Voortgang',
-            title: 'Naar het volgende level',
-          ),
-          const SizedBox(height: 24),
-          _ProgressCard(
-            level: profile.level,
-            levelTitle: profile.levelTitle,
-            xp: profile.xp,
-            nextLevelXp: profile.nextLevelXp,
-            xpRemaining: xpRemaining,
-            progress: progress,
-            isMaxLevel: isMaxLevel,
-          ),
-          const SizedBox(height: 40),
-          const SectionHeader(eyebrow: 'Statistieken', title: 'Jouw cijfers'),
-          const SizedBox(height: 24),
-          RuleGrid(
-            children: [
-              _StatRow(
-                label: 'Quizzen gespeeld',
-                value: '${profile.quizzesPlayed}',
-              ),
-              _StatRow(label: 'Nauwkeurigheid', value: '$averageScore%'),
-              _StatRow(
-                label: 'Reeks',
-                value:
-                    '${profile.streak} ${profile.streak == 1 ? 'dag' : 'dagen'}',
-              ),
-              _StatRow(label: 'Punten', value: _formatNumber(profile.xp)),
-            ],
-          ),
-          const SizedBox(height: 40),
-          SectionHeader(
-            eyebrow: 'Prestaties',
-            title: 'Behaalde badges',
-            actionLabel: 'Bekijk alles',
-            onAction: onViewAllAchievements,
-          ),
-          const SizedBox(height: 24),
-          _AchievementsRow(badges: profile.badges),
-          const SizedBox(height: 40),
-          const SectionHeader(eyebrow: 'Activiteit', title: 'Recent gespeeld'),
-          const SizedBox(height: 24),
-          _RecentActivityList(recentProgress: profile.recentProgress),
-        ],
+        ),
       ),
+    );
+  }
+}
+
+class _StatsGrid extends StatelessWidget {
+  const _StatsGrid({required this.profile});
+
+  final ProfileModel profile;
+
+  static const String _check =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="#3F6B4F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.3l2.4 2.4 4.6-4.9"/></svg>';
+
+  @override
+  Widget build(BuildContext context) {
+    // Duels are not tracked on the profile yet, so the fourth tile shows the
+    // lifetime accuracy the server does report.
+    final tiles = [
+      _StatTile(
+        icon: const BqIcon(BqIcons.flame, size: 22),
+        value: '${profile.streak}',
+        label: 'Dagen op rij',
+      ),
+      _StatTile(
+        icon: const BqIcon(BqIcons.bolt, size: 22),
+        value: _formatNumber(profile.xp),
+        label: 'Totaal XP',
+      ),
+      _StatTile(
+        icon: const BqIcon(BqIcons.book, size: 22, color: AppTheme.lapis),
+        value: _formatNumber(profile.quizzesPlayed),
+        label: 'Quizzen gespeeld',
+      ),
+      _StatTile(
+        icon: const BqIcon(_check, size: 22),
+        value: '${profile.averageScore}%',
+        label: 'Gemiddelde score',
+      ),
+    ];
+
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(child: tiles[0]),
+            const SizedBox(width: 10),
+            Expanded(child: tiles[1]),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(child: tiles[2]),
+            const SizedBox(width: 10),
+            Expanded(child: tiles[3]),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _StatTile extends StatelessWidget {
+  const _StatTile({
+    required this.icon,
+    required this.value,
+    required this.label,
+  });
+
+  final Widget icon;
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: '$value $label',
+      excludeSemantics: true,
+      child: BqCard(
+        radius: 14,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            icon,
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTheme.statNumber,
+                  ),
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTheme.metaLabel,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// "Prestaties  Alle N van M" and four round medals, earned ones first.
+class _AchievementsSection extends ConsumerWidget {
+  const _AchievementsSection({required this.badges, required this.onViewAll});
+
+  final List<String> badges;
+  final VoidCallback onViewAll;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final catalog =
+        ref.watch(badgeCatalogProvider).asData?.value ?? kFallbackBadgeCatalog;
+    final overview = badgeOverview(badges, catalog);
+    final unlocked = overview.where((d) => d.isUnlockedBy(badges)).toList();
+    final locked = overview.where((d) => !d.isUnlockedBy(badges)).toList();
+    final shown = [...unlocked, ...locked].take(4).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            const Expanded(child: _SectionTitle('Prestaties')),
+            Semantics(
+              button: true,
+              label: 'Alle prestaties bekijken, ${unlocked.length} van '
+                  '${overview.length} behaald',
+              excludeSemantics: true,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onViewAll,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 44),
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 12),
+                    child: Center(
+                      widthFactor: 1,
+                      child: Text(
+                        'Alle ${unlocked.length} van ${overview.length}',
+                        style: const TextStyle(
+                          fontFamily: AppTheme.sansFontName,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.lapis,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        BqCard(
+          onTap: onViewAll,
+          padding: const EdgeInsets.fromLTRB(10, 14, 10, 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (var i = 0; i < 4; i++) ...[
+                if (i > 0) const SizedBox(width: 6),
+                Expanded(
+                  child: i < shown.length
+                      ? BadgeMedalTile(
+                          definition: shown[i],
+                          unlocked: shown[i].isUnlockedBy(badges),
+                        )
+                      : const SizedBox(),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PremiumRow extends StatelessWidget {
+  const _PremiumRow({required this.isPremium});
+
+  final bool isPremium;
+
+  @override
+  Widget build(BuildContext context) {
+    return BqCard(
+      padding: EdgeInsets.zero,
+      child: BqListRow(
+        leading: const BqIconTile(
+          background: AppTheme.goldTint,
+          child: BqIcon(BqIcons.crown, size: 22),
+        ),
+        title: 'Premium',
+        subtitle: isPremium ? 'Je hebt Premium' : 'Je speelt gratis',
+        onTap: () => context.push(isPremium ? '/premium' : '/premium-intro'),
+      ),
+    );
+  }
+}
+
+class _RecentActivityList extends StatelessWidget {
+  const _RecentActivityList({required this.recentProgress});
+
+  final List<RecentProgressModel> recentProgress;
+
+  @override
+  Widget build(BuildContext context) {
+    final visible = recentProgress.take(5).toList();
+
+    return BqListCard(
+      children: [
+        for (final item in visible)
+          BqListRow(
+            leading: const BqIconTile(
+              child: BqIcon(BqIcons.book, size: 20, color: AppTheme.lapis),
+            ),
+            title: item.quizTitle,
+            subtitle: item.totalQuestions > 0
+                ? '${item.score} van ${item.totalQuestions} goed'
+                : 'Voltooid',
+            trailing: Text(
+              // `score` is a correct-answer count, not a percentage.
+              '${(item.accuracy * 100).round()}%',
+              style: AppTheme.statNumber.copyWith(fontSize: 15),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -483,45 +653,73 @@ class _GuestProfileContent extends StatelessWidget {
 
   final List<PendingAttempt> pending;
 
-  static const List<(IconData, String)> _benefits = [
-    (Icons.trending_up, 'Punten, niveau en reeks die blijven staan'),
-    (Icons.leaderboard_outlined, 'Een plek op de ranglijst'),
-    (Icons.military_tech_outlined, 'Badges voor je prestaties'),
-    (Icons.sync_outlined, 'Dezelfde voortgang op bijbelquiz.com'),
+  static const String _sync =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 20v-4h-4"/></svg>';
+
+  static const List<(String, Color, Color, String)> _benefits = [
+    (BqIcons.bolt, AppTheme.goldTint, AppTheme.goldText,
+        'Punten, niveau en reeks die blijven staan'),
+    (BqIcons.trophy, AppTheme.lapisTint, AppTheme.lapis,
+        'Een plek op de ranglijst'),
+    (BqIcons.shield, AppTheme.positiveTint, AppTheme.positive,
+        'Badges voor je prestaties'),
+    (_sync, AppTheme.lapisTint, AppTheme.lapis,
+        'Dezelfde voortgang op bijbelquiz.com'),
   ];
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
+      bottom: false,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
         children: [
-          const Eyebrow('Profiel'),
+          const _PageHeader(),
           const SizedBox(height: 14),
-          const Text('Bewaar je voortgang', style: AppTheme.displayLarge),
-          const SizedBox(height: 10),
-          const Text(
-            'Je speelt zonder account. Dat kan gewoon, maar je score, punten '
-            'en reeks blijven alleen bewaard met een gratis account.',
-            style: AppTheme.bodyLead,
+          BqCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Bewaar je voortgang', style: AppTheme.displayTitle),
+                const SizedBox(height: 6),
+                const Text(
+                  'Je speelt zonder account. Dat kan gewoon, maar je score, '
+                  'punten en reeks blijven alleen bewaard met een gratis '
+                  'account.',
+                  style: AppTheme.bodyMuted,
+                ),
+                const SizedBox(height: 16),
+                BqButton(
+                  label: 'Gratis account aanmaken',
+                  onPressed: () => context.push('/register'),
+                ),
+                const SizedBox(height: 10),
+                BqButton(
+                  label: 'Inloggen',
+                  style: BqButtonStyle.secondary,
+                  onPressed: () => context.push('/login'),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 28),
           if (pending.isNotEmpty) ...[
-            AppCard(
-              borderColor: AppTheme.lapis.withValues(alpha: 0.45),
+            const SizedBox(height: 16),
+            BqCard(
+              color: AppTheme.lapisTint,
+              borderColor: AppTheme.lapisSoft,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Eyebrow('Klaar om op te slaan'),
-                  const SizedBox(height: 10),
                   Text(
                     pending.length == 1
                         ? 'Eén quiz wacht op je account'
                         : '${pending.length} quizzen wachten op je account',
-                    style: AppTheme.displaySmall,
+                    style: AppTheme.bodyStrong.copyWith(
+                      color: AppTheme.lapisStrong,
+                    ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4),
                   Text(
                     pending
                         .map(
@@ -530,260 +728,42 @@ class _GuestProfileContent extends StatelessWidget {
                               '(${attempt.correctAnswers}/${attempt.totalQuestions})',
                         )
                         .join(', '),
-                    style: AppTheme.bodyMuted,
+                    style: AppTheme.bodyMuted.copyWith(
+                      color: AppTheme.lapisMutedText,
+                    ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
           ],
-          SiteButton(
-            label: 'Gratis account aanmaken',
-            onPressed: () => context.push('/register'),
-          ),
-          const SizedBox(height: 10),
-          SiteOutlineButton(
-            label: 'Inloggen',
-            onPressed: () => context.push('/login'),
-          ),
-          const SizedBox(height: 40),
-          const SectionHeader(
-            eyebrow: 'Met een account',
-            title: 'Wat er bewaard blijft',
-          ),
-          const SizedBox(height: 8),
-          for (final benefit in _benefits)
-            RuleListTile(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              child: Row(
-                children: [
-                  Icon(benefit.$1, size: 18, color: AppTheme.inkSoft),
-                  const SizedBox(width: 12),
-                  Expanded(child: Text(benefit.$2, style: AppTheme.bodyStrong)),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-/// `rounded-lg border border-rule bg-paper-raised p-5` with a 2px progress
-/// rule - the site never rounds or thickens its bars.
-class _ProgressCard extends StatelessWidget {
-  const _ProgressCard({
-    required this.level,
-    required this.levelTitle,
-    required this.xp,
-    required this.nextLevelXp,
-    required this.xpRemaining,
-    required this.progress,
-    required this.isMaxLevel,
-  });
-
-  final int level;
-  final String levelTitle;
-  final int xp;
-  final int nextLevelXp;
-  final int xpRemaining;
-  final double progress;
-  final bool isMaxLevel;
-
-  @override
-  Widget build(BuildContext context) {
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: Text(
-                  'Level $level - $levelTitle',
-                  style: AppTheme.displayBase,
-                ),
-              ),
-              Text(
-                isMaxLevel
-                    ? '${_formatNumber(xp)} XP'
-                    : '${_formatNumber(xp)} / ${_formatNumber(nextLevelXp)} XP',
-                style: AppTheme.caption.copyWith(
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
-              ),
-            ],
-          ),
           const SizedBox(height: 16),
-          Container(
-            height: 2,
-            width: double.infinity,
-            color: AppTheme.paperSunken,
-            child: FractionallySizedBox(
-              alignment: Alignment.centerLeft,
-              widthFactor: progress,
-              child: Container(color: AppTheme.ink),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            isMaxLevel
-                ? 'Hoogste level bereikt.'
-                : '${_formatNumber(xpRemaining)} XP tot level ${level + 1}',
-            style: AppTheme.caption,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Label / value row inside a hairline grid.
-class _StatRow extends StatelessWidget {
-  const _StatRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: Row(
-        children: [
-          Expanded(child: Text(label.toUpperCase(), style: AppTheme.overline)),
-          Text(value, style: AppTheme.statNumber.copyWith(fontSize: 18)),
-        ],
-      ),
-    );
-  }
-}
-
-class _AchievementsRow extends ConsumerWidget {
-  const _AchievementsRow({required this.badges});
-
-  final List<String> badges;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final catalog =
-        ref.watch(badgeCatalogProvider).asData?.value ?? kFallbackBadgeCatalog;
-
-    // Badges the account holds that the catalogue does not describe still get
-    // a tile, so nothing earned goes missing here.
-    final items = <BadgeDefinition>[
-      ...catalog,
-      ...badges
-          .where((badge) => !catalog.any((entry) => entry.matches(badge)))
-          .map((badge) => resolveBadge(badge, catalog)),
-    ];
-
-    return SizedBox(
-      height: 108,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemBuilder: (context, index) {
-          final item = items[index];
-          final active = item.isUnlockedBy(badges);
-
-          // Unlocked badges carry the lapis tint the site uses for accents.
-          return Container(
-            width: 104,
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: active ? AppTheme.lapisTint : AppTheme.paperRaised,
-              borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-              border: Border.all(
-                color: active
-                    ? AppTheme.lapis.withValues(alpha: 0.35)
-                    : AppTheme.rule,
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  item.icon,
-                  size: 20,
-                  color: active ? AppTheme.lapis : AppTheme.ruleStrong,
-                ),
-                const Spacer(),
-                Text(
-                  item.label.toUpperCase(),
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTheme.overline.copyWith(
-                    color: active ? AppTheme.lapis : AppTheme.inkMuted,
-                    height: 1.4,
+          const _SectionTitle('Met een account'),
+          const SizedBox(height: 8),
+          BqListCard(
+            children: [
+              for (final benefit in _benefits)
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
                   ),
-                ),
-              ],
-            ),
-          );
-        },
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
-        itemCount: items.length,
-      ),
-    );
-  }
-}
-
-class _RecentActivityList extends StatelessWidget {
-  const _RecentActivityList({required this.recentProgress});
-
-  final List<RecentProgressModel> recentProgress;
-
-  @override
-  Widget build(BuildContext context) {
-    if (recentProgress.isEmpty) {
-      return const AppCard(
-        child: Text(
-          'Nog geen recente activiteit gevonden.',
-          style: AppTheme.bodyMuted,
-        ),
-      );
-    }
-
-    final visible = recentProgress.take(5).toList();
-
-    return RuleGrid(
-      children: [
-        for (final item in visible)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
                     children: [
-                      Text(
-                        item.totalQuestions > 0
-                            ? '${item.score}/${item.totalQuestions} GOED'
-                            : 'VOLTOOID',
-                        style: AppTheme.overline,
+                      BqIconTile(
+                        background: benefit.$2,
+                        child: BqIcon(benefit.$1, size: 20, color: benefit.$3),
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        item.quizTitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTheme.displayBase,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(benefit.$4, style: AppTheme.bodyStrong),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 12),
-                Text(
-                  // `score` is a correct-answer count, not a percentage.
-                  '${(item.accuracy * 100).round()}%',
-                  style: AppTheme.statNumber.copyWith(fontSize: 18),
-                ),
-              ],
-            ),
+            ],
           ),
-      ],
+        ],
+      ),
     );
   }
 }

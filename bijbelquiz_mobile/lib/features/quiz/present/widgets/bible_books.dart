@@ -188,6 +188,21 @@ class BibleBooks {
     );
   }
 
+  /// Tint for a quiz: its chapter's testament when it has one, otherwise a
+  /// guess from the category name, gold for everything else (themes, general).
+  static BookTint tintForQuiz({String? book, String? category}) {
+    if (book != null && book.trim().isNotEmpty) {
+      final ot = info(book).oldTestament;
+      if (ot != null) {
+        return ot ? BookTint.oldTestament : BookTint.newTestament;
+      }
+    }
+    final c = (category ?? '').toLowerCase();
+    if (c.contains('oude')) return BookTint.oldTestament;
+    if (c.contains('nieuwe')) return BookTint.newTestament;
+    return BookTint.general;
+  }
+
   /// Green for the Old Testament, lapis for the New (and for unknown names).
   static BookTint tintFor(String? bookName) {
     if (bookName == null || bookName.trim().isEmpty) {

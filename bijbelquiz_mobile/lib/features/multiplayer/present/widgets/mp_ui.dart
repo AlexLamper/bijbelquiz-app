@@ -140,6 +140,16 @@ class MpSecondaryButton extends StatefulWidget {
 class _MpSecondaryButtonState extends State<MpSecondaryButton> {
   bool _down = false;
 
+  Widget _label() => Text(
+    widget.label,
+    maxLines: 1,
+    overflow: TextOverflow.ellipsis,
+    style: AppTheme.buttonLabel.copyWith(
+      color: AppTheme.ink,
+      fontSize: widget.fontSize,
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     final enabled = widget.onPressed != null && !widget.loading;
@@ -163,17 +173,12 @@ class _MpSecondaryButtonState extends State<MpSecondaryButton> {
                 widget.icon!,
                 const SizedBox(width: 8),
               ],
-              Flexible(
-                child: Text(
-                  widget.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTheme.buttonLabel.copyWith(
-                    color: AppTheme.ink,
-                    fontSize: widget.fontSize,
-                  ),
-                ),
-              ),
+              // A shrink-wrapped button may sit in a Row (unbounded width),
+              // where a Flexible child is not allowed.
+              if (widget.expand)
+                Flexible(child: _label())
+              else
+                _label(),
             ],
           );
 
@@ -199,6 +204,7 @@ class _MpSecondaryButtonState extends State<MpSecondaryButton> {
             height: widget.height,
             child: Align(
               alignment: Alignment.bottomCenter,
+              widthFactor: widget.expand ? null : 1,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 70),
                 height: widget.height - (3 - edge),
