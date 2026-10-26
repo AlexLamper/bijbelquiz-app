@@ -10,7 +10,7 @@ import '../../domain/duel.dart';
 /// Neutral score box and empty round dot, straight from the designs.
 const Color duelNeutralFill = Color(0xFFF1EFEA);
 const Color duelDotEmpty = Color(0xFFE0DDD5);
-const Color duelWrongFill = Color(0xFF8A877F);
+const Color duelWrongFill = Color(0xFFB4502B); // coralDeep: a wrong answer must read as wrong, not as "not played"
 const Color duelRecordDivider = Color(0xFFC9C5BC);
 
 /// The player's own avatar: solid lapis with a white letter.

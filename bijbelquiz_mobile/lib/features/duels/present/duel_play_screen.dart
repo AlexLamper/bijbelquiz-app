@@ -460,7 +460,8 @@ const List<BoxShadow> _cardShadow = [
   BoxShadow(color: Color(0x0F1B1A18), blurRadius: 2, offset: Offset(0, 1)),
 ];
 
-/// Jij [boxes]  3 - 2  [boxes] Lotte - this round's boxes for both players.
+/// Jij  3 - 2  Lotte - only names and the score; the per-question boxes
+/// were too much information while answering (client feedback).
 class _PlayScoreboard extends StatelessWidget {
   const _PlayScoreboard({required this.duel, required this.round});
 
@@ -480,9 +481,7 @@ class _PlayScoreboard extends StatelessWidget {
 
     return Semantics(
       container: true,
-      label: 'Stand: jij ${duel.myScore}, $name ${duel.opponentScore}. '
-          'Deze ronde: ${duelMarksLabel('jij', round.myResults)}, '
-          '${duelMarksLabel(name, round.opponentResults)}',
+      label: 'Stand: jij ${duel.myScore}, $name ${duel.opponentScore}',
       excludeSemantics: true,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -505,8 +504,6 @@ class _PlayScoreboard extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const Text('Jij', style: nameStyle),
-                        const SizedBox(height: 4),
-                        DuelMarkRow(marks: round.myResults),
                       ],
                     ),
                   ),
@@ -541,8 +538,6 @@ class _PlayScoreboard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: nameStyle,
                         ),
-                        const SizedBox(height: 4),
-                        DuelMarkRow(marks: round.opponentResults),
                       ],
                     ),
                   ),
