@@ -19,7 +19,7 @@ import '../../data/trial_reminder.dart';
 const List<String> kPaywallBenefits = [
   'Alle quizzen, zo vaak je wilt',
   'Uitleg bij elk antwoord',
-  'Duels en samen spelen zonder limiet',
+  'Je antwoorden terugkijken na elke quiz',
 ];
 
 const BoxShadow _floatShadow = BoxShadow(
