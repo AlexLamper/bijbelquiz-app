@@ -133,9 +133,10 @@ flutter_launcher_icons:
   android: true
   ios: true
   image_path: "assets/images/app_icon.png"
-  # --paper from www.bijbelquiz.com
-  adaptive_icon_background: "#ECEAE4"
-  adaptive_icon_foreground: "assets/images/app_icon.png"
+  # lapis from the 2.0 brand board
+  adaptive_icon_background: "#35548C"
+  adaptive_icon_foreground: "assets/images/app_icon_foreground.png"
+  remove_alpha_ios: true
   min_sdk_android: 21
   web:
     generate: true

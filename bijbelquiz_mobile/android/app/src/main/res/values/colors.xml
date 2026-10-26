@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Matches the paper background on www.bijbelquiz.com -->
-    <color name="ic_launcher_background">#FAF9F6</color>
+    <color name="ic_launcher_background">#35548C</color>
     <color name="paper">#FAF9F6</color>
 </resources>
