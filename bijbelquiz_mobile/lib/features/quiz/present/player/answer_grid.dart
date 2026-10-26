@@ -13,11 +13,12 @@ const Color _dimmedText = Color(0xFF8A877F);
 
 enum AnswerTileState { idle, correctPicked, correctRevealed, wrongPicked, dimmed }
 
-/// The answers as chunky tiles, two per row.
+/// The answers as chunky tiles, one under the other, each the full width.
 ///
-/// Short answers ("5", "Mozes") get the design's 20px; longer ones step down
-/// so they still fit two to a row, and very long answers fall back to one
-/// full-width tile per row instead of wrapping into slivers.
+/// Always a single column, however short the answers are: four tiles that
+/// line up are easier to scan and to hit with a thumb than a 2x2 grid whose
+/// halves change with the text. Short answers ("5", "Mozes") get the design's
+/// 20px; longer ones step down so they still fit.
 class AnswerGrid extends StatelessWidget {
   const AnswerGrid({
     super.key,
@@ -51,49 +52,19 @@ class AnswerGrid extends StatelessWidget {
       0,
       (m, a) => math.max(m, a.text.trim().length),
     );
-    final singleColumn = longest > 40;
-    final fontSize = longest <= 10 ? 20.0 : (longest <= 24 ? 17.0 : 16.0);
-
-    Widget tile(int i) => AnswerTile(
-      text: answers[i].text,
-      state: _stateFor(answers[i]),
-      fontSize: fontSize,
-      onTap: isAnswered ? null : () => onSelect(answers[i], i),
-    );
-
-    final rows = <Widget>[];
-    if (singleColumn) {
-      for (var i = 0; i < answers.length; i++) {
-        rows.add(tile(i));
-      }
-    } else {
-      for (var i = 0; i < answers.length; i += 2) {
-        if (i + 1 >= answers.length) {
-          // An odd one out spans the row rather than sitting half-empty.
-          rows.add(tile(i));
-          continue;
-        }
-        rows.add(
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(child: tile(i)),
-                const SizedBox(width: 12),
-                Expanded(child: tile(i + 1)),
-              ],
-            ),
-          ),
-        );
-      }
-    }
+    final fontSize = longest <= 12 ? 20.0 : (longest <= 32 ? 18.0 : 16.0);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (var r = 0; r < rows.length; r++) ...[
-          if (r > 0) const SizedBox(height: 12),
-          rows[r],
+        for (var i = 0; i < answers.length; i++) ...[
+          if (i > 0) const SizedBox(height: 12),
+          AnswerTile(
+            text: answers[i].text,
+            state: _stateFor(answers[i]),
+            fontSize: fontSize,
+            onTap: isAnswered ? null : () => onSelect(answers[i], i),
+          ),
         ],
       ],
     );
@@ -126,7 +97,7 @@ class AnswerTile extends StatefulWidget {
 class _AnswerTileState extends State<AnswerTile> {
   bool _down = false;
 
-  static const double _minHeight = 76;
+  static const double _minHeight = 68;
   static const double _radius = 14;
 
   ({Color face, Color border, Color edge, Color fg, String? icon}) get _look {
