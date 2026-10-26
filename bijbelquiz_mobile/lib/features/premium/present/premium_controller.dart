@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import '../../profile/data/profile_repository.dart';
 import '../../profile/present/profile_provider.dart';
 import '../data/purchase_service.dart';
+import '../data/trial_reminder.dart';
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -103,6 +106,9 @@ class PremiumController extends Notifier<PremiumState> {
       _log(
         'Purchase success. Active entitlements: ${info.entitlements.active.keys.join(', ')}',
       );
+      // The paywall promises a reminder before a free trial ends; this keeps
+      // that promise. A no-op for anything that is not a trial.
+      unawaited(TrialReminder.instance.scheduleIfTrial(info));
       await _syncServerPremium();
     } on PlatformException catch (e) {
       final code = PurchasesErrorHelper.getErrorCode(e);

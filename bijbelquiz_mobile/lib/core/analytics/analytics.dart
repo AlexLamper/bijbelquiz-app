@@ -47,6 +47,12 @@ class PaywallTrigger {
   /// attributes it as `direct`.
   static const String reviewLocked = 'review_locked';
 
+  /// The free-quiz limit was reached. Opens the locked paywall (no close
+  /// button, back does not dismiss it). The website funnel still needs the
+  /// matching entry in `PAYWALL_TRIGGERS`; until then the server attributes it
+  /// as `direct`.
+  static const String freeLimit = 'gratis-limiet';
+
   static const String direct = 'direct';
 }
 

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/avatar/mascot_avatar.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/app_widgets.dart';
+import '../../../core/ui/bq.dart';
 import '../../auth/present/auth_controller.dart';
 import '../../groups/data/player_group_repository.dart';
 import '../../groups/domain/player_group.dart';
@@ -12,10 +14,11 @@ import '../../profile/present/profile_provider.dart';
 import '../data/leaderboard_repository.dart';
 import '../domain/leaderboard_entry.dart';
 
-/// Mirrors https://www.bijbelquiz.com/ranglijst
+/// Ranglijst - BijbelQuiz 2.0 (`R-Ranglijst`).
 ///
-/// eyebrow -> `font-display text-[32px]` heading -> lead -> period buttons ->
-/// `border-y border-rule` stat band -> `rounded-lg border border-rule` table.
+/// Title with the running period, period tabs, a top-3 podium and a white
+/// list card for place 4 and down with the player's own row tinted lapis.
+/// Saved player groups appear as scope chips above the tabs.
 class LeaderboardScreen extends ConsumerStatefulWidget {
   const LeaderboardScreen({super.key});
 
@@ -24,7 +27,8 @@ class LeaderboardScreen extends ConsumerStatefulWidget {
 }
 
 class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
-  LeaderboardPeriod _selectedRange = LeaderboardPeriod.all;
+  /// The running month first, like the current-period tab in the design.
+  LeaderboardPeriod _selectedRange = LeaderboardPeriod.month;
 
   /// Null means the global board. Otherwise the saved group being viewed.
   String? _selectedGroupId;
@@ -60,8 +64,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
     }
 
     // Watched through an explicit branch rather than a stored provider: the
-    // two families have different argument types, and giving them a common
-    // static type costs more than the six lines it saves.
+    // two families have different argument types.
     final AsyncValue<List<LeaderboardEntry>> leaderboardAsync =
         _selectedGroupId == null
         ? ref.watch(leaderboardByPeriodProvider(_selectedRange))
@@ -75,142 +78,257 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
     return Scaffold(
       backgroundColor: AppTheme.paper,
       body: SafeArea(
+        bottom: false,
         child: RefreshIndicator(
-          color: AppTheme.ink,
+          color: AppTheme.lapis,
           backgroundColor: AppTheme.paperRaised,
           onRefresh: _refreshData,
-          child: leaderboardAsync.when(
-            data: (entries) {
-              final sortedEntries = [...entries]
-                ..sort((a, b) => b.xp.compareTo(a.xp));
-              final topXp = sortedEntries.isEmpty ? 0 : sortedEntries.first.xp;
-
-              final profile = ref.watch(profileProvider).asData?.value;
-              final hasSession =
-                  ref.watch(hasSessionProvider).asData?.value ?? true;
-              final myId = profile?.id ?? '';
-              final myName = (profile?.name ?? '').trim().toLowerCase();
-              var myIndex = myId.isEmpty
-                  ? -1
-                  : sortedEntries.indexWhere((e) => e.id == myId);
-              if (myIndex < 0 && myName.isNotEmpty) {
-                myIndex = sortedEntries.indexWhere(
-                  (e) => e.name.trim().toLowerCase() == myName,
-                );
-              }
-              final myEntryId = myIndex >= 0 ? sortedEntries[myIndex].id : null;
-
-              return ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
-                children: [
-                  GradientHeader(
-                    eyebrow: 'Ranglijst',
-                    title: activeGroup?.name ?? 'Top spelers',
-                    subtitle: activeGroup == null
-                        ? 'Verdien XP door quizzen te spelen en stijg in de '
-                              'ranglijst.'
-                        : 'De stand binnen je groep van '
-                              '${activeGroup.memberCount} spelers.',
-                  ),
-                  const SizedBox(height: 28),
-                  if (groups.isNotEmpty) ...[
-                    _ScopeSelector(
-                      groups: groups,
-                      selectedGroupId: _selectedGroupId,
-                      onSelect: (value) {
-                        setState(() {
-                          _selectedGroupId = value;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                  _RangeSelector(
-                    selectedRange: _selectedRange,
-                    onSelect: (value) {
-                      setState(() {
-                        _selectedRange = value;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                  StatStrip(
-                    stacked: true,
-                    items: [
-                      StatItem(
-                        value: '${sortedEntries.length}',
-                        label: 'Deelnemers',
-                      ),
-                      StatItem(value: '$topXp', label: 'Top XP'),
-                      StatItem(
-                        value: _selectedRange.shortLabel,
-                        label: 'Periode',
-                        ruleColor: AppTheme.positive,
-                      ),
-                    ],
-                  ),
-                  if (profile != null) ...[
-                    const SizedBox(height: 16),
-                    _MyPlacementCard(
-                      rank: myIndex >= 0 ? myIndex + 1 : null,
-                      total: sortedEntries.length,
-                      xp: myIndex >= 0 ? sortedEntries[myIndex].xp : profile.xp,
-                    ),
-                  ] else if (!hasSession) ...[
-                    // A visitor can read the list but is not on it. Said once,
-                    // where their own placement would otherwise be.
-                    const SizedBox(height: 16),
-                    AppCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Je staat nog niet in de ranglijst. Met een '
-                            'gratis account telt je XP mee.',
-                            style: AppTheme.bodyMuted,
-                          ),
-                          const SizedBox(height: 12),
-                          SiteOutlineButton(
-                            label: 'Inloggen',
-                            expand: false,
-                            height: 44,
-                            onPressed: () => context.push('/login'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 28),
-                  if (sortedEntries.isEmpty)
-                    const _EmptyLeaderboardState()
-                  else
-                    _LeaderboardTable(
-                      // Collapse again when the player switches board.
-                      key: ValueKey(
-                        '${_selectedGroupId ?? 'all'}-$_selectedRange',
-                      ),
-                      entries: sortedEntries,
-                      highlightEntryId: myEntryId,
-                    ),
-                ],
-              );
-            },
-            loading: () => ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              children: const [SizedBox(height: 260), AppLoader()],
-            ),
-            error: (err, _) => ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(24),
-              children: [
-                const SizedBox(height: 100),
-                AppEmptyState(
-                  icon: Icons.error_outline,
-                  title: 'Ranglijst kon niet laden',
-                  description: '$err',
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+            children: [
+              _Header(subtitle: _subtitle(activeGroup)),
+              const SizedBox(height: 16),
+              if (groups.isNotEmpty) ...[
+                _ScopeSelector(
+                  groups: groups,
+                  selectedGroupId: _selectedGroupId,
+                  onSelect: (value) => setState(() => _selectedGroupId = value),
                 ),
+                const SizedBox(height: 8),
               ],
+              _PeriodTabs(
+                selected: _selectedRange,
+                onSelect: (value) => setState(() => _selectedRange = value),
+              ),
+              const SizedBox(height: 16),
+              ...leaderboardAsync.when(
+                data: (entries) => _board(entries, activeGroup),
+                loading: () => const [SizedBox(height: 140), AppLoader()],
+                error: (err, _) => [
+                  const SizedBox(height: 24),
+                  AppEmptyState(
+                    icon: Icons.error_outline,
+                    title: 'Ranglijst kon niet laden',
+                    description: '$err',
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The line under the title: when the running month ends, or which group is
+  /// on screen.
+  String _subtitle(PlayerGroup? group) {
+    if (group != null) {
+      final count = group.memberCount;
+      return '$count ${count == 1 ? 'speler' : 'spelers'} in ${group.name}';
+    }
+    switch (_selectedRange) {
+      case LeaderboardPeriod.month:
+        // The monthly board counts the calendar month, so it runs until the
+        // last day of this month.
+        final now = DateTime.now();
+        final lastDay = DateTime(now.year, now.month + 1, 0).day;
+        return 'Deze maand loopt tot $lastDay ${_monthNames[now.month - 1]}';
+      case LeaderboardPeriod.all:
+        return 'Alle XP sinds de start telt mee';
+    }
+  }
+
+  List<Widget> _board(List<LeaderboardEntry> entries, PlayerGroup? group) {
+    final sorted = [...entries]..sort((a, b) => b.xp.compareTo(a.xp));
+
+    final profile = ref.watch(profileProvider).asData?.value;
+    final hasSession = ref.watch(hasSessionProvider).asData?.value ?? true;
+    final myId = profile?.id ?? '';
+    final myName = (profile?.name ?? '').trim().toLowerCase();
+    var myIndex = myId.isEmpty
+        ? -1
+        : sorted.indexWhere((entry) => entry.id == myId);
+    if (myIndex < 0 && myName.isNotEmpty) {
+      myIndex = sorted.indexWhere(
+        (entry) => entry.name.trim().toLowerCase() == myName,
+      );
+    }
+    final myEntryId = myIndex >= 0 ? sorted[myIndex].id : null;
+
+    return [
+      // Said once, above the board, where the player's own row would be.
+      if (profile == null && !hasSession) ...[
+        const _GuestCard(),
+        const SizedBox(height: 16),
+      ] else if (profile != null && myIndex < 0 && sorted.isNotEmpty) ...[
+        const _NotPlacedCard(),
+        const SizedBox(height: 16),
+      ],
+      if (sorted.isEmpty)
+        _EmptyBoard(period: _selectedRange, inGroup: group != null)
+      else ...[
+        _Podium(entries: sorted.take(3).toList(), myEntryId: myEntryId),
+        if (sorted.length > 3)
+          _RestList(
+            // Collapse again when the player switches board.
+            key: ValueKey('${_selectedGroupId ?? 'all'}-$_selectedRange'),
+            entries: sorted,
+            myIndex: myIndex,
+          ),
+      ],
+    ];
+  }
+}
+
+const List<String> _monthNames = [
+  'januari',
+  'februari',
+  'maart',
+  'april',
+  'mei',
+  'juni',
+  'juli',
+  'augustus',
+  'september',
+  'oktober',
+  'november',
+  'december',
+];
+
+String _formatXp(int value) {
+  final digits = value.abs().toString();
+  final buffer = StringBuffer(value < 0 ? '-' : '');
+  for (var i = 0; i < digits.length; i++) {
+    buffer.write(digits[i]);
+    final remaining = digits.length - i - 1;
+    if (remaining > 0 && remaining % 3 == 0) buffer.write('.');
+  }
+  return buffer.toString();
+}
+
+// ---------------------------------------------------------------------------
+// Header and selectors
+// ---------------------------------------------------------------------------
+
+class _Header extends StatelessWidget {
+  const _Header({required this.subtitle});
+
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Semantics(
+          header: true,
+          child: const Text('Ranglijst', style: AppTheme.displayLarge),
+        ),
+        const SizedBox(height: 2),
+        Row(
+          children: [
+            const BqIcon(BqIcons.trophy, size: 16, color: AppTheme.goldText),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                subtitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AppTheme.bodyMuted,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Segmented period control: grey track, the active option a white pill.
+class _PeriodTabs extends StatelessWidget {
+  const _PeriodTabs({required this.selected, required this.onSelect});
+
+  final LeaderboardPeriod selected;
+  final ValueChanged<LeaderboardPeriod> onSelect;
+
+  static const List<(LeaderboardPeriod, String)> _options = [
+    (LeaderboardPeriod.month, 'Deze maand'),
+    (LeaderboardPeriod.all, 'Altijd'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: 'Periode',
+      container: true,
+      child: Container(
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE0DDD5),
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        ),
+        child: Row(
+          children: [
+            for (var i = 0; i < _options.length; i++) ...[
+              if (i > 0) const SizedBox(width: 4),
+              Expanded(
+                child: _TabButton(
+                  label: _options[i].$2,
+                  active: selected == _options[i].$1,
+                  onTap: () => onSelect(_options[i].$1),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TabButton extends StatelessWidget {
+  const _TabButton({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: active,
+      label: label,
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          height: 44,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: active ? AppTheme.paperRaised : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: active ? AppTheme.rule : Colors.transparent,
+            ),
+          ),
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontFamily: AppTheme.sansFontName,
+              fontSize: 14,
+              fontWeight: active ? FontWeight.w800 : FontWeight.w700,
+              color: active ? AppTheme.lapis : AppTheme.inkMuted,
             ),
           ),
         ),
@@ -221,8 +339,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
 
 /// Global board, or one of the saved groups.
 ///
-/// Hidden entirely when the player has no groups, so the default screen keeps
-/// exactly one row of buttons.
+/// Hidden entirely when the player has no groups.
 class _ScopeSelector extends StatelessWidget {
   const _ScopeSelector({
     required this.groups,
@@ -237,7 +354,7 @@ class _ScopeSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 36,
+      height: 44,
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [
@@ -273,27 +390,36 @@ class _ScopeChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
-      child: Material(
-        color: active ? AppTheme.ink : AppTheme.paperRaised,
-        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+      child: Semantics(
+        button: true,
+        selected: active,
+        label: label,
+        excludeSemantics: true,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
           onTap: onTap,
-          child: Container(
-            height: 36,
-            alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-              border: Border.all(color: active ? AppTheme.ink : AppTheme.rule),
-            ),
-            child: Text(
-              label,
-              style: TextStyle(
-                fontFamily: AppTheme.sansFontName,
-                color: active ? AppTheme.inkInverted : AppTheme.ink,
-                fontWeight: FontWeight.w500,
-                fontSize: 14,
+          // 44 high to tap, 36 high to see.
+          child: Center(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              height: 36,
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(
+                color: active ? AppTheme.lapis : AppTheme.paperRaised,
+                borderRadius: BorderRadius.circular(AppTheme.radiusPill),
+                border: Border.all(
+                  color: active ? AppTheme.lapis : AppTheme.rule,
+                ),
+              ),
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontFamily: AppTheme.sansFontName,
+                  fontSize: 14,
+                  fontWeight: active ? FontWeight.w800 : FontWeight.w700,
+                  color: active ? AppTheme.inkInverted : AppTheme.inkSoft,
+                ),
               ),
             ),
           ),
@@ -303,148 +429,409 @@ class _ScopeChip extends StatelessWidget {
   }
 }
 
-/// `h-9 rounded-md border-rule bg-paper-raised px-4 text-ink` /
-/// active `h-9 rounded-md bg-ink px-4 text-ink-inverted`
-class _RangeSelector extends StatelessWidget {
-  const _RangeSelector({required this.selectedRange, required this.onSelect});
+// ---------------------------------------------------------------------------
+// Podium
+// ---------------------------------------------------------------------------
 
-  final LeaderboardPeriod selectedRange;
-  final ValueChanged<LeaderboardPeriod> onSelect;
+class _PodiumStyle {
+  const _PodiumStyle({
+    required this.ring,
+    required this.text,
+    required this.block,
+    required this.blockHeight,
+    required this.avatarSize,
+  });
 
-  static const Map<LeaderboardPeriod, String> _labels = {
-    LeaderboardPeriod.month: 'Maandelijks',
-    LeaderboardPeriod.all: 'All-time',
+  final Color ring;
+  final Color text;
+  final Color block;
+  final double blockHeight;
+  final double avatarSize;
+
+  static const gold = _PodiumStyle(
+    ring: AppTheme.gold,
+    text: AppTheme.goldText,
+    block: Color(0xFFF0D48A),
+    blockHeight: 70,
+    avatarSize: 66,
+  );
+  static const silver = _PodiumStyle(
+    ring: Color(0xFFA9AFBB),
+    text: Color(0xFF5C6370),
+    block: Color(0xFFD5D9E1),
+    blockHeight: 46,
+    avatarSize: 54,
+  );
+  static const bronze = _PodiumStyle(
+    ring: Color(0xFFC98A5A),
+    text: Color(0xFF8A5530),
+    block: Color(0xFFE6C9B1),
+    blockHeight: 32,
+    avatarSize: 54,
+  );
+
+  static _PodiumStyle forPlace(int place) => switch (place) {
+    1 => gold,
+    2 => silver,
+    _ => bronze,
   };
+}
+
+/// Top three: second left, first in the middle with a crown, third right.
+class _Podium extends StatelessWidget {
+  const _Podium({required this.entries, required this.myEntryId});
+
+  /// Up to three entries, best first.
+  final List<LeaderboardEntry> entries;
+  final String? myEntryId;
 
   @override
   Widget build(BuildContext context) {
-    // Scrollable so the three labels never overflow on narrow phones.
-    return SizedBox(
-      height: 36,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: _labels.entries.map((entry) {
-          final active = selectedRange == entry.key;
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: Material(
-              color: active ? AppTheme.ink : AppTheme.paperRaised,
-              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                onTap: () => onSelect(entry.key),
-                child: Container(
-                  height: 36,
-                  alignment: Alignment.center,
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                    border: Border.all(
-                      color: active ? AppTheme.ink : AppTheme.rule,
-                    ),
-                  ),
-                  child: Text(
-                    entry.value,
-                    style: TextStyle(
-                      fontFamily: AppTheme.sansFontName,
-                      color: active ? AppTheme.inkInverted : AppTheme.ink,
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          );
-        }).toList(),
+    Widget slot(int place) {
+      if (entries.length < place) return const Expanded(child: SizedBox());
+      final entry = entries[place - 1];
+      return Expanded(
+        child: _PodiumSlot(
+          entry: entry,
+          place: place,
+          isMe: myEntryId != null && entry.id == myEntryId,
+        ),
+      );
+    }
+
+    return Semantics(
+      label: 'Top 3',
+      container: true,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            slot(2),
+            const SizedBox(width: 10),
+            slot(1),
+            const SizedBox(width: 10),
+            slot(3),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _LeaderboardTable extends StatefulWidget {
-  const _LeaderboardTable({
-    super.key,
-    required this.entries,
-    this.highlightEntryId,
+class _PodiumSlot extends StatelessWidget {
+  const _PodiumSlot({
+    required this.entry,
+    required this.place,
+    required this.isMe,
   });
 
-  final List<LeaderboardEntry> entries;
+  final LeaderboardEntry entry;
+  final int place;
+  final bool isMe;
 
-  /// Id of the current user's row, tinted so it stands out in a long board.
-  final String? highlightEntryId;
-
-  /// Rows shown before the list has to be expanded. Keeps a 100-player board
-  /// from turning the page into an endless scroll.
-  static const int collapsedLimit = 20;
-
-  @override
-  State<_LeaderboardTable> createState() => _LeaderboardTableState();
-}
-
-class _LeaderboardTableState extends State<_LeaderboardTable> {
-  bool _expanded = false;
+  static const String _crown =
+      '<svg viewBox="0 0 30 22" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 18L5 5l6 6 4-9 4 9 6-6 2 13z" fill="#E9B12E" stroke="#A87C14" stroke-width="2" stroke-linejoin="round"/></svg>';
 
   @override
   Widget build(BuildContext context) {
-    final total = widget.entries.length;
-    final canCollapse = total > _LeaderboardTable.collapsedLimit;
-    final visible = _expanded || !canCollapse
-        ? widget.entries
-        : widget.entries.take(_LeaderboardTable.collapsedLimit).toList();
+    final style = _PodiumStyle.forPlace(place);
+    final size = style.avatarSize;
 
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: AppTheme.paperRaised,
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(color: AppTheme.rule),
-      ),
+    return Semantics(
+      label:
+          'Plek $place, ${entry.name}${isMe ? ' (jij)' : ''}, '
+          '${_formatXp(entry.xp)} XP',
+      excludeSemantics: true,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // `border-b border-rule px-5 py-3 text-[10px] uppercase
-          //  tracking-[0.16em] text-ink-muted`
-          Container(
-            width: double.infinity,
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: AppTheme.rule)),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              children: const [
-                SizedBox(
-                  width: 44,
-                  child: Text('POS', style: AppTheme.overline),
+          if (place == 1) ...[
+            SvgPicture.string(_crown, width: 30, height: 22),
+            const SizedBox(height: 2),
+          ],
+          Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: size,
+                height: size,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppTheme.paperRaised,
+                  border: Border.all(color: style.ring, width: 3),
                 ),
-                SizedBox(width: 12),
-                Expanded(child: Text('SPELER', style: AppTheme.overline)),
-                Text('XP', style: AppTheme.overline),
-              ],
+                child: ClipOval(
+                  child: MascotAvatar(avatar: entry.avatar, size: size - 6),
+                ),
+              ),
+              Positioned(
+                bottom: -8,
+                child: Container(
+                  width: 22,
+                  height: 22,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: style.ring,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppTheme.paperRaised, width: 2),
+                  ),
+                  child: Text(
+                    '$place',
+                    style: const TextStyle(
+                      fontFamily: AppTheme.sansFontName,
+                      fontSize: 11,
+                      height: 1,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.inkInverted,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            entry.name,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: AppTheme.sansFontName,
+              fontSize: 14,
+              height: 18 / 14,
+              fontWeight: FontWeight.w800,
+              color: isMe ? AppTheme.lapis : AppTheme.ink,
             ),
           ),
-          for (var i = 0; i < visible.length; i++)
-            _LeaderboardRow(
-              entry: visible[i],
-              rank: i + 1,
-              isLast: !canCollapse && i == visible.length - 1,
-              highlighted:
-                  widget.highlightEntryId != null &&
-                  visible[i].id == widget.highlightEntryId,
+          const SizedBox(height: 4),
+          Text(
+            '${_formatXp(entry.xp)} XP',
+            maxLines: 1,
+            style: TextStyle(
+              fontFamily: AppTheme.sansFontName,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: style.text,
+              fontFeatures: const [FontFeature.tabularFigures()],
             ),
-          if (canCollapse)
-            _ShowMoreRow(
-              expanded: _expanded,
-              total: total,
-              onTap: () => setState(() => _expanded = !_expanded),
+          ),
+          const SizedBox(height: 6),
+          Container(
+            width: double.infinity,
+            height: style.blockHeight,
+            padding: const EdgeInsets.only(top: 6),
+            alignment: Alignment.topCenter,
+            decoration: BoxDecoration(
+              color: style.block,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(12),
+              ),
             ),
+            child: Text(
+              '$place',
+              style: TextStyle(
+                fontFamily: AppTheme.displayFontName,
+                fontWeight: FontWeight.w600,
+                fontSize: 22,
+                height: 1.1,
+                color: style.text,
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-/// Footer row of the table - `border-t border-rule` with a centred label, so
-/// expanding reads as part of the table rather than as a floating button.
+// ---------------------------------------------------------------------------
+// Place 4 and down
+// ---------------------------------------------------------------------------
+
+class _RestList extends StatefulWidget {
+  const _RestList({super.key, required this.entries, required this.myIndex});
+
+  /// The whole board, sorted, best first. Rows start at place 4.
+  final List<LeaderboardEntry> entries;
+
+  /// Index of the signed-in player in [entries], or -1.
+  final int myIndex;
+
+  /// Places shown before the list has to be expanded. Keeps a 100-player
+  /// board from turning the page into an endless scroll.
+  static const int collapsedLimit = 20;
+
+  @override
+  State<_RestList> createState() => _RestListState();
+}
+
+class _RestListState extends State<_RestList> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final entries = widget.entries;
+    final total = entries.length;
+    final canCollapse = total > _RestList.collapsedLimit;
+    final end = _expanded || !canCollapse ? total : _RestList.collapsedLimit;
+
+    Widget row(int index) {
+      final isMe = index == widget.myIndex;
+      return _BoardRow(
+        entry: entries[index],
+        rank: index + 1,
+        isMe: isMe,
+        // XP needed to pass the player one place up.
+        xpToNext: isMe && index > 0
+            ? entries[index - 1].xp - entries[index].xp + 1
+            : null,
+      );
+    }
+
+    final rows = <Widget>[for (var i = 3; i < end; i++) row(i)];
+
+    // The player's own row is pinned under a collapsed list, so their place
+    // is never hidden behind "Toon alle".
+    final myRowHidden = widget.myIndex >= end;
+    if (myRowHidden) {
+      rows
+        ..add(const _GapRow())
+        ..add(row(widget.myIndex));
+    }
+
+    if (canCollapse) {
+      rows.add(
+        _ShowMoreRow(
+          expanded: _expanded,
+          total: total,
+          onTap: () => setState(() => _expanded = !_expanded),
+        ),
+      );
+    }
+
+    return BqListCard(children: rows);
+  }
+}
+
+class _BoardRow extends StatelessWidget {
+  const _BoardRow({
+    required this.entry,
+    required this.rank,
+    required this.isMe,
+    this.xpToNext,
+  });
+
+  final LeaderboardEntry entry;
+  final int rank;
+  final bool isMe;
+  final int? xpToNext;
+
+  @override
+  Widget build(BuildContext context) {
+    final strong = isMe ? AppTheme.lapisStrong : AppTheme.inkSoft;
+    final gap = xpToNext;
+
+    return Semantics(
+      label:
+          'Plek $rank, ${entry.name}${isMe ? ' (jij)' : ''}, '
+          '${_formatXp(entry.xp)} XP',
+      excludeSemantics: true,
+      child: Container(
+        color: isMe ? AppTheme.lapisTint : null,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 22,
+              child: Text(
+                '$rank',
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.visible,
+                softWrap: false,
+                style: TextStyle(
+                  fontFamily: AppTheme.sansFontName,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: strong,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            MascotAvatar(avatar: entry.avatar, size: 40),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    entry.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTheme.bodyStrong,
+                  ),
+                  if (gap != null)
+                    Text(
+                      'Nog ${_formatXp(gap)} XP tot plek ${rank - 1}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: AppTheme.sansFontName,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.lapis,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              '${_formatXp(entry.xp)} XP',
+              style: TextStyle(
+                fontFamily: AppTheme.sansFontName,
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: strong,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Marks the jump between the visible rows and the player's pinned row.
+class _GapRow extends StatelessWidget {
+  const _GapRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return const ExcludeSemantics(
+      child: SizedBox(
+        height: 28,
+        child: Center(
+          child: Text(
+            '...',
+            style: TextStyle(
+              fontFamily: AppTheme.sansFontName,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.inkFaint,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ShowMoreRow extends StatelessWidget {
   const _ShowMoreRow({
     required this.expanded,
@@ -458,31 +845,36 @@ class _ShowMoreRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
+    return Semantics(
+      button: true,
       child: InkWell(
         onTap: onTap,
-        highlightColor: AppTheme.paperSunken,
-        splashColor: AppTheme.paperSunken,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+        child: SizedBox(
+          height: 48,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Flexible(
                 child: Text(
-                  expanded ? 'TOON MINDER' : 'TOON ALLE $total SPELERS',
+                  expanded ? 'Toon minder' : 'Toon alle $total spelers',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTheme.overline.copyWith(color: AppTheme.ink),
+                  style: const TextStyle(
+                    fontFamily: AppTheme.sansFontName,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.lapis,
+                  ),
                 ),
               ),
-              const SizedBox(width: 8),
-              Icon(
-                expanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                size: 16,
-                color: AppTheme.inkSoft,
+              const SizedBox(width: 6),
+              RotatedBox(
+                quarterTurns: expanded ? 3 : 1,
+                child: const BqIcon(
+                  BqIcons.chevronRight,
+                  size: 16,
+                  color: AppTheme.lapis,
+                ),
               ),
             ],
           ),
@@ -492,81 +884,38 @@ class _ShowMoreRow extends StatelessWidget {
   }
 }
 
-class _LeaderboardRow extends StatelessWidget {
-  const _LeaderboardRow({
-    required this.entry,
-    required this.rank,
-    required this.isLast,
-    this.highlighted = false,
-  });
+// ---------------------------------------------------------------------------
+// States
+// ---------------------------------------------------------------------------
 
-  final LeaderboardEntry entry;
-  final int rank;
-  final bool isLast;
-
-  /// This row is the signed-in player - tinted so it is findable at a glance.
-  final bool highlighted;
+/// A visitor can read the board but is not on it.
+class _GuestCard extends StatelessWidget {
+  const _GuestCard();
 
   @override
   Widget build(BuildContext context) {
-    // `inline-flex h-8 min-w-8 items-center justify-center border px-1
-    //  text-xs font-semibold` - deliberately square, no radius.
-    final isLeader = rank == 1;
-    final badgeBg = isLeader ? AppTheme.lapisTint : AppTheme.paperSunken;
-    final badgeBorder = isLeader
-        ? AppTheme.lapis.withValues(alpha: 0.35)
-        : AppTheme.rule;
-    final badgeFg = isLeader ? AppTheme.lapis : AppTheme.inkSoft;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: highlighted ? AppTheme.lapisTint : null,
-        border: isLast
-            ? null
-            : const Border(bottom: BorderSide(color: AppTheme.rule)),
-      ),
+    return BqCard(
       child: Row(
         children: [
-          Container(
-            height: 32,
-            constraints: const BoxConstraints(minWidth: 32),
-            alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            decoration: BoxDecoration(
-              color: badgeBg,
-              border: Border.all(color: badgeBorder),
-            ),
-            child: Text(
-              '#$rank',
-              style: TextStyle(
-                fontFamily: AppTheme.sansFontName,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: badgeFg,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
+          const BqIconTile(
+            background: AppTheme.goldTint,
+            child: BqIcon(BqIcons.trophy, size: 22, color: AppTheme.goldText),
           ),
           const SizedBox(width: 12),
-          MascotAvatar(avatar: entry.avatar, size: 32, bordered: true),
-          const SizedBox(width: 12),
-          Expanded(
+          const Expanded(
             child: Text(
-              highlighted ? '${entry.name}  (jij)' : entry.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppTheme.bodyStrong.copyWith(
-                color: highlighted ? AppTheme.lapis : null,
-              ),
+              'Met een gratis account telt je XP mee.',
+              style: AppTheme.bodyMuted,
             ),
           ),
           const SizedBox(width: 10),
-          Text(
-            '${entry.xp}',
-            style: AppTheme.bodyStrong.copyWith(
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
+          BqButton(
+            label: 'Inloggen',
+            style: BqButtonStyle.secondary,
+            height: 44,
+            expand: false,
+            fontSize: 15,
+            onPressed: () => context.push('/login'),
           ),
         ],
       ),
@@ -574,82 +923,42 @@ class _LeaderboardRow extends StatelessWidget {
   }
 }
 
-extension on LeaderboardPeriod {
-  String get shortLabel {
-    switch (this) {
-      case LeaderboardPeriod.month:
-        return 'Maand';
-      case LeaderboardPeriod.all:
-        return 'Altijd';
-    }
-  }
-}
-
-/// "Jouw plek" band shown above the table so the player never has to scan a
-/// 100-row list to find their own rank. Styled like the site's stat band.
-class _MyPlacementCard extends StatelessWidget {
-  const _MyPlacementCard({
-    required this.rank,
-    required this.total,
-    required this.xp,
-  });
-
-  /// Null when the player is not on this board yet (new account, or the
-  /// selected period has no entry for them).
-  final int? rank;
-  final int total;
-  final int xp;
+/// Signed in, but no entry on this board yet (new account, or no XP in the
+/// selected period).
+class _NotPlacedCard extends StatelessWidget {
+  const _NotPlacedCard();
 
   @override
   Widget build(BuildContext context) {
-    final onBoard = rank != null;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-      decoration: BoxDecoration(
-        color: AppTheme.lapisTint,
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(color: AppTheme.lapis.withValues(alpha: 0.35)),
-      ),
+    return const BqCard(
+      color: AppTheme.lapisTint,
+      borderColor: AppTheme.lapisSoft,
       child: Row(
         children: [
+          BqIconTile(
+            background: AppTheme.paperRaised,
+            child: BqIcon(BqIcons.trophy, size: 22, color: AppTheme.lapis),
+          ),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'JOUW PLEK',
-                  style: AppTheme.overline.copyWith(color: AppTheme.lapis),
+                  'Je staat nog niet op deze ranglijst',
+                  style: AppTheme.bodyStrong,
                 ),
-                const SizedBox(height: 6),
                 Text(
-                  onBoard ? '#$rank' : 'Nog niet geplaatst',
-                  style: AppTheme.displayLarge.copyWith(
-                    color: AppTheme.ink,
-                    fontFeatures: const [FontFeature.tabularFigures()],
+                  'Speel een quiz om mee te doen.',
+                  style: TextStyle(
+                    fontFamily: AppTheme.sansFontName,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.lapis,
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  onBoard
-                      ? 'van $total spelers'
-                      : 'Speel een quiz om mee te doen',
-                  style: AppTheme.caption.copyWith(color: AppTheme.inkSoft),
                 ),
               ],
             ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '$xp',
-                style: AppTheme.statNumber.copyWith(color: AppTheme.ink),
-              ),
-              Text(
-                'XP',
-                style: AppTheme.overline.copyWith(color: AppTheme.inkMuted),
-              ),
-            ],
           ),
         ],
       ),
@@ -657,15 +966,38 @@ class _MyPlacementCard extends StatelessWidget {
   }
 }
 
-class _EmptyLeaderboardState extends StatelessWidget {
-  const _EmptyLeaderboardState();
+class _EmptyBoard extends StatelessWidget {
+  const _EmptyBoard({required this.period, required this.inGroup});
+
+  final LeaderboardPeriod period;
+  final bool inGroup;
 
   @override
   Widget build(BuildContext context) {
-    return const AppCard(
-      child: Text(
-        'Nog geen ranglijstdata beschikbaar.',
-        style: AppTheme.bodyMuted,
+    final message = period == LeaderboardPeriod.month
+        ? 'Deze maand heeft nog niemand${inGroup ? ' in deze groep' : ''} XP '
+              'verdiend. Speel een quiz en sta bovenaan.'
+        : 'Nog geen ranglijstdata beschikbaar.';
+
+    return BqCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          const BqIconTile(
+            size: 48,
+            radius: 12,
+            background: AppTheme.goldTint,
+            child: BqIcon(BqIcons.trophy, size: 26, color: AppTheme.goldText),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Nog niemand op de ranglijst',
+            textAlign: TextAlign.center,
+            style: AppTheme.displaySmall,
+          ),
+          const SizedBox(height: 4),
+          Text(message, textAlign: TextAlign.center, style: AppTheme.bodyMuted),
+        ],
       ),
     );
   }
