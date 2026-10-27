@@ -138,7 +138,9 @@ class _AdminUserDetailBodyState extends ConsumerState<AdminUserDetailBody> {
           .grantPremium(d.user.row.id, request),
     );
     if (result == null || !mounted) return;
-    setState(() => _optimistic = d.withPremium(result.premium, entry: result.grant));
+    setState(
+      () => _optimistic = d.withPremium(result.premium, entry: result.grant),
+    );
     AppNotice.success(
       context,
       adminGrantSuccessText(result, userName: d.user.row.displayName),
@@ -509,9 +511,7 @@ class _AdminUserDetailBodyState extends ConsumerState<AdminUserDetailBody> {
           const AdminEmptyCard('Nog nooit handmatig Premium gegeven.')
         else
           BqListCard(
-            children: [
-              for (final g in d.grantLog) _GrantLogRow(entry: g),
-            ],
+            children: [for (final g in d.grantLog) _GrantLogRow(entry: g)],
           ),
       ],
     );
@@ -553,7 +553,9 @@ class _PremiumCard extends StatelessWidget {
                 width: 10,
                 height: 10,
                 decoration: BoxDecoration(
-                  color: active ? adminSourceColor(source) : AppTheme.ruleStrong,
+                  color: active
+                      ? adminSourceColor(source)
+                      : AppTheme.ruleStrong,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -637,9 +639,7 @@ class _PremiumCard extends StatelessWidget {
               m.active,
               'Handmatig gegeven',
               m.active
-                  ? (m.legacy
-                        ? 'Oude gift zonder einddatum'
-                        : until(m.until))
+                  ? (m.legacy ? 'Oude gift zonder einddatum' : until(m.until))
                   : 'Geen gift',
               extra: m.active
                   ? [
@@ -728,7 +728,11 @@ class _GrantLogRow extends StatelessWidget {
             radius: 9,
             background: g.isRevoke ? AppTheme.coralTint : AppTheme.goldTint,
             child: g.isRevoke
-                ? const BqIcon(BqIcons.close, size: 15, color: AppTheme.vermilion)
+                ? const BqIcon(
+                    BqIcons.close,
+                    size: 15,
+                    color: AppTheme.vermilion,
+                  )
                 : const BqIcon(BqIcons.crown, size: 16),
           ),
           const SizedBox(width: 12),

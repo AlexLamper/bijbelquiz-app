@@ -222,10 +222,14 @@ void main() {
         ).toJson()['until'],
         isNull,
       );
-      expect(
-        AdminGrantDuration.values.map((d) => d.key),
-        ['7d', '1m', '3m', '1y', 'lifetime', 'custom'],
-      );
+      expect(AdminGrantDuration.values.map((d) => d.key), [
+        '7d',
+        '1m',
+        '3m',
+        '1y',
+        'lifetime',
+        'custom',
+      ]);
     });
 
     test('grant and revoke responses', () {
@@ -370,10 +374,7 @@ void main() {
         '<!DOCTYPE html><html>404</html>',
         contentType: 'text/html; charset=utf-8',
       );
-      expect(
-        repo.getOverview(),
-        throwsA(isA<AdminEndpointMissing>()),
-      );
+      expect(repo.getOverview(), throwsA(isA<AdminEndpointMissing>()));
     });
 
     test('a JSON 404 is a real "not found"', () async {

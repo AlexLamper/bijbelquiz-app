@@ -33,7 +33,11 @@ class _AdminPaymentsTabState extends ConsumerState<AdminPaymentsTab> {
   @override
   void initState() {
     super.initState();
-    _reload();
+    _loading = true;
+    // After the first frame: a load touches the provider scope.
+    Future.microtask(() {
+      if (mounted) _reload();
+    });
   }
 
   @override
@@ -167,7 +171,8 @@ class _AdminPaymentsTabState extends ConsumerState<AdminPaymentsTab> {
                       subtitleColor: AppTheme.vermilion,
                       onTap: g.userId.isEmpty
                           ? null
-                          : () => context.push('/beheer/gebruikers/${g.userId}'),
+                          : () =>
+                                context.push('/beheer/gebruikers/${g.userId}'),
                     ),
                 ],
               ),

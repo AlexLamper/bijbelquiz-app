@@ -105,7 +105,8 @@ class AdminFunnelBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final f = funnel;
     String pct(num v) => AdminFormat.percent(v);
-    final triggers = [...f.byTrigger]..sort((a, b) => b.shown.compareTo(a.shown));
+    final triggers = [...f.byTrigger]
+      ..sort((a, b) => b.shown.compareTo(a.shown));
     final surfaces = f.handoverBySurface.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
@@ -189,7 +190,11 @@ class AdminFunnelBody extends StatelessWidget {
               value: f.plansMonthly,
               color: AppTheme.lapis,
             ),
-            AdminSlice(label: 'Jaar', value: f.plansYearly, color: AppTheme.gold),
+            AdminSlice(
+              label: 'Jaar',
+              value: f.plansYearly,
+              color: AppTheme.gold,
+            ),
             AdminSlice(
               label: 'Levenslang',
               value: f.plansLifetime,
@@ -222,7 +227,10 @@ class AdminFunnelBody extends StatelessWidget {
         const AdminSectionTitle('Activatie'),
         AdminStatGrid(
           stats: [
-            AdminStat('Quizzen afgerond', AdminFormat.number(f.quizzesCompleted)),
+            AdminStat(
+              'Quizzen afgerond',
+              AdminFormat.number(f.quizzesCompleted),
+            ),
             AdminStat(
               'Eerste quiz afgerond',
               AdminFormat.number(f.firstQuizzesCompleted),
@@ -246,7 +254,8 @@ class AdminFunnelBody extends StatelessWidget {
             AdminStat(
               'Code gekopieerd',
               AdminFormat.number(f.handoverCodeCopies),
-              hint: '${AdminFormat.number(f.handoverDismissals)} keer weggeklikt',
+              hint:
+                  '${AdminFormat.number(f.handoverDismissals)} keer weggeklikt',
             ),
           ],
         ),

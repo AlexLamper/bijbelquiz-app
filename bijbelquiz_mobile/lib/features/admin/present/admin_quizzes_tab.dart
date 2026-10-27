@@ -65,9 +65,16 @@ class _AdminQuizzesTabState extends ConsumerState<AdminQuizzesTab> {
               isDense: true,
               prefixIcon: Padding(
                 padding: EdgeInsets.all(12),
-                child: BqIcon(BqIcons.search, size: 18, color: AppTheme.inkFaint),
+                child: BqIcon(
+                  BqIcons.search,
+                  size: 18,
+                  color: AppTheme.inkFaint,
+                ),
               ),
-              prefixIconConstraints: BoxConstraints(minWidth: 42, minHeight: 42),
+              prefixIconConstraints: BoxConstraints(
+                minWidth: 42,
+                minHeight: 42,
+              ),
             ),
           ),
         ),
@@ -236,7 +243,8 @@ class _AdminQuizCardState extends State<AdminQuizCard> {
                       [
                         if (q.category != null) q.category!,
                         '${q.questionCount} vragen',
-                        if (q.plays30d != null) '${q.plays30d}x gespeeld (30 d)',
+                        if (q.plays30d != null)
+                          '${q.plays30d}x gespeeld (30 d)',
                       ].join(' · '),
                       style: AppTheme.caption,
                     ),
@@ -244,7 +252,8 @@ class _AdminQuizCardState extends State<AdminQuizCard> {
                       Text(
                         [
                           if (q.createdBy != null) 'door ${q.createdBy}',
-                          if (q.createdAt != null) AdminFormat.date(q.createdAt),
+                          if (q.createdAt != null)
+                            AdminFormat.date(q.createdAt),
                         ].join(' · '),
                         style: AppTheme.caption.copyWith(
                           fontSize: 12,
@@ -269,7 +278,8 @@ class _AdminQuizCardState extends State<AdminQuizCard> {
             child: InkWell(
               onTap: _busy != null
                   ? null
-                  : () => _run(AdminQuizAction.premium, isPremium: !q.isPremium),
+                  : () =>
+                        _run(AdminQuizAction.premium, isPremium: !q.isPremium),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 6),
                 child: Row(

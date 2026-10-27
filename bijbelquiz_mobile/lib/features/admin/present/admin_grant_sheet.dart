@@ -322,7 +322,8 @@ class _AdminGrantSheetState extends State<AdminGrantSheet> {
                     style: const TextStyle(fontWeight: FontWeight.w800),
                   ),
                   TextSpan(
-                    text: _duration == AdminGrantDuration.custom ||
+                    text:
+                        _duration == AdminGrantDuration.custom ||
                             _duration == AdminGrantDuration.lifetime
                         ? '.'
                         : ' (${_duration.label}).',
@@ -352,7 +353,11 @@ class _AdminGrantSheetState extends State<AdminGrantSheet> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.error_outline, size: 18, color: AppTheme.vermilion),
+              const Icon(
+                Icons.error_outline,
+                size: 18,
+                color: AppTheme.vermilion,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(

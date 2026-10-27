@@ -21,7 +21,10 @@ List<Map<String, dynamic>> jMapList(Object? value) {
 
 List<String> jStringList(Object? value) {
   if (value is! List) return const [];
-  return [for (final e in value) if (e != null) e.toString()];
+  return [
+    for (final e in value)
+      if (e != null) e.toString(),
+  ];
 }
 
 int jInt(Object? value, [int fallback = 0]) {

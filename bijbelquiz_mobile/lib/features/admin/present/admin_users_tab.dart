@@ -37,7 +37,11 @@ class _AdminUsersTabState extends ConsumerState<AdminUsersTab> {
   @override
   void initState() {
     super.initState();
-    _reload();
+    _loading = true;
+    // After the first frame: a load touches the provider scope.
+    Future.microtask(() {
+      if (mounted) _reload();
+    });
   }
 
   @override
@@ -123,11 +127,8 @@ class _AdminUsersTabState extends ConsumerState<AdminUsersTab> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (sheetContext) => AdminChoiceSheet<T>(
-        title: title,
-        options: options,
-        current: current,
-      ),
+      builder: (sheetContext) =>
+          AdminChoiceSheet<T>(title: title, options: options, current: current),
     );
     if (picked != null) onPicked(picked.$1);
   }
@@ -191,7 +192,8 @@ class _AdminUsersTabState extends ConsumerState<AdminUsersTab> {
               current: q.platform,
               options: [
                 (null, 'Alle platforms'),
-                for (final k in kAdminPlatformKeys) (k, AdminLabels.platform(k)),
+                for (final k in kAdminPlatformKeys)
+                  (k, AdminLabels.platform(k)),
               ],
               onPicked: (v) => _setQuery(q.copyWith(platform: v, page: 1)),
             ),
@@ -208,7 +210,10 @@ class _AdminUsersTabState extends ConsumerState<AdminUsersTab> {
                 ('yes', 'Alleen Premium'),
                 ('no', 'Alleen gratis'),
                 for (final s in kAdminPremiumSources)
-                  (s, 'Premium via ${AdminLabels.premiumSource(s).toLowerCase()}'),
+                  (
+                    s,
+                    'Premium via ${AdminLabels.premiumSource(s).toLowerCase()}',
+                  ),
               ],
               onPicked: (v) {
                 if (v == null || v == 'yes' || v == 'no') {
@@ -434,11 +439,14 @@ class _FilterButton extends StatelessWidget {
                   color: active ? AppTheme.lapisStrong : AppTheme.inkSoft,
                 ),
               ),
-              const SizedBox(width: 2),
-              Icon(
-                Icons.expand_more,
-                size: 18,
-                color: active ? AppTheme.lapis : AppTheme.inkFaint,
+              const SizedBox(width: 4),
+              RotatedBox(
+                quarterTurns: 1,
+                child: BqIcon(
+                  BqIcons.chevronRight,
+                  size: 14,
+                  color: active ? AppTheme.lapis : AppTheme.inkFaint,
+                ),
               ),
             ],
           ),

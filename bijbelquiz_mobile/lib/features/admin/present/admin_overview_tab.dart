@@ -42,10 +42,8 @@ class AdminOverviewTab extends ConsumerWidget {
                 error: error,
                 onRetry: () => ref.invalidate(adminOverviewProvider),
               ),
-        data: (o) => AdminOverviewBody(
-          overview: o,
-          onOpenSection: onOpenSection,
-        ),
+        data: (o) =>
+            AdminOverviewBody(overview: o, onOpenSection: onOpenSection),
       ),
     );
   }
@@ -172,10 +170,16 @@ class _AdminOverviewBodyState extends ConsumerState<AdminOverviewBody> {
         AdminStatGrid(
           columns: 4,
           stats: [
-            AdminStat('Vandaag', AdminFormat.number(o.registrationsToday.total)),
+            AdminStat(
+              'Vandaag',
+              AdminFormat.number(o.registrationsToday.total),
+            ),
             AdminStat('7 dagen', AdminFormat.number(o.registrations7d.total)),
             AdminStat('30 dagen', AdminFormat.number(o.registrations30d.total)),
-            AdminStat('Totaal', AdminFormat.number(o.registrationsAllTime.total)),
+            AdminStat(
+              'Totaal',
+              AdminFormat.number(o.registrationsAllTime.total),
+            ),
           ],
         ),
         const SizedBox(height: 12),
@@ -328,7 +332,10 @@ class _AdminOverviewBodyState extends ConsumerState<AdminOverviewBody> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text('Conversie per platform', style: AppTheme.displayBase),
+                const Text(
+                  'Conversie per platform',
+                  style: AppTheme.displayBase,
+                ),
                 const SizedBox(height: 10),
                 AdminBarList(
                   valueFormat: (v) => AdminFormat.percent(v),
@@ -602,7 +609,10 @@ class _RetentionCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Expanded(
-                child: Text('Blijven ze terugkomen', style: AppTheme.displayBase),
+                child: Text(
+                  'Blijven ze terugkomen',
+                  style: AppTheme.displayBase,
+                ),
               ),
               Text(
                 AdminFormat.percent(r.rate),
@@ -656,9 +666,7 @@ class AdminWeeklyChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final max = weeks.fold<int>(0, (m, w) => w.total > m ? w.total : m);
-    final platforms = <String>{
-      for (final w in weeks) ...w.byPlatform.keys,
-    };
+    final platforms = <String>{for (final w in weeks) ...w.byPlatform.keys};
     final order = [
       for (final k in kAdminPlatformKeys)
         if (platforms.contains(k)) k,
@@ -672,7 +680,10 @@ class AdminWeeklyChart extends StatelessWidget {
           Row(
             children: [
               const Expanded(
-                child: Text('Aanmeldingen per week', style: AppTheme.displayBase),
+                child: Text(
+                  'Aanmeldingen per week',
+                  style: AppTheme.displayBase,
+                ),
               ),
               if (max > 0)
                 Text('max ${AdminFormat.number(max)}', style: AppTheme.caption),
@@ -913,7 +924,10 @@ class _LegacyOverview extends ConsumerWidget {
                 hint: '${s.premiumShare}% van de accounts',
                 accent: AppTheme.gold,
               ),
-              AdminStat('Netto (30 dagen)', AdminFormat.money(s.netCentsLast30d)),
+              AdminStat(
+                'Netto (30 dagen)',
+                AdminFormat.money(s.netCentsLast30d),
+              ),
               AdminStat('Netto (totaal)', AdminFormat.money(s.netCentsAllTime)),
             ],
           ),
@@ -998,12 +1012,16 @@ class AdminUpdateBanner extends StatelessWidget {
               children: [
                 Text(
                   'Werk de server bij',
-                  style: AppTheme.bodyStrong.copyWith(color: AppTheme.lapisStrong),
+                  style: AppTheme.bodyStrong.copyWith(
+                    color: AppTheme.lapisStrong,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   text,
-                  style: AppTheme.caption.copyWith(color: AppTheme.lapisMutedText),
+                  style: AppTheme.caption.copyWith(
+                    color: AppTheme.lapisMutedText,
+                  ),
                 ),
               ],
             ),

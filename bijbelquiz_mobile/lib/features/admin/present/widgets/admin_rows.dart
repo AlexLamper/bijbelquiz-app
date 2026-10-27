@@ -210,7 +210,7 @@ class AdminPaymentTile extends StatelessWidget {
                   [
                     AdminLabels.provider(p.channel),
                     ?plan,
-                    AdminFormat.dateTime(p.createdAt),
+                    AdminFormat.date(p.createdAt),
                   ].join(' · '),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -328,7 +328,10 @@ class AdminHealthCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(label, style: AppTheme.displayBase.copyWith(color: fg)),
+                      Text(
+                        label,
+                        style: AppTheme.displayBase.copyWith(color: fg),
+                      ),
                       const SizedBox(height: 2),
                       Text(
                         '${health.okCount} checks goed'
@@ -417,7 +420,9 @@ class AdminHealthIssues extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Expanded(child: Text(issue.label, style: AppTheme.bodyStrong)),
+                    Expanded(
+                      child: Text(issue.label, style: AppTheme.bodyStrong),
+                    ),
                     const SizedBox(width: 8),
                     AdminStatusPill(
                       label: issue.status == 'fail' ? 'Kapot' : 'Let op',

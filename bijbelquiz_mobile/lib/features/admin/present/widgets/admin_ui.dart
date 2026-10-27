@@ -207,10 +207,10 @@ class AdminLabels {
     'rejected' ||
     'disputed' ||
     'revoked' => (AppTheme.coralTint, AppTheme.vermilion),
-    'warn' || 'pending' || 'refunded' || 'partially_refunded' => (
-      AppTheme.goldTint,
-      AppTheme.goldText,
-    ),
+    'warn' ||
+    'pending' ||
+    'refunded' ||
+    'partially_refunded' => (AppTheme.goldTint, AppTheme.goldText),
     _ => (AppTheme.paperSunken, AppTheme.inkSoft),
   };
 }
@@ -439,7 +439,10 @@ class AdminSplitCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final total = slices.fold<num>(0, (sum, s) => sum + (s.value > 0 ? s.value : 0));
+    final total = slices.fold<num>(
+      0,
+      (sum, s) => sum + (s.value > 0 ? s.value : 0),
+    );
     final fmt = valueFormat ?? (num v) => AdminFormat.number(v);
     return BqCard(
       child: Column(
@@ -538,6 +541,7 @@ class AdminStackedBar extends StatelessWidget {
         child: total <= 0
             ? const ColoredBox(color: AppTheme.ruleSoft)
             : Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   for (var i = 0; i < parts.length; i++) ...[
                     if (i > 0) const SizedBox(width: 2),
@@ -623,7 +627,8 @@ class AdminKvCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return BqListCard(
       children: [
-        for (final (label, value) in rows) AdminKvRow(label: label, value: value),
+        for (final (label, value) in rows)
+          AdminKvRow(label: label, value: value),
       ],
     );
   }
@@ -648,10 +653,7 @@ class AdminKvRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            flex: 5,
-            child: Text(label, style: AppTheme.bodyMuted),
-          ),
+          Expanded(flex: 5, child: Text(label, style: AppTheme.bodyMuted)),
           const SizedBox(width: 12),
           Expanded(
             flex: 6,
@@ -710,7 +712,7 @@ class AdminEmptyCard extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 /// Horizontally scrolling pill tabs (Overzicht, Gebruikers, ...).
-class AdminSegmentedControl extends StatelessWidget {
+class AdminSegmentedControl extends StatefulWidget {
   const AdminSegmentedControl({
     super.key,
     required this.labels,
@@ -723,18 +725,48 @@ class AdminSegmentedControl extends StatelessWidget {
   final ValueChanged<int> onSelected;
 
   @override
+  State<AdminSegmentedControl> createState() => _AdminSegmentedControlState();
+}
+
+class _AdminSegmentedControlState extends State<AdminSegmentedControl> {
+  late List<GlobalKey> _keys = _makeKeys();
+
+  List<GlobalKey> _makeKeys() => [for (final _ in widget.labels) GlobalKey()];
+
+  @override
+  void didUpdateWidget(covariant AdminSegmentedControl oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.labels.length != widget.labels.length) _keys = _makeKeys();
+    if (oldWidget.selected != widget.selected) {
+      // Keep the chosen section in view, also when chosen from a link.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final ctx = _keys[widget.selected].currentContext;
+        if (ctx != null && mounted) {
+          Scrollable.ensureVisible(
+            ctx,
+            alignment: 0.5,
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: [
-          for (var i = 0; i < labels.length; i++) ...[
+          for (var i = 0; i < widget.labels.length; i++) ...[
             if (i > 0) const SizedBox(width: 8),
             AdminChip(
-              label: labels[i],
-              selected: i == selected,
-              onTap: () => onSelected(i),
+              key: _keys[i],
+              label: widget.labels[i],
+              selected: i == widget.selected,
+              onTap: () => widget.onSelected(i),
             ),
           ],
         ],
@@ -776,14 +808,16 @@ class AdminChip extends StatelessWidget {
           child: Container(
             height: compact ? 32 : 38,
             padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 16),
-            alignment: Alignment.center,
-            child: Text(
-              label,
-              style: TextStyle(
-                fontFamily: AppTheme.sansFontName,
-                fontSize: compact ? 13 : 14,
-                fontWeight: FontWeight.w800,
-                color: selected ? AppTheme.inkInverted : AppTheme.inkSoft,
+            child: Center(
+              widthFactor: 1,
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontFamily: AppTheme.sansFontName,
+                  fontSize: compact ? 13 : 14,
+                  fontWeight: FontWeight.w800,
+                  color: selected ? AppTheme.inkInverted : AppTheme.inkSoft,
+                ),
               ),
             ),
           ),
@@ -979,5 +1013,8 @@ class AdminErrorView extends StatelessWidget {
 /// Shows an admin error as the app's styled error notice.
 void showAdminError(BuildContext context, Object error) {
   final (icon, title, message) = describeAdminError(error);
-  AppNotice.error(context, AppError(title: title, message: message, icon: icon));
+  AppNotice.error(
+    context,
+    AppError(title: title, message: message, icon: icon),
+  );
 }

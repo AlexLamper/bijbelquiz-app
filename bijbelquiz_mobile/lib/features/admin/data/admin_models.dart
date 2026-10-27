@@ -137,7 +137,8 @@ class AdminActor {
   final String name;
   final String email;
 
-  String get display => name.isNotEmpty ? name : (email.isNotEmpty ? email : '-');
+  String get display =>
+      name.isNotEmpty ? name : (email.isNotEmpty ? email : '-');
 
   factory AdminActor.fromJson(Object? json) {
     if (json is String) return AdminActor(name: json);
@@ -290,7 +291,9 @@ class AdminHealth {
       stripeKeyMode: json['stripeKeyMode']?.toString() ?? 'missing',
       revenuecatConfigured: json['revenuecatConfigured'] == true,
       checkedAt: jDate(json['checkedAt']),
-      accessGaps: jMapList(json['accessGaps']).map(AdminAccessGap.fromJson).toList(),
+      accessGaps: jMapList(
+        json['accessGaps'],
+      ).map(AdminAccessGap.fromJson).toList(),
       hasFunnel: json['funnel30d'] is Map,
     );
   }
@@ -660,7 +663,9 @@ class AdminOverview {
       health: json['health'] is Map
           ? AdminHealth.fromJson(jMap(json['health']))
           : null,
-      recentUsers: jMapList(json['recentUsers']).map(AdminUserRow.fromJson).toList(),
+      recentUsers: jMapList(
+        json['recentUsers'],
+      ).map(AdminUserRow.fromJson).toList(),
       recentPayments: jMapList(
         json['recentPayments'],
       ).map(AdminPaymentRow.fromJson).toList(),
@@ -790,7 +795,9 @@ class AdminUserPage {
       total: total,
       pages: jInt(
         m['pages'],
-        pageSize > 0 ? ((total + pageSize - 1) ~/ pageSize).clamp(1, 1 << 30) : 1,
+        pageSize > 0
+            ? ((total + pageSize - 1) ~/ pageSize).clamp(1, 1 << 30)
+            : 1,
       ),
       users: users,
     );
@@ -944,7 +951,9 @@ class AdminManualGrant {
       active: jBool(m['active']),
       until: jDate(m['until']),
       grantedAt: jDate(m['grantedAt']),
-      grantedBy: m['grantedBy'] == null ? null : AdminActor.fromJson(m['grantedBy']),
+      grantedBy: m['grantedBy'] == null
+          ? null
+          : AdminActor.fromJson(m['grantedBy']),
       note: jStringOrNull(m['note']),
       legacy: jBool(m['legacy']),
     );
@@ -1140,7 +1149,10 @@ class AdminUserDetail {
   /// A manual grant exists that "Premium intrekken" can end.
   bool get canRevoke => premium.manual.active || premium.state.hasManual;
 
-  AdminUserDetail withPremium(AdminPremiumState state, {AdminGrantEntry? entry}) {
+  AdminUserDetail withPremium(
+    AdminPremiumState state, {
+    AdminGrantEntry? entry,
+  }) {
     return AdminUserDetail(
       user: user,
       premium: AdminPremiumDetail(
@@ -1163,7 +1175,10 @@ class AdminUserDetail {
   }
 
   /// The manual grant as a grant / revoke response leaves it.
-  AdminManualGrant _manualAfter(AdminPremiumState state, AdminGrantEntry? entry) {
+  AdminManualGrant _manualAfter(
+    AdminPremiumState state,
+    AdminGrantEntry? entry,
+  ) {
     if (!state.hasManual || entry?.isRevoke == true) {
       return const AdminManualGrant();
     }
@@ -1268,7 +1283,9 @@ class AdminGrantResult {
 
   factory AdminGrantResult.fromJson(Map<String, dynamic> m) => AdminGrantResult(
     premium: AdminPremiumState.fromJson(m['premium']),
-    grant: m['grant'] is Map ? AdminGrantEntry.fromJson(jMap(m['grant'])) : null,
+    grant: m['grant'] is Map
+        ? AdminGrantEntry.fromJson(jMap(m['grant']))
+        : null,
     user: m['user'] is Map ? AdminUserRow.fromJson(jMap(m['user'])) : null,
   );
 }
@@ -1404,7 +1421,9 @@ class AdminPaymentPage {
   bool get hasMore => page < pages;
 
   factory AdminPaymentPage.fromJson(Map<String, dynamic> m) {
-    final payments = jMapList(m['payments']).map(AdminPaymentRow.fromJson).toList();
+    final payments = jMapList(
+      m['payments'],
+    ).map(AdminPaymentRow.fromJson).toList();
     return AdminPaymentPage(
       page: jInt(m['page'], 1),
       pageSize: jInt(m['pageSize'], 25),

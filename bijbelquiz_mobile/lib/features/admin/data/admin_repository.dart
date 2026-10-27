@@ -188,10 +188,7 @@ class AdminRepository {
   Future<AdminOverview> getOverview({bool deep = false}) async {
     final data = await _call(
       'het overzicht',
-      () => _dio.get(
-        '/admin/overview',
-        queryParameters: {if (deep) 'deep': 1},
-      ),
+      () => _dio.get('/admin/overview', queryParameters: {if (deep) 'deep': 1}),
     );
     return AdminOverview.fromJson(data);
   }
@@ -280,7 +277,9 @@ class AdminRepository {
         },
       ),
     );
-    return data['quiz'] is Map ? AdminQuizRow.fromJson(jMap(data['quiz'])) : null;
+    return data['quiz'] is Map
+        ? AdminQuizRow.fromJson(jMap(data['quiz']))
+        : null;
   }
 
   Future<AdminPaymentPage> getPayments(AdminPaymentQuery query) async {
@@ -315,30 +314,48 @@ final adminRepositoryProvider = Provider<AdminRepository>(
   (ref) => AdminRepository(ref.watch(apiClientProvider)),
 );
 
+/// Retry only what a retry can fix: never a missing endpoint (older server)
+/// or a 4xx (no access, not found, bad input); a few times for the rest.
+Duration? adminRetry(int retryCount, Object error) {
+  if (error is AdminEndpointMissing) return null;
+  if (error is AdminApiException && (error.statusCode ?? 500) < 500) {
+    return null;
+  }
+  if (error is Error) return null;
+  if (retryCount >= 2) return null;
+  return Duration(seconds: 1 << retryCount);
+}
+
 /// Legacy figures; also the fallback when the server has no overview yet.
 final adminStatsProvider = FutureProvider.autoDispose<AdminStats>(
   (ref) => ref.watch(adminRepositoryProvider).getStats(),
+  retry: adminRetry,
 );
 
 final adminOverviewProvider = FutureProvider.autoDispose<AdminOverview>(
   (ref) => ref.watch(adminRepositoryProvider).getOverview(),
+  retry: adminRetry,
 );
 
 final adminUserDetailProvider = FutureProvider.autoDispose
     .family<AdminUserDetail, String>(
       (ref, id) => ref.watch(adminRepositoryProvider).getUser(id),
+      retry: adminRetry,
     );
 
 final adminQuizzesProvider = FutureProvider.autoDispose
     .family<AdminQuizList, String?>(
       (ref, status) =>
           ref.watch(adminRepositoryProvider).getQuizzes(status: status),
+      retry: adminRetry,
     );
 
 final adminPaymentsHealthProvider = FutureProvider.autoDispose<AdminHealth>(
   (ref) => ref.watch(adminRepositoryProvider).getPaymentsHealth(),
+  retry: adminRetry,
 );
 
 final adminFunnelProvider = FutureProvider.autoDispose.family<AdminFunnel, int>(
   (ref, days) => ref.watch(adminRepositoryProvider).getFunnel(days: days),
+  retry: adminRetry,
 );
