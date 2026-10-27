@@ -90,9 +90,11 @@ class AdminHealth {
       overall: json['overall']?.toString() ?? 'warn',
       issues:
           (json['issues'] as List<dynamic>?)
-              ?.map((e) => AdminHealthIssue.fromJson(
-                    (e as Map).cast<String, dynamic>(),
-                  ))
+              ?.map(
+                (e) => AdminHealthIssue.fromJson(
+                  (e as Map).cast<String, dynamic>(),
+                ),
+              )
               .toList() ??
           const [],
       okCount: (json['okCount'] as num?)?.toInt() ?? 0,
@@ -121,6 +123,8 @@ class AdminStats {
     required this.paymentsCompleted,
     required this.grossCentsAllTime,
     required this.grossCentsLast30d,
+    required this.netCentsAllTime,
+    required this.netCentsLast30d,
     required this.recentPayments,
     this.health,
   });
@@ -136,11 +140,16 @@ class AdminStats {
   final int paymentsCompleted;
   final int grossCentsAllTime;
   final int grossCentsLast30d;
+
+  /// Euro after refunds, what the web dashboard shows as "Netto omzet".
+  final int netCentsAllTime;
+  final int netCentsLast30d;
   final List<AdminPayment> recentPayments;
   final AdminHealth? health;
 
   factory AdminStats.fromJson(Map<String, dynamic> json) {
-    final breakdown = (json['breakdown'] as Map?)?.cast<String, dynamic>() ?? {};
+    final breakdown =
+        (json['breakdown'] as Map?)?.cast<String, dynamic>() ?? {};
     final revenue = (json['revenue'] as Map?)?.cast<String, dynamic>() ?? {};
     return AdminStats(
       totalUsers: (json['totalUsers'] as num?)?.toInt() ?? 0,
@@ -154,13 +163,24 @@ class AdminStats {
       paymentsCompleted: (revenue['paymentsCompleted'] as num?)?.toInt() ?? 0,
       grossCentsAllTime: (revenue['grossCentsAllTime'] as num?)?.toInt() ?? 0,
       grossCentsLast30d: (revenue['grossCentsLast30d'] as num?)?.toInt() ?? 0,
+      // An older server sends only gross amounts.
+      netCentsAllTime:
+          (revenue['netCentsAllTime'] as num?)?.toInt() ??
+          (revenue['grossCentsAllTime'] as num?)?.toInt() ??
+          0,
+      netCentsLast30d:
+          (revenue['netCentsLast30d'] as num?)?.toInt() ??
+          (revenue['grossCentsLast30d'] as num?)?.toInt() ??
+          0,
       recentPayments:
           (json['recentPayments'] as List<dynamic>?)
               ?.map((e) => AdminPayment.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
       health: json['health'] is Map
-          ? AdminHealth.fromJson((json['health'] as Map).cast<String, dynamic>())
+          ? AdminHealth.fromJson(
+              (json['health'] as Map).cast<String, dynamic>(),
+            )
           : null,
     );
   }

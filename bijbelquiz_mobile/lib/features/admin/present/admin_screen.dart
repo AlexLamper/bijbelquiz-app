@@ -102,7 +102,10 @@ class _AdminBody extends StatelessWidget {
                   value: '${stats.premiumUsers}',
                   label: 'Premium accounts',
                 ),
-                StatItem(value: '${stats.premiumShare}%', label: 'Van totaal'),
+                StatItem(
+                  value: '${stats.premiumShare}%',
+                  label: 'Van de accounts',
+                ),
                 StatItem(
                   value: '${stats.totalUsers}',
                   label: 'Gebruikers',
@@ -143,16 +146,13 @@ class _AdminBody extends StatelessWidget {
             const SizedBox(height: 12),
             RuleGrid(
               children: [
-                _kv('Omzet (30 dagen)', _euro(stats.grossCentsLast30d)),
-                _kv('Omzet (totaal)', _euro(stats.grossCentsAllTime)),
+                _kv('Netto omzet (30 dagen)', _euro(stats.netCentsLast30d)),
+                _kv('Netto omzet (totaal)', _euro(stats.netCentsAllTime)),
                 _kv('Betalingen voltooid', '${stats.paymentsCompleted}'),
               ],
             ),
             const SizedBox(height: 24),
-            const SectionHeader(
-              eyebrow: 'Recent',
-              title: 'Laatste betalingen',
-            ),
+            const SectionHeader(eyebrow: 'Recent', title: 'Laatste betalingen'),
             const SizedBox(height: 12),
             if (stats.recentPayments.isEmpty)
               const AppCard(
