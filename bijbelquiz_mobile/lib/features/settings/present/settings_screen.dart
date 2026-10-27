@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -32,6 +33,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _loggingOut = false;
+  bool _deleting = false;
 
   /// Mirrors the fixed hour in [StreakReminder]; the reminder has no time
   /// setting of its own.
@@ -115,18 +117,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  /// There is no self-service delete endpoint: deletion goes through support,
-  /// as the data-use notice on the login screen explains. The mail is
-  /// prefilled so the request names the account.
+  /// Deletes the account on the server (`DELETE /api/user/account`), then
+  /// signs out. Apple requires that deletion can be started in the app.
   Future<void> _requestDeletion(ProfileModel? profile) async {
+    if (_deleting) return;
+    if (profile == null) {
+      AppNotice.info(
+        context,
+        'Log eerst in met het account dat je wilt verwijderen.',
+      );
+      return;
+    }
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Account verwijderen'),
+        title: const Text('Account verwijderen?'),
         content: const Text(
-          'Stuur ons een e-mail vanaf het adres van je account. We '
-          'verwijderen dan je account en je voortgang volgens ons '
-          'privacybeleid. Dit kan niet ongedaan worden gemaakt.',
+          'Je account, je voortgang, je XP en je duels worden definitief '
+          'verwijderd. Dit kan niet ongedaan worden gemaakt.\n\n'
+          'Een abonnement via de App Store of Google Play stopt hierdoor '
+          'niet: zeg dat eerst op in de abonnementen van je telefoon.',
         ),
         actions: [
           TextButton(
@@ -136,27 +146,40 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
             style: TextButton.styleFrom(foregroundColor: AppTheme.vermilion),
-            child: const Text('E-mail sturen'),
+            child: const Text('Definitief verwijderen'),
           ),
         ],
       ),
     );
     if (confirmed != true || !mounted) return;
 
-    final account = profile == null || profile.email.isEmpty
-        ? ''
-        : ' (${profile.email})';
-    final query = [
-      'subject=${Uri.encodeComponent('Account verwijderen')}',
-      'body=${Uri.encodeComponent('Graag mijn BijbelQuiz-account$account verwijderen.')}',
-    ].join('&');
-    final launched = await launchUrl(Uri.parse('mailto:$_accountEmail?$query'));
-    if (!launched && mounted) {
-      AppNotice.info(
+    setState(() => _deleting = true);
+    try {
+      await ref
+          .read(apiClientProvider)
+          .dio
+          .delete<dynamic>('/api/user/account', data: {'confirm': true});
+    } on DioException catch (e) {
+      if (!mounted) return;
+      setState(() => _deleting = false);
+      final data = e.response?.data;
+      final message = data is Map && data['error'] is String
+          ? data['error'] as String
+          : 'Verwijderen is niet gelukt. Probeer het opnieuw of mail '
+                '$_accountEmail.';
+      AppNotice.error(
         context,
-        'Mail ons op $_accountEmail om je account te laten verwijderen.',
+        AppError(title: 'Account niet verwijderd', message: message),
       );
+      return;
     }
+
+    await ref.read(authControllerProvider.notifier).logout();
+    ref.invalidate(profileProvider);
+    if (!mounted) return;
+    setState(() => _deleting = false);
+    AppNotice.info(context, 'Je account is verwijderd.');
+    context.go('/home');
   }
 
   Future<void> _toggleReminder(bool value, ProfileModel? profile) async {
