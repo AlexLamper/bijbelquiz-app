@@ -30,6 +30,7 @@ import '../../features/quiz/present/quiz_detail_screen.dart';
 import '../../features/quiz/present/quiz_passage_screen.dart';
 import '../../features/quiz/present/quiz_player_screen.dart';
 import '../../features/admin/present/admin_screen.dart';
+import '../../features/admin/present/admin_user_detail_screen.dart';
 import '../../features/duels/present/duels_screen.dart';
 import '../../features/duels/present/new_duel_screen.dart';
 import '../../features/duels/present/duel_play_screen.dart';
@@ -369,6 +370,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         // server returns 403 to non-admins, so no router guard is needed.
         path: '/beheer',
         builder: (context, state) => const AdminScreen(),
+      ),
+      GoRoute(
+        // One account in Beheer. Same guard as /beheer: the screen checks the
+        // profile role and the server answers 403 to non-admins.
+        path: '/beheer/gebruikers/:id',
+        builder: (context, state) =>
+            AdminUserDetailScreen(userId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/premium',

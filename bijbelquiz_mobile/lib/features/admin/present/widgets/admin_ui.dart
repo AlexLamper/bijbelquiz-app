@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/errors/app_error.dart';
+import '../../../../core/ui/app_notice.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/bq.dart';
 import '../../data/admin_models.dart';
@@ -973,4 +974,10 @@ class AdminErrorView extends StatelessWidget {
   }
   final mapped = AppError.from(error);
   return (mapped.icon, mapped.title, mapped.message);
+}
+
+/// Shows an admin error as the app's styled error notice.
+void showAdminError(BuildContext context, Object error) {
+  final (icon, title, message) = describeAdminError(error);
+  AppNotice.error(context, AppError(title: title, message: message, icon: icon));
 }

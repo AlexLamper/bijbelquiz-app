@@ -41,6 +41,15 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
     AdminScreen.sections.length - 1,
   );
 
+  /// Sections are built on first visit, then kept alive by the stack, so
+  /// opening Beheer only loads the overview.
+  late final Set<int> _visited = {_section};
+
+  void _open(int i) => setState(() {
+    _section = i;
+    _visited.add(i);
+  });
+
   void _back() {
     if (_section != 0) {
       setState(() => _section = 0);
@@ -100,20 +109,17 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
                 AdminSegmentedControl(
                   labels: AdminScreen.sections,
                   selected: _section,
-                  onSelected: (i) => setState(() => _section = i),
+                  onSelected: _open,
                 ),
                 const SizedBox(height: 12),
                 Expanded(
                   child: IndexedStack(
                     index: _section,
                     children: [
-                      AdminOverviewTab(
-                        onOpenSection: (i) => setState(() => _section = i),
-                      ),
-                      const AdminUsersTab(),
-                      const AdminQuizzesTab(),
-                      const AdminPaymentsTab(),
-                      const AdminFunnelTab(),
+                      for (var i = 0; i < AdminScreen.sections.length; i++)
+                        _visited.contains(i)
+                            ? _buildSection(i)
+                            : const SizedBox.shrink(),
                     ],
                   ),
                 ),
@@ -124,6 +130,16 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
       ),
     );
   }
+}
+
+extension on _AdminScreenState {
+  Widget _buildSection(int i) => switch (i) {
+    0 => AdminOverviewTab(onOpenSection: _open),
+    1 => const AdminUsersTab(),
+    2 => const AdminQuizzesTab(),
+    3 => const AdminPaymentsTab(),
+    _ => const AdminFunnelTab(),
+  };
 }
 
 class _NoAccess extends StatelessWidget {
