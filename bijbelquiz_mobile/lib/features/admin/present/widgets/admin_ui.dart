@@ -120,28 +120,39 @@ class AdminFormat {
 class AdminLabels {
   const AdminLabels._();
 
-  static String platform(String key) => switch (key) {
-    'web_desktop' || 'webDesktop' || 'desktop' => 'Web (desktop)',
-    'web_mobile' || 'webMobile' || 'mobile_web' => 'Web (mobiel)',
+  static String platform(String? key) => switch (key) {
+    'web-desktop' => 'Website (computer)',
+    'web-mobile' => 'Website (mobiel)',
     'web' => 'Website',
     'ios' => 'iOS-app',
     'android' => 'Android-app',
     'app' => 'App',
-    'unknown' || '' => 'Onbekend',
+    null || '' || 'onbekend' || 'unknown' => 'Onbekend',
     _ => key,
   };
 
+  /// Short form for pills.
+  static String platformShort(String? key) => switch (key) {
+    'web-desktop' => 'Computer',
+    'web-mobile' => 'Mobiel web',
+    'web' => 'Website',
+    'ios' => 'iOS',
+    'android' => 'Android',
+    'app' => 'App',
+    _ => 'Onbekend',
+  };
+
   static String method(String key) => switch (key) {
-    'password' || 'email' || 'credentials' => 'E-mail',
+    'email' || 'password' => 'E-mail en wachtwoord',
     'google' => 'Google',
     'apple' => 'Apple',
-    'unknown' || '' => 'Onbekend',
+    'onbekend' || 'unknown' || '' => 'Onbekend',
     _ => key,
   };
 
   static String premiumSource(String key) => switch (key) {
-    'stripe' => 'Stripe (web)',
-    'store' => 'App Store / Play',
+    'stripe' => 'Website (Stripe)',
+    'store' => 'App Store / Google Play',
     'appstore' || 'app_store' => 'App Store',
     'playstore' || 'play_store' => 'Google Play',
     'lifetime' => 'Levenslang',
@@ -204,13 +215,14 @@ class AdminLabels {
 }
 
 /// Fixed colour per platform so the split reads the same on every screen.
-Color adminPlatformColor(String key) => switch (key) {
-  'web_desktop' || 'webDesktop' || 'desktop' || 'web' => AppTheme.lapis,
-  'web_mobile' || 'webMobile' || 'mobile_web' => const Color(0xFF8AA0C8),
+Color adminPlatformColor(String? key) => switch (key) {
+  'web-desktop' => AppTheme.lapis,
+  'web-mobile' => const Color(0xFF8AA0C8),
+  'web' => AppTheme.lapisStrong,
   'ios' => AppTheme.ink,
   'android' => AppTheme.positive,
   'app' => AppTheme.coral,
-  _ => AppTheme.inkFaint,
+  _ => const Color(0xFFC9C5BB),
 };
 
 /// Colour per Premium source / revenue source.

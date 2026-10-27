@@ -1,7 +1,12 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../auth/present/auth_controller.dart';
 import '../../../core/api/api_client.dart';
+import 'admin_json.dart';
+import 'admin_models.dart';
+
+export 'admin_models.dart';
 
 /// One recent row from the website's `Payment` collection.
 class AdminPayment {
@@ -29,81 +34,6 @@ class AdminPayment {
       amountCents: (json['amountCents'] as num?)?.toInt() ?? 0,
       status: json['status']?.toString() ?? '',
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
-    );
-  }
-}
-
-/// One non-OK check from the betaal-pijplijn report.
-class AdminHealthIssue {
-  const AdminHealthIssue({
-    required this.label,
-    required this.status,
-    required this.detail,
-    this.action,
-  });
-
-  final String label;
-
-  /// `"warn"` or `"fail"`.
-  final String status;
-  final String detail;
-  final String? action;
-
-  factory AdminHealthIssue.fromJson(Map<String, dynamic> json) {
-    return AdminHealthIssue(
-      label: json['label']?.toString() ?? '',
-      status: json['status']?.toString() ?? 'warn',
-      detail: json['detail']?.toString() ?? '',
-      action: json['action']?.toString(),
-    );
-  }
-}
-
-/// Trimmed `getPaymentsHealth()` output - "did paying work end to end".
-class AdminHealth {
-  const AdminHealth({
-    required this.overall,
-    required this.issues,
-    required this.okCount,
-    required this.accessGapCount,
-    required this.paywallShown,
-    required this.checkoutStarted,
-    required this.purchaseCompleted,
-    required this.stripeKeyMode,
-    required this.revenuecatConfigured,
-  });
-
-  /// `"ok"` / `"warn"` / `"fail"`.
-  final String overall;
-  final List<AdminHealthIssue> issues;
-  final int okCount;
-  final int accessGapCount;
-  final int paywallShown;
-  final int checkoutStarted;
-  final int purchaseCompleted;
-  final String stripeKeyMode;
-  final bool revenuecatConfigured;
-
-  factory AdminHealth.fromJson(Map<String, dynamic> json) {
-    final funnel = (json['funnel30d'] as Map?)?.cast<String, dynamic>() ?? {};
-    return AdminHealth(
-      overall: json['overall']?.toString() ?? 'warn',
-      issues:
-          (json['issues'] as List<dynamic>?)
-              ?.map(
-                (e) => AdminHealthIssue.fromJson(
-                  (e as Map).cast<String, dynamic>(),
-                ),
-              )
-              .toList() ??
-          const [],
-      okCount: (json['okCount'] as num?)?.toInt() ?? 0,
-      accessGapCount: (json['accessGapCount'] as num?)?.toInt() ?? 0,
-      paywallShown: (funnel['paywallShown'] as num?)?.toInt() ?? 0,
-      checkoutStarted: (funnel['checkoutStarted'] as num?)?.toInt() ?? 0,
-      purchaseCompleted: (funnel['purchaseCompleted'] as num?)?.toInt() ?? 0,
-      stripeKeyMode: json['stripeKeyMode']?.toString() ?? 'missing',
-      revenuecatConfigured: json['revenuecatConfigured'] == true,
     );
   }
 }
@@ -191,14 +121,193 @@ class AdminRepository {
 
   final ApiClient _apiClient;
 
-  Future<AdminStats> getStats() async {
-    final response = await _apiClient.dio.get('/admin/stats');
-    final data = response.data;
-    if (data is Map<String, dynamic>) return AdminStats.fromJson(data);
-    if (data is Map) {
-      return AdminStats.fromJson(Map<String, dynamic>.from(data));
+  Dio get _dio => _apiClient.dio;
+
+  // -------------------------------------------------------------------------
+  // Transport
+  // -------------------------------------------------------------------------
+
+  /// Runs [request] and turns failures into [AdminApiException] /
+  /// [AdminEndpointMissing].
+  ///
+  /// A 404 (or 405) without a JSON `{error}` body is the framework's own "no
+  /// such route" page: the server predates this endpoint. A 404 *with* an
+  /// `error` field is the endpoint saying the thing does not exist.
+  Future<Map<String, dynamic>> _call(
+    String what,
+    Future<Response<dynamic>> Function() request,
+  ) async {
+    try {
+      final response = await request();
+      final data = response.data;
+      if (data is Map) return jMap(data);
+      throw AdminApiException(
+        response.statusCode,
+        'Onverwacht antwoord van de server voor $what.',
+      );
+    } on DioException catch (e) {
+      throw mapAdminError(e, what);
     }
-    throw Exception('Onverwacht antwoord van /admin/stats');
+  }
+
+  static Object mapAdminError(DioException e, String what) {
+    final status = e.response?.statusCode;
+    final data = e.response?.data;
+    final message = data is Map ? jStringOrNull(data['error']) : null;
+    if ((status == 404 || status == 405) && message == null) {
+      return AdminEndpointMissing(what);
+    }
+    if (status != null) {
+      return AdminApiException(
+        status,
+        message ??
+            switch (status) {
+              401 => 'Je sessie is verlopen. Log opnieuw in.',
+              403 => 'Dit account is geen beheerder.',
+              _ => 'De server gaf een fout ($status) bij $what.',
+            },
+        field: data is Map ? jStringOrNull(data['field']) : null,
+      );
+    }
+    return e;
+  }
+
+  // -------------------------------------------------------------------------
+  // Endpoints
+  // -------------------------------------------------------------------------
+
+  /// Legacy premium figures (`/admin/stats`), kept for older servers.
+  Future<AdminStats> getStats() async {
+    final data = await _call(
+      'de premiumcijfers',
+      () => _dio.get('/admin/stats'),
+    );
+    return AdminStats.fromJson(data);
+  }
+
+  Future<AdminOverview> getOverview({bool deep = false}) async {
+    final data = await _call(
+      'het overzicht',
+      () => _dio.get(
+        '/admin/overview',
+        queryParameters: {if (deep) 'deep': 1},
+      ),
+    );
+    return AdminOverview.fromJson(data);
+  }
+
+  Future<AdminUserPage> getUsers(AdminUserQuery query) async {
+    final data = await _call(
+      'de gebruikerslijst',
+      () => _dio.get('/admin/users', queryParameters: query.toQuery()),
+    );
+    return AdminUserPage.fromJson(data);
+  }
+
+  Future<AdminUserDetail> getUser(String id) async {
+    final data = await _call(
+      'de gebruikersdetails',
+      () => _dio.get('/admin/users/${Uri.encodeComponent(id)}'),
+    );
+    return AdminUserDetail.fromJson(data);
+  }
+
+  Future<AdminGrantResult> grantPremium(
+    String userId,
+    AdminGrantRequest request,
+  ) async {
+    final data = await _call(
+      'Premium geven',
+      () => _dio.post(
+        '/admin/users/${Uri.encodeComponent(userId)}/premium',
+        data: request.toJson(),
+      ),
+    );
+    return AdminGrantResult.fromJson(data);
+  }
+
+  Future<AdminGrantResult> grantPremiumByEmail(
+    String email,
+    AdminGrantRequest request,
+  ) async {
+    final data = await _call(
+      'Premium geven',
+      () => _dio.post(
+        '/admin/premium-grants',
+        data: {'email': email.trim(), ...request.toJson()},
+      ),
+    );
+    return AdminGrantResult.fromJson(data);
+  }
+
+  Future<AdminGrantResult> revokePremium(String userId, {String? note}) async {
+    final data = await _call(
+      'Premium intrekken',
+      () => _dio.delete(
+        '/admin/users/${Uri.encodeComponent(userId)}/premium',
+        data: {if (note != null && note.trim().isNotEmpty) 'note': note.trim()},
+      ),
+    );
+    return AdminGrantResult.fromJson(data);
+  }
+
+  Future<AdminQuizList> getQuizzes({String? status, String q = ''}) async {
+    final data = await _call(
+      'de quizmoderatie',
+      () => _dio.get(
+        '/admin/quizzes',
+        queryParameters: {
+          'status': ?status,
+          if (q.trim().isNotEmpty) 'q': q.trim(),
+        },
+      ),
+    );
+    return AdminQuizList.fromJson(data);
+  }
+
+  Future<AdminQuizRow?> updateQuiz(
+    String id,
+    AdminQuizAction action, {
+    bool? isPremium,
+  }) async {
+    final data = await _call(
+      'de quizmoderatie',
+      () => _dio.patch(
+        '/admin/quizzes/${Uri.encodeComponent(id)}',
+        data: {
+          'action': action.name,
+          if (action == AdminQuizAction.premium) 'isPremium': isPremium,
+        },
+      ),
+    );
+    return data['quiz'] is Map ? AdminQuizRow.fromJson(jMap(data['quiz'])) : null;
+  }
+
+  Future<AdminPaymentPage> getPayments(AdminPaymentQuery query) async {
+    final data = await _call(
+      'de betalingenlijst',
+      () => _dio.get('/admin/payments', queryParameters: query.toQuery()),
+    );
+    return AdminPaymentPage.fromJson(data);
+  }
+
+  Future<AdminHealth> getPaymentsHealth({bool deep = false}) async {
+    final data = await _call(
+      'de betaalcontrole',
+      () => _dio.get(
+        '/admin/payments/health',
+        queryParameters: {if (deep) 'deep': 1},
+      ),
+    );
+    return AdminHealth.fromJson(data);
+  }
+
+  Future<AdminFunnel> getFunnel({int days = 30}) async {
+    final data = await _call(
+      'de funnel',
+      () => _dio.get('/admin/funnel', queryParameters: {'days': days}),
+    );
+    return AdminFunnel.fromJson(data);
   }
 }
 
@@ -206,6 +315,30 @@ final adminRepositoryProvider = Provider<AdminRepository>(
   (ref) => AdminRepository(ref.watch(apiClientProvider)),
 );
 
+/// Legacy figures; also the fallback when the server has no overview yet.
 final adminStatsProvider = FutureProvider.autoDispose<AdminStats>(
   (ref) => ref.watch(adminRepositoryProvider).getStats(),
+);
+
+final adminOverviewProvider = FutureProvider.autoDispose<AdminOverview>(
+  (ref) => ref.watch(adminRepositoryProvider).getOverview(),
+);
+
+final adminUserDetailProvider = FutureProvider.autoDispose
+    .family<AdminUserDetail, String>(
+      (ref, id) => ref.watch(adminRepositoryProvider).getUser(id),
+    );
+
+final adminQuizzesProvider = FutureProvider.autoDispose
+    .family<AdminQuizList, String?>(
+      (ref, status) =>
+          ref.watch(adminRepositoryProvider).getQuizzes(status: status),
+    );
+
+final adminPaymentsHealthProvider = FutureProvider.autoDispose<AdminHealth>(
+  (ref) => ref.watch(adminRepositoryProvider).getPaymentsHealth(),
+);
+
+final adminFunnelProvider = FutureProvider.autoDispose.family<AdminFunnel, int>(
+  (ref, days) => ref.watch(adminRepositoryProvider).getFunnel(days: days),
 );
