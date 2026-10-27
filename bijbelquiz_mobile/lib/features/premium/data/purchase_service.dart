@@ -1,219 +1,294 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
-// ─── RevenueCat identifiers ──────────────────────────────────────────────────
-// Product IDs must match App Store Connect / Play exactly.
-const kRcMonthlyProductId = 'bijbelquiz_premium_monthly';
-const kRcYearlyProductId = 'bijbelquiz_premium_yearly';
-const kRcLifetimeProductId = 'bijbelquiz_premium_lifetime';
-// RevenueCat package IDs are usually stable ($rc_monthly / $rc_annual / ...).
-const kRcMonthlyPackageId = '\$rc_monthly';
-const kRcYearlyPackageId = '\$rc_annual';
-const kRcLifetimePackageId = '\$rc_lifetime';
+import '../domain/premium_plan.dart';
 
-/// Plan labels the funnel reports on. Must match `PURCHASE_PLANS` on the
-/// server, which is what the payment webhook writes.
-String planLabelForProduct(String productId) {
-  final id = productId.toLowerCase();
-  if (id.contains('year') || id.contains('annual') || id.contains('jaar')) {
-    return 'yearly';
-  }
-  if (id.contains('life') || id.contains('levenslang')) return 'lifetime';
-  return 'monthly';
+export '../domain/premium_plan.dart';
+
+/// The store, as the premium controller needs it. One implementation talks to
+/// RevenueCat ([RevenueCatPurchases]); tests pass a fake.
+///
+/// Every method that can fail for a store reason throws [PurchaseFailure], so
+/// nothing above this layer handles SDK exceptions.
+abstract class PurchasesGateway {
+  /// The plans in the current offering, in paywall order (yearly, monthly,
+  /// lifetime), with the store's prices and only the trials this buyer can
+  /// still get.
+  Future<List<PlanOffer>> loadOffers();
+
+  Future<StoreCustomer> customer();
+
+  Future<StoreCustomer> purchase(PlanOffer offer);
+
+  /// Fallback when the offering did not load: buy the product by id.
+  Future<StoreCustomer> purchasePlan(PremiumPlan plan);
+
+  /// Restore purchases made with this App Store / Google account.
+  Future<StoreCustomer> restore();
+
+  /// Attach RevenueCat to the account (`appUserID` = server user id).
+  Future<StoreCustomer> logIn(String userId);
+
+  /// Back to an anonymous RevenueCat id.
+  Future<StoreCustomer> logOut();
+
+  /// Calls [onChange] whenever RevenueCat has new customer info (renewal,
+  /// expiry, an Ask to Buy approval, a purchase on another device). Returns
+  /// the unsubscribe function.
+  VoidCallback listen(void Function(StoreCustomer customer) onChange);
 }
 
-// RevenueCat entitlement identifier (configured in RC dashboard)
-const kRcPremiumEntitlement = 'premium';
+final purchasesGatewayProvider = Provider<PurchasesGateway>(
+  (ref) => RevenueCatPurchases(),
+);
 
-// SDK is configured once in main.dart (see RevenueCatConfig).
+/// Back-compat name for the gateway provider.
+final purchaseServiceProvider = purchasesGatewayProvider;
 
-final purchaseServiceProvider = Provider<PurchaseService>((ref) {
-  return PurchaseService();
-});
+// ---------------------------------------------------------------------------
+// Pure mapping, shared by the RevenueCat gateway and the tests
+// ---------------------------------------------------------------------------
 
-/// A free introductory period offered by the store.
-class TrialOffer {
-  const TrialOffer({required this.periodUnit, required this.periodCount});
-
-  final PeriodUnit periodUnit;
-  final int periodCount;
-
-  /// Dutch label, e.g. "7 dagen gratis".
-  String get label {
-    final unit = switch (periodUnit) {
-      PeriodUnit.day => periodCount == 1 ? 'dag' : 'dagen',
-      PeriodUnit.week => periodCount == 1 ? 'week' : 'weken',
-      PeriodUnit.month => periodCount == 1 ? 'maand' : 'maanden',
-      PeriodUnit.year => periodCount == 1 ? 'jaar' : 'jaar',
-      PeriodUnit.unknown => 'dagen',
-    };
-    return '$periodCount $unit gratis';
-  }
+/// The free trial on a store product, or null when there is none.
+///
+/// Read from the store rather than hardcoded: the trial is configured in App
+/// Store Connect / Play Console, and a paywall that promises one the store
+/// will not honour is a rejected review at best. A discounted intro price is
+/// not a free trial and is never sold as one.
+TrialOffer? trialOfferFor(StoreProduct product) {
+  final intro = product.introductoryPrice;
+  if (intro == null || intro.price > 0) return null;
+  return TrialOffer(
+    periodUnit: intro.periodUnit,
+    periodCount: intro.periodNumberOfUnits,
+  );
 }
 
-class PurchaseService {
+/// Turn an offering's packages into the paywall's plans.
+///
+/// [eligibility] is RevenueCat's trial eligibility per product id (iOS only;
+/// Android leaves ineligible offers out of the product already). A buyer who
+/// had the trial before is not promised it again.
+List<PlanOffer> offersFromPackages(
+  List<Package> packages, {
+  Map<String, IntroEligibilityStatus> eligibility = const {},
+}) {
+  final byPlan = <PremiumPlan, PlanOffer>{};
+  for (final pkg in packages) {
+    final product = pkg.storeProduct;
+    final plan = planForPackage(
+      packageType: pkg.packageType,
+      packageId: pkg.identifier,
+      productId: product.identifier,
+    );
+    if (plan == null || byPlan.containsKey(plan)) continue;
+
+    final status = eligibility[product.identifier];
+    final ineligible =
+        status == IntroEligibilityStatus.introEligibilityStatusIneligible ||
+        status ==
+            IntroEligibilityStatus.introEligibilityStatusNoIntroOfferExists;
+
+    byPlan[plan] = PlanOffer(
+      plan: plan,
+      productId: product.identifier,
+      priceString: product.priceString,
+      trial: plan.isSubscription && !ineligible ? trialOfferFor(product) : null,
+      handle: pkg,
+    );
+  }
+
+  return [
+    for (final plan in PremiumPlan.values)
+      if (byPlan[plan] != null) byPlan[plan]!,
+  ];
+}
+
+/// The Premium entitlement out of RevenueCat's customer info.
+StoreCustomer storeCustomerFrom(CustomerInfo info) {
+  final entitlement = info.entitlements.active[kRcPremiumEntitlement];
+  if (entitlement == null || !entitlement.isActive) {
+    return StoreCustomer(managementUrl: info.managementURL);
+  }
+  return StoreCustomer(
+    premiumActive: true,
+    isTrial: entitlement.periodType == PeriodType.trial,
+    willRenew: entitlement.willRenew,
+    expiresAt: entitlement.expirationDate == null
+        ? null
+        : DateTime.tryParse(entitlement.expirationDate!),
+    productId: entitlement.productIdentifier,
+    managementUrl: info.managementURL,
+    isSandbox: entitlement.isSandbox,
+  );
+}
+
+/// SDK error -> [PurchaseFailure].
+PurchaseFailure purchaseFailureFrom(PlatformException error) {
+  final code = PurchasesErrorHelper.getErrorCode(error);
+  final kind = switch (code) {
+    PurchasesErrorCode.purchaseCancelledError => PurchaseFailureKind.cancelled,
+    PurchasesErrorCode.paymentPendingError => PurchaseFailureKind.pending,
+    PurchasesErrorCode.productAlreadyPurchasedError =>
+      PurchaseFailureKind.alreadyOwned,
+    PurchasesErrorCode.receiptAlreadyInUseError =>
+      PurchaseFailureKind.ownedByOtherAccount,
+    PurchasesErrorCode.networkError ||
+    PurchasesErrorCode.offlineConnectionError => PurchaseFailureKind.network,
+    PurchasesErrorCode.purchaseNotAllowedError ||
+    PurchasesErrorCode.insufficientPermissionsError =>
+      PurchaseFailureKind.notAllowed,
+    PurchasesErrorCode.productNotAvailableForPurchaseError ||
+    PurchasesErrorCode.configurationError => PurchaseFailureKind.notAvailable,
+    PurchasesErrorCode.storeProblemError => PurchaseFailureKind.store,
+    _ => PurchaseFailureKind.unknown,
+  };
+  return PurchaseFailure(kind, '${code.name}: ${error.message}');
+}
+
+// ---------------------------------------------------------------------------
+// RevenueCat
+// ---------------------------------------------------------------------------
+
+/// The real gateway. The SDK is configured once in `main.dart`
+/// (see `RevenueCatConfig`); without a key every call fails with
+/// [PurchaseFailureKind.notConfigured] instead of crashing.
+class RevenueCatPurchases implements PurchasesGateway {
   void _log(String message) {
     assert(() {
-      debugPrint('[RevenueCat][PurchaseService] $message');
+      debugPrint('[RevenueCat] $message');
       return true;
     }());
   }
 
-  /// Returns the current offering packages from RevenueCat.
-  ///
-  /// Preferred flow for production:
-  /// - Configure products in RevenueCat dashboard
-  /// - Attach them to an Offering (usually "default")
-  /// - Let app fetch offerings dynamically
-  Future<List<Package>> getPackages() async {
-    if (kIsWeb) return [];
-    _log('Fetching offerings...');
+  Future<T> _guard<T>(Future<T> Function() body) async {
+    if (kIsWeb) {
+      throw const PurchaseFailure(PurchaseFailureKind.notConfigured, 'web');
+    }
+    bool configured;
+    try {
+      configured = await Purchases.isConfigured;
+    } catch (error) {
+      throw PurchaseFailure(PurchaseFailureKind.notConfigured, '$error');
+    }
+    if (!configured) {
+      throw const PurchaseFailure(PurchaseFailureKind.notConfigured);
+    }
+    try {
+      return await body();
+    } on PlatformException catch (error) {
+      final failure = purchaseFailureFrom(error);
+      _log('failed: $failure');
+      throw failure;
+    }
+  }
+
+  @override
+  Future<List<PlanOffer>> loadOffers() => _guard(() async {
     final offerings = await Purchases.getOfferings();
     final current = offerings.current;
     if (current == null) {
-      _log('No current offering found.');
-      return [];
+      _log('No current offering. Mark one as current in RevenueCat.');
+      return const <PlanOffer>[];
     }
 
-    final packages = <Package>[...current.availablePackages];
+    final packages = current.availablePackages;
+    Map<String, IntroEligibilityStatus> eligibility = const {};
+    if (defaultTargetPlatform == TargetPlatform.iOS ||
+        defaultTargetPlatform == TargetPlatform.macOS) {
+      try {
+        final result = await Purchases.checkTrialOrIntroductoryPriceEligibility(
+          [for (final pkg in packages) pkg.storeProduct.identifier],
+        );
+        eligibility = {
+          for (final entry in result.entries) entry.key: entry.value.status,
+        };
+      } catch (error) {
+        // Unknown eligibility: show what the store product says.
+        _log('Trial eligibility unavailable: $error');
+      }
+    }
+
+    final offers = offersFromPackages(packages, eligibility: eligibility);
     _log(
-      'Current offering="${current.identifier}" with ${packages.length} package(s).',
+      'Offering "${current.identifier}": '
+      '${offers.map((o) => '${o.plan.name}=${o.productId} ${o.priceString}${o.trial == null ? '' : ' (${o.trial!.label})'}').join(', ')}',
     );
-    for (final pkg in packages) {
-      _log(
-        'Package="${pkg.identifier}" product="${pkg.storeProduct.identifier}" price="${pkg.storeProduct.priceString}"',
+    return offers;
+  });
+
+  @override
+  Future<StoreCustomer> customer() =>
+      _guard(() async => storeCustomerFrom(await Purchases.getCustomerInfo()));
+
+  @override
+  Future<StoreCustomer> purchase(PlanOffer offer) => _guard(() async {
+    final pkg = offer.handle;
+    if (pkg is! Package) return purchasePlan(offer.plan);
+    _log('Purchasing ${pkg.identifier} (${pkg.storeProduct.identifier})');
+    return storeCustomerFrom(await Purchases.purchasePackage(pkg));
+  });
+
+  @override
+  Future<StoreCustomer> purchasePlan(PremiumPlan plan) => _guard(() async {
+    _log('Fallback purchase by product id ${plan.productId}');
+    // On Google Play the lifetime product is a one-time product, which
+    // getProducts only finds when asked for non-subscriptions.
+    final products = await Purchases.getProducts(
+      [plan.productId],
+      productCategory: plan.isSubscription
+          ? ProductCategory.subscription
+          : ProductCategory.nonSubscription,
+    );
+    if (products.isEmpty) {
+      throw PurchaseFailure(
+        PurchaseFailureKind.notAvailable,
+        'product ${plan.productId} not found',
       );
     }
+    return storeCustomerFrom(
+      await Purchases.purchaseStoreProduct(products.first),
+    );
+  });
 
-    // Stable order in the UI: yearly first because it is the plan the paywall
-    // recommends, then monthly, then the one-off.
-    int rank(String productId) {
-      switch (planLabelForProduct(productId)) {
-        case 'yearly':
-          return 0;
-        case 'monthly':
-          return 1;
-        case 'lifetime':
-          return 2;
-        default:
-          return 99;
-      }
+  @override
+  Future<StoreCustomer> restore() => _guard(() async {
+    _log('Restoring purchases');
+    return storeCustomerFrom(await Purchases.restorePurchases());
+  });
+
+  @override
+  Future<StoreCustomer> logIn(String userId) => _guard(() async {
+    final result = await Purchases.logIn(userId);
+    _log('logIn($userId) created=${result.created}');
+    return storeCustomerFrom(result.customerInfo);
+  });
+
+  @override
+  Future<StoreCustomer> logOut() => _guard(() async {
+    // logOut throws when the current user is already anonymous.
+    if (await Purchases.isAnonymous) {
+      return storeCustomerFrom(await Purchases.getCustomerInfo());
     }
+    return storeCustomerFrom(await Purchases.logOut());
+  });
 
-    packages.sort(
-      (a, b) => rank(
-        a.storeProduct.identifier,
-      ).compareTo(rank(b.storeProduct.identifier)),
-    );
-
-    return packages;
-  }
-
-  Package? findMonthlyPackage(List<Package> packages) {
-    return _findPackage(
-      packages,
-      packageId: kRcMonthlyPackageId,
-      productId: kRcMonthlyProductId,
-    );
-  }
-
-  Package? findYearlyPackage(List<Package> packages) {
-    return _findPackage(
-      packages,
-      packageId: kRcYearlyPackageId,
-      productId: kRcYearlyProductId,
-    );
-  }
-
-  Package? findLifetimePackage(List<Package> packages) {
-    return _findPackage(
-      packages,
-      packageId: kRcLifetimePackageId,
-      productId: kRcLifetimeProductId,
-    );
-  }
-
-  Package? _findPackage(
-    List<Package> packages, {
-    required String packageId,
-    required String productId,
-  }) {
-    for (final pkg in packages) {
-      if (pkg.identifier == packageId ||
-          pkg.storeProduct.identifier == productId) {
-        return pkg;
-      }
+  @override
+  VoidCallback listen(void Function(StoreCustomer customer) onChange) {
+    if (kIsWeb) return () {};
+    void listener(CustomerInfo info) => onChange(storeCustomerFrom(info));
+    try {
+      Purchases.addCustomerInfoUpdateListener(listener);
+    } catch (error) {
+      _log('No customer info listener: $error');
+      return () {};
     }
-    return null;
-  }
-
-  /// The free trial attached to a package, or null when there is none.
-  ///
-  /// Read from the store rather than hardcoded: the trial is configured in App
-  /// Store Connect, and a paywall that promises one the store will not honour
-  /// is a rejected review at best.
-  static TrialOffer? trialOffer(Package? package) {
-    final intro = package?.storeProduct.introductoryPrice;
-    if (intro == null) return null;
-
-    // A discounted intro price is not a free trial, and must not be sold as
-    // one.
-    if (intro.price > 0) return null;
-
-    return TrialOffer(
-      periodUnit: intro.periodUnit,
-      periodCount: intro.periodNumberOfUnits,
-    );
-  }
-
-  /// Purchase a RevenueCat package from current offering.
-  /// Returns the updated CustomerInfo on success.
-  Future<CustomerInfo> purchasePackage(Package package) async {
-    _log(
-      'Purchasing package="${package.identifier}" product="${package.storeProduct.identifier}"',
-    );
-    return Purchases.purchasePackage(package);
-  }
-
-  /// Fallback flow for when offering packages are temporarily unavailable.
-  Future<CustomerInfo> purchaseByProductId(String productId) async {
-    _log('Fallback purchase requested for product="$productId"');
-    final products = await Purchases.getProducts([productId]);
-    if (products.isEmpty) {
-      throw StateError('Store product niet gevonden voor id: $productId');
-    }
-    final product = products.first;
-    _log(
-      'Fallback product found id="${product.identifier}" price="${product.priceString}"',
-    );
-    return Purchases.purchaseStoreProduct(product);
-  }
-
-  /// Restore previous purchases (required by App Store guidelines).
-  Future<CustomerInfo> restorePurchases() async {
-    _log('Restoring purchases...');
-    return Purchases.restorePurchases();
-  }
-
-  /// Check if the user currently has an active premium entitlement.
-  Future<bool> hasPremiumAccess() async {
-    if (kIsWeb) return false;
-    final info = await Purchases.getCustomerInfo();
-    final hasPremium = info.entitlements.active.containsKey(
-      kRcPremiumEntitlement,
-    );
-    _log('hasPremiumAccess=$hasPremium');
-    return hasPremium;
-  }
-
-  /// Get full CustomerInfo (subscription status, expiry, etc.)
-  Future<CustomerInfo> getCustomerInfo() async {
-    final info = await Purchases.getCustomerInfo();
-    final activeIds = info.entitlements.active.keys.join(', ');
-    _log(
-      'CustomerInfo active entitlements: ${activeIds.isEmpty ? '(none)' : activeIds}',
-    );
-    return info;
+    return () {
+      try {
+        Purchases.removeCustomerInfoUpdateListener(listener);
+      } catch (_) {}
+    };
   }
 }

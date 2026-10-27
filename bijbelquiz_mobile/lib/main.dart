@@ -15,6 +15,7 @@ import 'core/preview/preview_data.dart';
 import 'core/ui/app_notice.dart';
 import 'features/auth/domain/user.dart';
 import 'features/auth/present/auth_controller.dart';
+import 'features/premium/present/premium_controller.dart';
 import 'features/profile/data/profile_model.dart';
 import 'features/profile/present/profile_provider.dart';
 import 'features/quiz/data/pending_attempt_claimer.dart';
@@ -144,6 +145,11 @@ class BijbelquizApp extends ConsumerWidget {
       if (user == null || previous?.asData?.value?.id == user.id) return;
       unawaited(_claimPendingAttempts(ref));
     });
+
+    // Created at launch, not when a paywall first opens: it loads the store
+    // prices, checks the entitlement, follows RevenueCat's updates and
+    // re-checks on every resume, so Premium is right from the first screen.
+    ref.listen<PremiumState>(premiumControllerProvider, (previous, next) {});
 
     final routerConfig = ref.watch(routerProvider);
 

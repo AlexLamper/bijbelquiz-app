@@ -15,7 +15,7 @@ class AuthRepository {
         '/login',
         data: {'email': email, 'password': password},
       );
-      return _processAuthResponse(response.data);
+      return await _processAuthResponse(response.data);
     } on DioException catch (e) {
       if (e.response != null && e.response?.data != null) {
         throw Exception(e.response!.data['error'] ?? 'Invalid credentials');
@@ -32,7 +32,7 @@ class AuthRepository {
         '/register',
         data: {'name': name, 'email': email, 'password': password},
       );
-      return _processAuthResponse(response.data);
+      return await _processAuthResponse(response.data);
     } on DioException catch (e) {
       if (e.response != null && e.response?.data != null) {
         throw Exception(e.response!.data['error'] ?? 'Registration failed');
@@ -61,7 +61,7 @@ class AuthRepository {
           if (email != null) 'email': email,
         },
       );
-      return _processAuthResponse(response.data);
+      return await _processAuthResponse(response.data);
     } on DioException catch (e) {
       if (e.response != null && e.response?.data != null) {
         throw Exception(e.response!.data['error'] ?? 'Apple login failed');
@@ -78,7 +78,7 @@ class AuthRepository {
         '/google-login',
         data: {'idToken': idToken},
       );
-      return _processAuthResponse(response.data);
+      return await _processAuthResponse(response.data);
     } on DioException catch (e) {
       if (e.response != null && e.response?.data != null) {
         throw Exception(e.response!.data['error'] ?? 'Google login failed');

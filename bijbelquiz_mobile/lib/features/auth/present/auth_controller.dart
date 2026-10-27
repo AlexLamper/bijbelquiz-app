@@ -1,8 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_sign_in/google_sign_in.dart' as gAuth;
-import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:google_sign_in/google_sign_in.dart' as google_auth;
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../../../core/config/apple_sign_in_config.dart';
 import '../data/auth_repository.dart';
@@ -10,6 +9,7 @@ import '../../../core/api/api_client.dart';
 import '../data/auth_local_storage.dart';
 import '../domain/user.dart';
 import '../../profile/data/profile_repository.dart';
+import '../../premium/present/premium_controller.dart';
 
 // Provides shared access
 final authStorageProvider = Provider((ref) => AuthLocalStorage());
@@ -56,7 +56,7 @@ class AuthController extends AsyncNotifier<User?> {
 
   Future<void> ensureGoogleSignInInitialized() async {
     if (!_googleSignInInitialized) {
-      await gAuth.GoogleSignIn.instance.initialize(
+      await google_auth.GoogleSignIn.instance.initialize(
         // Web requires explicit clientId. Native iOS/Android should rely on
         // platform OAuth setup (Info.plist / google-services).
         clientId: kIsWeb ? _googleWebClientId : null,
@@ -82,12 +82,15 @@ class AuthController extends AsyncNotifier<User?> {
     ref.invalidate(hasSessionProvider);
   }
 
-  /// Link RevenueCat to the authenticated user so subscription status
-  /// is correctly attributed across devices.
+  /// Link RevenueCat to the authenticated user (`appUserID` = server user
+  /// id) so store purchases belong to the account on every device and on the
+  /// website. RevenueCat aliases purchases made under the anonymous id of
+  /// this install into the account. Also asks the server to reconcile
+  /// Premium, without making the sign-in wait for it.
   Future<void> _linkRevenueCat(User? user) async {
     if (user == null || kIsWeb) return;
     try {
-      await Purchases.logIn(user.id);
+      await ref.read(premiumControllerProvider.notifier).onSignedIn(user.id);
     } catch (_) {
       // Non-fatal: RC linking failure shouldn't block auth.
     }
@@ -114,12 +117,10 @@ class AuthController extends AsyncNotifier<User?> {
         xp: profile.xp,
         isPremium: profile.isPremium,
       );
+      // Also self-heals accounts whose purchase webhook never landed: the
+      // premium controller asks the server to reconcile against RevenueCat
+      // once RC is linked.
       await _linkRevenueCat(user);
-      // Self-heal accounts whose purchase webhook never landed: ask the server
-      // to reconcile against RevenueCat once RC is linked. Best-effort.
-      try {
-        await ref.read(profileRepositoryProvider).syncPremium();
-      } catch (_) {}
       state = AsyncValue.data(user);
     } catch (_) {
       // Best-effort: keep the token-based session even if profile fetch fails
@@ -156,18 +157,18 @@ class AuthController extends AsyncNotifier<User?> {
   Future<void> signInWithGoogle() async {
     try {
       await ensureGoogleSignInInitialized();
-      final gAuth.GoogleSignInAccount account = await gAuth
+      final google_auth.GoogleSignInAccount account = await google_auth
           .GoogleSignIn
           .instance
           .authenticate(scopeHint: ['email', 'profile']);
       await _completeGoogleSignIn(account);
-    } on gAuth.GoogleSignInException catch (e, st) {
-      if (e.code == gAuth.GoogleSignInExceptionCode.canceled) {
+    } on google_auth.GoogleSignInException catch (e, st) {
+      if (e.code == google_auth.GoogleSignInExceptionCode.canceled) {
         return; // User canceled the sign in dialog.
       }
-      if (e.code == gAuth.GoogleSignInExceptionCode.interrupted) {
+      if (e.code == google_auth.GoogleSignInExceptionCode.interrupted) {
         // Android can report interrupted when UI flow closed unexpectedly.
-        final current = await gAuth.GoogleSignIn.instance
+        final current = await google_auth.GoogleSignIn.instance
             .attemptLightweightAuthentication();
         if (current != null) {
           try {
@@ -189,8 +190,10 @@ class AuthController extends AsyncNotifier<User?> {
     }
   }
 
-  Future<void> _completeGoogleSignIn(gAuth.GoogleSignInAccount account) async {
-    final gAuth.GoogleSignInAuthentication auth = account.authentication;
+  Future<void> _completeGoogleSignIn(
+    google_auth.GoogleSignInAccount account,
+  ) async {
+    final google_auth.GoogleSignInAuthentication auth = account.authentication;
     final String? idToken = auth.idToken;
     if (idToken == null || idToken.isEmpty) {
       throw Exception(
@@ -310,11 +313,13 @@ class AuthController extends AsyncNotifier<User?> {
     _sessionChanged();
 
     await ensureGoogleSignInInitialized();
-    await gAuth.GoogleSignIn.instance.signOut();
+    await google_auth.GoogleSignIn.instance.signOut();
 
     if (!kIsWeb) {
+      // Back to an anonymous RevenueCat id, and drop the previous account's
+      // Premium from memory so the next player is not shown it.
       try {
-        await Purchases.logOut();
+        await ref.read(premiumControllerProvider.notifier).onSignedOut();
       } catch (_) {}
     }
 

@@ -5,6 +5,7 @@ import '../../auth/present/auth_controller.dart';
 import 'badge_catalog.dart';
 import 'profile_model.dart';
 import 'package:dio/dio.dart';
+import '../../premium/domain/premium_plan.dart' show ServerPremium;
 
 final profileRepositoryProvider = Provider((ref) {
   final apiClient = ref.watch(apiClientProvider);
@@ -137,13 +138,21 @@ class ProfileRepository {
   /// Forces the server to reconcile premium with RevenueCat and returns the
   /// resulting premium flag. RevenueCat does not re-send a webhook for an
   /// already-owned purchase or a restore, so without this call premium can
-  /// stay locked on the server forever. Returns null if the endpoint is
-  /// unreachable/undeployed so callers can fall back to polling /profile.
-  Future<bool?> syncPremium() async {
+  /// stay locked on the server until the webhook lands. Returns null if the
+  /// endpoint is unreachable so callers can fall back to polling /profile.
+  Future<bool?> syncPremium() async => (await syncPremiumStatus())?.isPremium;
+
+  /// `POST /api/mobile/sync-premium`: Premium from every source (store,
+  /// website, lifetime, group licence, manual), after the server re-read the
+  /// subscriber from RevenueCat. Null when the server cannot be reached.
+  Future<ServerPremium?> syncPremiumStatus() async {
     try {
       final response = await _apiClient.dio.post('/sync-premium');
-      final data = response.data?['data'] ?? response.data;
-      return (data?['isPremium'] as bool?) ?? false;
+      final data = response.data is Map && response.data['data'] is Map
+          ? response.data['data']
+          : response.data;
+      if (data is! Map) return null;
+      return ServerPremium.fromJson(Map<String, dynamic>.from(data));
     } catch (_) {
       return null;
     }

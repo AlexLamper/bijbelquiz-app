@@ -90,6 +90,14 @@ class ProfileModel {
 
   final bool isPremium;
 
+  /// Where [isPremium] comes from, by the server: `store` (App Store /
+  /// Google Play), `stripe` (the website), `lifetime`, `group` (a group
+  /// licence) or `manual`. Null without Premium or from an older server.
+  final String? premiumSource;
+
+  /// End of the current store period (App Store / Google Play), if any.
+  final DateTime? storePremiumExpiresAt;
+
   /// Server `role == 'admin'`. Gates the in-app admin screen only.
   final bool isAdmin;
 
@@ -128,6 +136,8 @@ class ProfileModel {
     required this.levelProgress,
     required this.nextLevelXp,
     required this.isPremium,
+    this.premiumSource,
+    this.storePremiumExpiresAt,
     this.isAdmin = false,
     required this.streak,
     required this.bestStreak,
@@ -145,7 +155,11 @@ class ProfileModel {
   /// Level bar fill, 0..1.
   double get levelFraction => (levelProgress / 100).clamp(0.0, 1.0);
 
-  ProfileModel copyWith({String? name, AvatarConfig? avatar, int? nameChangeAllowedInDays}) {
+  ProfileModel copyWith({
+    String? name,
+    AvatarConfig? avatar,
+    int? nameChangeAllowedInDays,
+  }) {
     return ProfileModel(
       id: id,
       name: name ?? this.name,
@@ -160,6 +174,9 @@ class ProfileModel {
       levelProgress: levelProgress,
       nextLevelXp: nextLevelXp,
       isPremium: isPremium,
+      premiumSource: premiumSource,
+      storePremiumExpiresAt: storePremiumExpiresAt,
+      isAdmin: isAdmin,
       streak: streak,
       bestStreak: bestStreak,
       lastPlayedAt: lastPlayedAt,
@@ -193,6 +210,10 @@ class ProfileModel {
       levelProgress: _asInt(json['levelProgress']).clamp(0, 100),
       nextLevelXp: _asInt(json['nextLevelXp'], xp),
       isPremium: json['isPremium'] as bool? ?? false,
+      premiumSource: json['premiumSource'] as String?,
+      storePremiumExpiresAt: DateTime.tryParse(
+        json['storePremiumExpiresAt']?.toString() ?? '',
+      ),
       isAdmin:
           json['isAdmin'] as bool? ?? (json['role']?.toString() == 'admin'),
       streak: _asInt(json['streak']),
@@ -235,6 +256,8 @@ class ProfileModel {
       'levelProgress': levelProgress,
       'nextLevelXp': nextLevelXp,
       'isPremium': isPremium,
+      'premiumSource': premiumSource,
+      'storePremiumExpiresAt': storePremiumExpiresAt?.toIso8601String(),
       'isAdmin': isAdmin,
       'streak': streak,
       'bestStreak': bestStreak,

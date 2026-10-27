@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,6 +12,8 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/app_notice.dart';
 import '../../../core/ui/bq.dart';
 import '../../auth/present/auth_controller.dart';
+import '../../premium/present/premium_controller.dart';
+import '../../premium/present/premium_status_notices.dart';
 import '../../profile/data/profile_model.dart';
 import '../../profile/present/profile_provider.dart';
 import '../data/quiz_preferences_controller.dart';
@@ -51,9 +54,54 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (mounted) context.go('/home');
   }
 
-  Future<void> _openPrivacy() async {
+  bool get _isApple =>
+      defaultTargetPlatform == TargetPlatform.iOS ||
+      defaultTargetPlatform == TargetPlatform.macOS;
+
+  /// Where Premium is managed: the store for an app subscription, the
+  /// website for a web subscription. Lifetime, group and manual Premium have
+  /// nothing to manage.
+  VoidCallback? _manageAction(ProfileModel profile, String? managementUrl) {
+    switch (profile.premiumSource) {
+      case 'store':
+        final url =
+            managementUrl ??
+            (_isApple
+                ? 'https://apps.apple.com/account/subscriptions'
+                : 'https://play.google.com/store/account/subscriptions');
+        return () => _openExternal(url);
+      case 'stripe':
+        return () => _openExternal('${AppConfig.baseUrl}/premium');
+      default:
+        return null;
+    }
+  }
+
+  static String? _premiumSourceLabel(ProfileModel profile) {
+    switch (profile.premiumSource) {
+      case 'store':
+        return 'Abonnement beheren';
+      case 'stripe':
+        return 'Via de website';
+      case 'lifetime':
+        return 'Levenslang';
+      case 'group':
+        return 'Groepslicentie';
+      default:
+        return 'Actief';
+    }
+  }
+
+  /// "Aankopen herstellen" - Apple requires it to be easy to find.
+  void _restorePurchases() {
+    ref.read(premiumControllerProvider.notifier).restorePurchases();
+  }
+
+  Future<void> _openPrivacy() => _openExternal(AppConfig.privacyPolicyUrl);
+
+  Future<void> _openExternal(String url) async {
     final launched = await launchUrl(
-      Uri.parse(AppConfig.privacyPolicyUrl),
+      Uri.parse(url),
       mode: LaunchMode.externalApplication,
     );
     if (!launched && mounted) {
@@ -102,9 +150,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       'subject=${Uri.encodeComponent('Account verwijderen')}',
       'body=${Uri.encodeComponent('Graag mijn BijbelQuiz-account$account verwijderen.')}',
     ].join('&');
-    final launched = await launchUrl(
-      Uri.parse('mailto:$_accountEmail?$query'),
-    );
+    final launched = await launchUrl(Uri.parse('mailto:$_accountEmail?$query'));
     if (!launched && mounted) {
       AppNotice.info(
         context,
@@ -137,9 +183,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       context: context,
       backgroundColor: AppTheme.paperRaised,
       showDragHandle: true,
-      builder: (sheetContext) => _TimerSheet(
-        selected: preferences.questionTimerSeconds,
-      ),
+      builder: (sheetContext) =>
+          _TimerSheet(selected: preferences.questionTimerSeconds),
     );
     if (choice == null) return;
     ref.read(quizPreferencesProvider.notifier).setTimerSeconds(choice);
@@ -148,6 +193,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final hasSession = ref.watch(hasSessionProvider).asData?.value ?? false;
+    final premiumState = ref.watch(premiumControllerProvider);
+    ref.listen<PremiumState>(premiumControllerProvider, (previous, next) {
+      if (!mounted || next.status == previous?.status) return;
+      // Only outcomes of a restore started here; the paywall shows its own.
+      if (next.action != PremiumAction.restore) return;
+      showPremiumOutcome(
+        context,
+        ref,
+        next,
+        onPremium: (_) => AppNotice.success(
+          context,
+          'Je Premium staat weer aan op dit account.',
+          title: 'Aankopen hersteld',
+        ),
+      );
+    });
     final profile = hasSession
         ? ref.watch(profileProvider).asData?.value
         : null;
@@ -230,14 +291,38 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const SizedBox(height: 16),
             _SettingsGroup(
               children: [
-                // Premium players have nothing to buy or restore here.
-                if (!(profile?.isPremium ?? false))
+                // Premium players have nothing to buy; they see where their
+                // Premium comes from and where to manage it.
+                if (profile != null && profile.isPremium)
+                  _ValueRow(
+                    icon: BqIcons.crown,
+                    iconSize: 18,
+                    tileColor: AppTheme.goldTint,
+                    title: 'Premium',
+                    value: _premiumSourceLabel(profile),
+                    onTap: _manageAction(
+                      profile,
+                      premiumState.customer.managementUrl,
+                    ),
+                  )
+                else
                   _ValueRow(
                     icon: BqIcons.crown,
                     iconSize: 18,
                     tileColor: AppTheme.goldTint,
                     title: 'Premium',
                     onTap: () => context.push('/premium'),
+                  ),
+                if (!kIsWeb)
+                  _ValueRow(
+                    icon: _iconRestore,
+                    title: 'Aankopen herstellen',
+                    value:
+                        premiumState.isBusy &&
+                            premiumState.action == PremiumAction.restore
+                        ? 'Bezig...'
+                        : null,
+                    onTap: premiumState.isBusy ? null : _restorePurchases,
                   ),
                 if (profile?.isAdmin ?? false)
                   _ValueRow(
@@ -288,6 +373,8 @@ const String _svgOpen =
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">';
 const String _iconShieldPlain =
     '$_svgOpen<path d="M12 3l7.5 3v5.5c0 4.4-3.2 8.2-7.5 9.5-4.3-1.3-7.5-5.1-7.5-9.5V6z"/></svg>';
+const String _iconRestore =
+    '$_svgOpen<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>';
 const String _iconBookOpen =
     '$_svgOpen<path d="M3 5.5h5a4 4 0 0 1 4 4V20a3 3 0 0 0-3-3H3z"/><path d="M21 5.5h-5a4 4 0 0 0-4 4V20a3 3 0 0 1 3-3h6z"/></svg>';
 const String _iconTextSize =
@@ -518,16 +605,16 @@ class _TextRow extends StatelessWidget {
           child: Row(
             children: [
               Expanded(
-                child: Text(
-                  title,
-                  style: _rowTitle.copyWith(color: color),
-                ),
+                child: Text(title, style: _rowTitle.copyWith(color: color)),
               ),
               if (loading)
                 SizedBox(
                   width: 18,
                   height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: color),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: color,
+                  ),
                 )
               else if (showChevron)
                 const _Chevron(),

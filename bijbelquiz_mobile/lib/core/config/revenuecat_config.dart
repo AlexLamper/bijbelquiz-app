@@ -64,7 +64,9 @@ class RevenueCatConfig {
   /// Human-readable source for diagnostics/logging.
   static String sdkKeySource() {
     if (kIsWeb) return 'none:web';
-    if (useTestStore && testKey.isNotEmpty) return 'test_store';
+    if (useTestStore && testKey.isNotEmpty && !kReleaseMode) {
+      return 'test_store';
+    }
     if (_isApplePlatform) return appleKey.isNotEmpty ? 'apple' : 'none:apple';
     return googleKey.isNotEmpty ? 'google' : 'none:google';
   }
@@ -73,8 +75,9 @@ class RevenueCatConfig {
   static String sdkPublicApiKey() {
     if (kIsWeb) return '';
 
-    // Test Store should be opt-in; avoid accidental usage in TestFlight/release.
-    if (useTestStore && testKey.isNotEmpty) return testKey;
+    // Test Store is opt-in and never used in a release build: a Test Store
+    // key in TestFlight / Play would sell nothing real.
+    if (useTestStore && testKey.isNotEmpty && !kReleaseMode) return testKey;
 
     if (_isApplePlatform) {
       return appleKey;

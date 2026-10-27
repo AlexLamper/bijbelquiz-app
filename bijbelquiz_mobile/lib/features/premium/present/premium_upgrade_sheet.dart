@@ -4,12 +4,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/analytics/analytics.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/ui/app_notice.dart';
 import '../../../core/ui/bq.dart';
 import '../../profile/present/profile_provider.dart';
 import '../data/purchase_service.dart';
 import '../domain/plan_pricing.dart';
 import 'premium_controller.dart';
+import 'premium_status_notices.dart';
 import 'widgets/paywall_parts.dart';
 
 /// A compact paywall that opens over whatever the player was doing.
@@ -100,36 +100,41 @@ class _PremiumUpgradeSheetState extends ConsumerState<_PremiumUpgradeSheet> {
   @override
   Widget build(BuildContext context) {
     ref.listen<PremiumState>(premiumControllerProvider, (previous, next) {
-      if (!mounted) return;
-
-      if (next.status == PurchaseStatus.success) {
-        ref.read(premiumControllerProvider.notifier).clearStatus();
-        // Premium changes what the lobby is allowed to do, so both caches go.
-        ref.invalidate(profileProvider);
-        Navigator.of(context).pop(next.isPremium);
-        return;
-      }
-
-      if (next.status == PurchaseStatus.error && next.errorMessage != null) {
-        AppNotice.error(context, next.errorMessage);
-        ref.read(premiumControllerProvider.notifier).clearStatus();
+      if (!mounted || next.status == previous?.status) return;
+      if (next.status == PurchaseStatus.error ||
+          next.status == PurchaseStatus.pending ||
+          next.status == PurchaseStatus.needsAccount) {
         setState(() => _startedPurchase = false);
       }
+      showPremiumOutcome(
+        context,
+        ref,
+        next,
+        onPremium: (_) {
+          // Premium changes what the lobby is allowed to do.
+          ref.invalidate(profileProvider);
+          Navigator.of(context).pop(true);
+        },
+      );
     });
 
     final premiumState = ref.watch(premiumControllerProvider);
-    final isLoading = premiumState.status == PurchaseStatus.loading;
+    final isLoading = premiumState.isBusy;
+    final offersLoading = premiumState.offersStatus == OffersStatus.loading;
 
-    final service = ref.read(purchaseServiceProvider);
-    final monthlyPackage = service.findMonthlyPackage(premiumState.packages);
-    final yearlyPackage = service.findYearlyPackage(premiumState.packages);
+    final monthlyOffer = premiumState.offerFor(PremiumPlan.monthly);
+    final yearlyOffer = premiumState.offerFor(PremiumPlan.yearly);
 
-    final monthlyPrice = monthlyPackage?.storeProduct.priceString ?? '€5,99';
-    final yearlyPrice = yearlyPackage?.storeProduct.priceString ?? '€39,99';
+    // The store's price or nothing: never a made-up amount.
+    final monthlyPrice = monthlyOffer?.priceString ?? '-';
+    final yearlyPrice = yearlyOffer?.priceString ?? '-';
 
-    final yearlyTrial = PurchaseService.trialOffer(yearlyPackage);
-    final monthlyTrial = PurchaseService.trialOffer(monthlyPackage);
+    final yearlyTrial = yearlyOffer?.trial;
+    final monthlyTrial = monthlyOffer?.trial;
     final trial = _plan == _SheetPlan.yearly ? yearlyTrial : monthlyTrial;
+    final selectedOffer = _plan == _SheetPlan.yearly
+        ? yearlyOffer
+        : monthlyOffer;
 
     final savings = yearlySavingsPercent(monthlyPrice, yearlyPrice);
     final yearlyPerMonth = monthlyEquivalentOfYearly(yearlyPrice);
@@ -207,13 +212,19 @@ class _PremiumUpgradeSheetState extends ConsumerState<_PremiumUpgradeSheet> {
             ),
             const SizedBox(height: 16),
             BqButton(
-              label: paywallCtaLabel(trial),
+              label: selectedOffer == null && !offersLoading
+                  ? 'Prijzen opnieuw laden'
+                  : paywallCtaLabel(trial),
               height: 56,
               fontSize: 17,
               radius: 14,
-              loading: isLoading,
-              onPressed: isLoading
+              loading: isLoading || offersLoading,
+              onPressed: isLoading || offersLoading
                   ? null
+                  : selectedOffer == null
+                  ? () => ref
+                        .read(premiumControllerProvider.notifier)
+                        .loadOffers()
                   : () {
                       setState(() => _startedPurchase = true);
                       final notifier = ref.read(

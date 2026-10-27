@@ -1,45 +1,104 @@
 import 'dart:async';
 
-import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:purchases_flutter/purchases_flutter.dart';
-import '../../profile/data/profile_repository.dart';
+
+import '../../auth/present/auth_controller.dart' show hasSessionProvider;
 import '../../profile/present/profile_provider.dart';
+import '../data/premium_server.dart';
 import '../data/purchase_service.dart';
 import '../data/trial_reminder.dart';
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
-enum PurchaseStatus { idle, loading, success, error }
+enum PurchaseStatus {
+  idle,
+  loading,
+
+  /// The purchase or restore went through and Premium is on.
+  success,
+
+  /// Ask to Buy / a pending payment: the store finishes it later.
+  pending,
+
+  /// Signed out: Premium belongs to an account, so sign in first.
+  needsAccount,
+
+  /// The account already has Premium (store, website, group, lifetime).
+  alreadyPremium,
+
+  /// Restore found nothing on this App Store / Google account.
+  nothingToRestore,
+  error,
+}
+
+enum PremiumAction { purchase, restore }
+
+enum OffersStatus { loading, ready, unavailable }
 
 class PremiumState {
   const PremiumState({
     this.status = PurchaseStatus.idle,
-    this.packages = const [],
-    this.customerInfo,
-    this.errorMessage,
+    this.action,
+    this.offers = const [],
+    this.offersStatus = OffersStatus.loading,
+    this.customer = StoreCustomer.none,
+    this.serverPremium,
+    this.message,
   });
 
   final PurchaseStatus status;
-  final List<Package> packages;
-  final CustomerInfo? customerInfo;
-  final String? errorMessage;
 
+  /// What [status] is the outcome of.
+  final PremiumAction? action;
+  final List<PlanOffer> offers;
+  final OffersStatus offersStatus;
+
+  /// RevenueCat's view of this customer.
+  final StoreCustomer customer;
+
+  /// The server's view (all sources), once asked. Null: not known yet.
+  final ServerPremium? serverPremium;
+
+  /// Dutch text for [status] (errors, pending, nothing to restore).
+  final String? message;
+
+  /// Premium from the store or from any source the server knows.
   bool get isPremium =>
-      customerInfo?.entitlements.active.containsKey(kRcPremiumEntitlement) ??
-      false;
+      customer.premiumActive || (serverPremium?.isPremium ?? false);
+
+  bool get isBusy => status == PurchaseStatus.loading;
+
+  PlanOffer? offerFor(PremiumPlan plan) {
+    for (final offer in offers) {
+      if (offer.plan == plan) return offer;
+    }
+    return null;
+  }
 
   PremiumState copyWith({
     PurchaseStatus? status,
-    List<Package>? packages,
-    CustomerInfo? customerInfo,
-    String? errorMessage,
+    PremiumAction? action,
+    List<PlanOffer>? offers,
+    OffersStatus? offersStatus,
+    StoreCustomer? customer,
+    ServerPremium? serverPremium,
+    bool clearServerPremium = false,
+    String? message,
   }) {
+    final nextStatus = status ?? this.status;
     return PremiumState(
-      status: status ?? this.status,
-      packages: packages ?? this.packages,
-      customerInfo: customerInfo ?? this.customerInfo,
-      errorMessage: errorMessage ?? this.errorMessage,
+      status: nextStatus,
+      action: action ?? this.action,
+      offers: offers ?? this.offers,
+      offersStatus: offersStatus ?? this.offersStatus,
+      customer: customer ?? this.customer,
+      serverPremium: clearServerPremium
+          ? null
+          : serverPremium ?? this.serverPremium,
+      // A message belongs to the status it was set with.
+      message: status == null ? (message ?? this.message) : message,
     );
   }
 }
@@ -58,182 +117,414 @@ bool hasPremiumAccess(WidgetRef ref) =>
 
 // ─── Controller ───────────────────────────────────────────────────────────────
 
+/// Purchases, restores and the Premium state the app shows.
+///
+/// Premium belongs to the account, so the server decides in the end: after a
+/// purchase or restore the controller asks the server to re-read RevenueCat
+/// (`/api/mobile/sync-premium`) and refreshes the profile, so Premium shows at
+/// once on every screen and on the website. Before selling anything it asks
+/// the server whether the account already has Premium - from the website, a
+/// group licence or a lifetime purchase - so nobody pays twice.
 class PremiumController extends Notifier<PremiumState> {
+  /// Pause between server checks while a fresh purchase propagates. Tests set
+  /// it to zero.
+  static Duration retryDelay = const Duration(seconds: 2);
+  static const int _confirmAttempts = 5;
+
   void _log(String message) {
     assert(() {
-      // ignore: avoid_print
-      print('[RevenueCat][PremiumController] $message');
+      debugPrint('[RevenueCat][PremiumController] $message');
       return true;
     }());
   }
 
+  PurchasesGateway get _store => ref.read(purchasesGatewayProvider);
+  PremiumServer get _server => ref.read(premiumServerProvider);
+
+  bool _disposed = false;
+
   @override
   PremiumState build() {
-    _loadProducts();
+    _disposed = false;
+    final unsubscribe = _store.listen(_onStoreUpdate);
+
+    // Entitlements change while the app is in the background: a renewal, an
+    // expiry, an Ask to Buy approval, a purchase on another device.
+    AppLifecycleListener? lifecycle;
+    try {
+      lifecycle = AppLifecycleListener(onResume: () => unawaited(refresh()));
+    } catch (_) {
+      // No binding (pure Dart tests).
+    }
+
+    ref.onDispose(() {
+      _disposed = true;
+      unsubscribe();
+      lifecycle?.dispose();
+    });
+
+    Future.microtask(_load);
     return const PremiumState();
   }
 
-  PurchaseService get _svc => ref.read(purchaseServiceProvider);
+  void _set(PremiumState next) {
+    if (_disposed) return;
+    state = next;
+  }
 
-  Future<void> _loadProducts() async {
+  Future<void> _load() async {
+    await Future.wait([loadOffers(), _loadCustomer()]);
+  }
+
+  /// (Re)load the plans and prices from the store.
+  Future<void> loadOffers() async {
+    _set(state.copyWith(offersStatus: OffersStatus.loading));
     try {
-      _log('Loading packages and customer info...');
-      final packages = await _svc.getPackages();
-      final info = await _svc.getCustomerInfo();
-      state = state.copyWith(packages: packages, customerInfo: info);
-      _log(
-        'Loaded ${packages.length} package(s); isPremium=${info.entitlements.active.containsKey(kRcPremiumEntitlement)}',
+      final offers = await _store.loadOffers();
+      _set(
+        state.copyWith(
+          offers: offers,
+          offersStatus: offers.isEmpty
+              ? OffersStatus.unavailable
+              : OffersStatus.ready,
+        ),
       );
+    } catch (error) {
+      _log('Offers failed: $error');
+      _set(state.copyWith(offersStatus: OffersStatus.unavailable));
+    }
+  }
+
+  Future<void> _loadCustomer() async {
+    try {
+      _applyCustomer(await _store.customer());
+    } catch (error) {
+      _log('Customer info failed: $error');
+    }
+  }
+
+  void _onStoreUpdate(StoreCustomer customer) {
+    final wasActive = state.customer.premiumActive;
+    _applyCustomer(customer);
+    // The store turned Premium on outside a purchase flow (Ask to Buy
+    // approved, a pending payment cleared): tell the server.
+    if (customer.premiumActive && !wasActive && !state.isBusy) {
+      unawaited(_confirmWithServer(storeActive: true));
+    }
+  }
+
+  void _applyCustomer(StoreCustomer customer, {bool afterPurchase = false}) {
+    _set(state.copyWith(customer: customer));
+    unawaited(
+      ref
+          .read(trialReminderProvider)
+          .sync(customer, requestPermission: afterPurchase),
+    );
+  }
+
+  /// On app start and resume: re-read the store and the server.
+  Future<void> refresh() async {
+    await _loadCustomer();
+    if (await _hasSession()) {
+      await _askServer();
+    }
+  }
+
+  Future<bool> _hasSession() async {
+    try {
+      return await ref.read(hasSessionProvider.future);
     } catch (_) {
-      // Graceful degradation on web/simulator.
-      _log('Failed to load packages/customer info.');
+      return false;
     }
   }
 
-  Future<void> purchaseMonthly() => _purchase(kRcMonthlyProductId);
-  Future<void> purchaseYearly() => _purchase(kRcYearlyProductId);
-  Future<void> purchaseLifetime() => _purchase(kRcLifetimeProductId);
-
-  Future<void> _purchase(String productId) async {
-    _log('Purchase requested for product="$productId"');
-    final package = switch (productId) {
-      kRcMonthlyProductId => _svc.findMonthlyPackage(state.packages),
-      kRcYearlyProductId => _svc.findYearlyPackage(state.packages),
-      _ => _svc.findLifetimePackage(state.packages),
-    };
-    state = state.copyWith(status: PurchaseStatus.loading);
+  Future<ServerPremium?> _askServer() async {
+    final result = await _server.sync();
+    if (result != null) {
+      _set(state.copyWith(serverPremium: result));
+    }
     try {
-      final info = package != null
-          ? await _svc.purchasePackage(package)
-          : await _svc.purchaseByProductId(productId);
-      state = state.copyWith(
-        status: PurchaseStatus.success,
-        customerInfo: info,
-      );
-      _log(
-        'Purchase success. Active entitlements: ${info.entitlements.active.keys.join(', ')}',
-      );
-      // The paywall promises a reminder before a free trial ends; this keeps
-      // that promise. A no-op for anything that is not a trial.
-      unawaited(TrialReminder.instance.scheduleIfTrial(info));
-      await _syncServerPremium();
-    } on PlatformException catch (e) {
-      final code = PurchasesErrorHelper.getErrorCode(e);
-      if (code == PurchasesErrorCode.purchaseCancelledError) {
-        state = state.copyWith(status: PurchaseStatus.idle);
-        _log('Purchase cancelled by user.');
-        return;
-      }
-      state = state.copyWith(
-        status: PurchaseStatus.error,
-        errorMessage: _errorMessage(code),
-      );
-      _log('Purchase failed: code=$code message="${e.message}"');
-    } on StateError catch (e) {
-      final availableProducts = state.packages
-          .map((p) => p.storeProduct.identifier)
-          .toList(growable: false);
-      final availablePackages = state.packages
-          .map((p) => p.identifier)
-          .toList(growable: false);
-      state = state.copyWith(
-        status: PurchaseStatus.error,
-        errorMessage:
-            'Dit abonnement is nu niet beschikbaar in de App Store. Probeer '
-            'het later opnieuw.',
-      );
-      _log(
-        'Product lookup failed. Requested="$productId", error="$e". '
-        'Available package IDs=$availablePackages '
-        'Available product IDs=$availableProducts',
-      );
-    } catch (e) {
-      state = state.copyWith(
-        status: PurchaseStatus.error,
-        errorMessage: 'De aankoop is niet afgerond. Er is niets in rekening '
-            'gebracht.',
-      );
-      _log('Purchase failed with error: $e');
-    }
-  }
-
-  Future<void> restorePurchases() async {
-    _log('Restore purchases requested.');
-    state = state.copyWith(status: PurchaseStatus.loading);
-    try {
-      final info = await _svc.restorePurchases();
-      state = state.copyWith(
-        status: PurchaseStatus.success,
-        customerInfo: info,
-      );
-      _log(
-        'Restore success. Active entitlements: ${info.entitlements.active.keys.join(', ')}',
-      );
-      await _syncServerPremium();
-    } on PlatformException catch (e) {
-      final code = PurchasesErrorHelper.getErrorCode(e);
-      if (code == PurchasesErrorCode.purchaseCancelledError) {
-        state = state.copyWith(status: PurchaseStatus.idle);
-        _log('Restore cancelled by user.');
-        return;
-      }
-      state = state.copyWith(
-        status: PurchaseStatus.error,
-        errorMessage: _errorMessage(code),
-      );
-      _log('Restore failed: code=$code message="${e.message}"');
-    } catch (e) {
-      state = state.copyWith(
-        status: PurchaseStatus.error,
-        errorMessage: 'Herstel mislukt. Probeer het opnieuw.',
-      );
-      _log('Restore failed: $e');
-    }
-  }
-
-  void clearStatus() => state = state.copyWith(status: PurchaseStatus.idle);
-
-  /// Premium content is gated on the server profile, and RevenueCat only fires
-  /// a webhook for a NEW transaction - never for an already-owned purchase or a
-  /// restore. So we actively ask the server to reconcile against RevenueCat,
-  /// then refresh the profile. We retry briefly to ride out store propagation.
-  Future<void> _syncServerPremium() async {
-    final repo = ref.read(profileRepositoryProvider);
-    for (var attempt = 0; attempt < 5; attempt++) {
-      final synced = await repo.syncPremium();
       ref.invalidate(profileProvider);
-      if (synced == true) return;
-      if (synced == null) {
-        // Endpoint unreachable/undeployed: fall back to reading the profile in
-        // case a webhook already updated it.
-        try {
-          final profile = await ref.read(profileProvider.future);
-          if (profile.isPremium) return;
-        } catch (_) {}
-      }
-      await Future.delayed(const Duration(seconds: 2));
+    } catch (_) {}
+    return result;
+  }
+
+  /// Tell the server about a store change and wait (briefly) until it shows.
+  ///
+  /// Only retries while the store says Premium and the server does not yet:
+  /// that gap is store propagation and closes within seconds. With nothing
+  /// in the store, one answer is the answer.
+  Future<bool> _confirmWithServer({required bool storeActive}) async {
+    for (var attempt = 0; attempt < _confirmAttempts; attempt++) {
+      final result = await _askServer();
+      if (result?.isPremium == true) return true;
+      if (!storeActive) return false;
+      if (attempt < _confirmAttempts - 1) await Future.delayed(retryDelay);
+    }
+    return false;
+  }
+
+  Future<void> purchaseMonthly() => purchase(PremiumPlan.monthly);
+  Future<void> purchaseYearly() => purchase(PremiumPlan.yearly);
+  Future<void> purchaseLifetime() => purchase(PremiumPlan.lifetime);
+
+  /// Set synchronously, so a second tap before the first `await` cannot
+  /// start a second purchase.
+  bool _inFlight = false;
+
+  Future<void> purchase(PremiumPlan plan) async {
+    if (_inFlight || state.isBusy) return;
+    _inFlight = true;
+    try {
+      await _purchase(plan);
+    } finally {
+      _inFlight = false;
     }
   }
 
-  String _errorMessage(PurchasesErrorCode code) {
-    switch (code) {
-      case PurchasesErrorCode.networkError:
-      case PurchasesErrorCode.offlineConnectionError:
-        return 'Geen internetverbinding. Controleer je verbinding en probeer opnieuw.';
-      case PurchasesErrorCode.productAlreadyPurchasedError:
-        return 'Je hebt dit product al aangeschaft. Gebruik "Aankopen herstellen".';
-      case PurchasesErrorCode.purchaseNotAllowedError:
-        return 'Aankopen zijn niet toegestaan op dit apparaat. Controleer je App Store-instellingen.';
-      case PurchasesErrorCode.paymentPendingError:
-        return 'Je betaling wordt nog verwerkt. Premium wordt geactiveerd zodra dit voltooid is.';
-      case PurchasesErrorCode.productNotAvailableForPurchaseError:
-        return 'Dit product is momenteel niet beschikbaar in de store. Probeer het later opnieuw.';
-      case PurchasesErrorCode.storeProblemError:
-        return 'Er is een probleem met de store. Probeer het later opnieuw.';
-      case PurchasesErrorCode.insufficientPermissionsError:
-        return 'Geen toestemming om aankopen te doen.';
-      default:
-        return 'Aankoop mislukt. Probeer het opnieuw.';
+  Future<void> _purchase(PremiumPlan plan) async {
+    _log('Purchase requested: ${plan.name}');
+
+    // A purchase has to land on an account: RevenueCat is logged in with the
+    // user id at sign-in, and the server grants Premium to that id. Bought
+    // signed out, it would hang off an anonymous RevenueCat id.
+    if (!await _hasSession()) {
+      _set(
+        state.copyWith(
+          status: PurchaseStatus.needsAccount,
+          action: PremiumAction.purchase,
+        ),
+      );
+      return;
     }
+
+    _set(
+      state.copyWith(
+        status: PurchaseStatus.loading,
+        action: PremiumAction.purchase,
+      ),
+    );
+
+    // Never sell Premium to an account that already has it, wherever from.
+    final server = await _askServer();
+    if (server?.isPremium == true || state.customer.premiumActive) {
+      _set(
+        state.copyWith(
+          status: PurchaseStatus.alreadyPremium,
+          action: PremiumAction.purchase,
+        ),
+      );
+      if (state.customer.premiumActive && server?.isPremium != true) {
+        unawaited(_confirmWithServer(storeActive: true));
+      }
+      return;
+    }
+
+    try {
+      final offer = state.offerFor(plan);
+      final customer = offer != null
+          ? await _store.purchase(offer)
+          : await _store.purchasePlan(plan);
+      _applyCustomer(customer, afterPurchase: true);
+
+      final confirmed = await _confirmWithServer(
+        storeActive: customer.premiumActive,
+      );
+      if (customer.premiumActive || confirmed) {
+        _set(
+          state.copyWith(
+            status: PurchaseStatus.success,
+            action: PremiumAction.purchase,
+          ),
+        );
+      } else {
+        // Paid, but the entitlement is not on: a product not attached to
+        // the entitlement in RevenueCat, or the store is slow.
+        _set(
+          state.copyWith(
+            status: PurchaseStatus.error,
+            action: PremiumAction.purchase,
+            message:
+                'Je aankoop is ontvangen, maar Premium staat nog niet aan. '
+                'Tik over een minuut op "Herstellen".',
+          ),
+        );
+      }
+    } on PurchaseFailure catch (failure) {
+      _log('Purchase failed: $failure');
+      _onFailure(failure, PremiumAction.purchase);
+    } catch (error) {
+      _log('Purchase failed: $error');
+      _onFailure(
+        const PurchaseFailure(PurchaseFailureKind.unknown),
+        PremiumAction.purchase,
+      );
+    }
+  }
+
+  /// "Aankopen herstellen": required by Apple, on the paywall and in
+  /// Instellingen.
+  Future<void> restorePurchases() async {
+    if (_inFlight || state.isBusy) return;
+    _inFlight = true;
+    try {
+      await _restore();
+    } finally {
+      _inFlight = false;
+    }
+  }
+
+  Future<void> _restore() async {
+    _log('Restore requested');
+
+    if (!await _hasSession()) {
+      _set(
+        state.copyWith(
+          status: PurchaseStatus.needsAccount,
+          action: PremiumAction.restore,
+        ),
+      );
+      return;
+    }
+
+    _set(
+      state.copyWith(
+        status: PurchaseStatus.loading,
+        action: PremiumAction.restore,
+      ),
+    );
+
+    try {
+      final customer = await _store.restore();
+      _applyCustomer(customer);
+      final confirmed = await _confirmWithServer(
+        storeActive: customer.premiumActive,
+      );
+      if (customer.premiumActive || confirmed) {
+        _set(
+          state.copyWith(
+            status: PurchaseStatus.success,
+            action: PremiumAction.restore,
+          ),
+        );
+      } else {
+        _set(
+          state.copyWith(
+            status: PurchaseStatus.nothingToRestore,
+            action: PremiumAction.restore,
+            message:
+                'We vonden geen Premium-aankoop op dit '
+                '${_storeName()}-account.',
+          ),
+        );
+      }
+    } on PurchaseFailure catch (failure) {
+      _log('Restore failed: $failure');
+      _onFailure(failure, PremiumAction.restore);
+    } catch (error) {
+      _log('Restore failed: $error');
+      _onFailure(
+        const PurchaseFailure(PurchaseFailureKind.unknown),
+        PremiumAction.restore,
+      );
+    }
+  }
+
+  void _onFailure(PurchaseFailure failure, PremiumAction action) {
+    switch (failure.kind) {
+      case PurchaseFailureKind.cancelled:
+        _set(state.copyWith(status: PurchaseStatus.idle, action: action));
+      case PurchaseFailureKind.pending:
+        _set(
+          state.copyWith(
+            status: PurchaseStatus.pending,
+            action: action,
+            message:
+                'Je aankoop wacht nog op goedkeuring of betaling. Premium '
+                'gaat vanzelf aan zodra de ${_storeName()} die afrondt.',
+          ),
+        );
+      default:
+        _set(
+          state.copyWith(
+            status: PurchaseStatus.error,
+            action: action,
+            message: purchaseErrorMessage(failure.kind, action),
+          ),
+        );
+    }
+  }
+
+  /// Signed in: attach RevenueCat to the account (aliasing any anonymous
+  /// purchases into it), then reconcile with the server.
+  Future<void> onSignedIn(String userId) async {
+    _set(state.copyWith(clearServerPremium: true));
+    try {
+      _applyCustomer(await _store.logIn(userId));
+    } catch (error) {
+      _log('logIn failed: $error');
+    }
+    // Not awaited: signing in must not wait for store propagation.
+    unawaited(_confirmWithServer(storeActive: state.customer.premiumActive));
+  }
+
+  /// Signed out: back to an anonymous RevenueCat id, and forget the previous
+  /// account's Premium.
+  Future<void> onSignedOut() async {
+    StoreCustomer customer = StoreCustomer.none;
+    try {
+      customer = await _store.logOut();
+    } catch (error) {
+      _log('logOut failed: $error');
+    }
+    _set(
+      PremiumState(
+        offers: state.offers,
+        offersStatus: state.offersStatus,
+        customer: customer,
+      ),
+    );
+    unawaited(ref.read(trialReminderProvider).sync(customer));
+  }
+
+  void clearStatus() => _set(state.copyWith(status: PurchaseStatus.idle));
+}
+
+String _storeName() {
+  final apple =
+      defaultTargetPlatform == TargetPlatform.iOS ||
+      defaultTargetPlatform == TargetPlatform.macOS;
+  return apple ? 'App Store' : 'Google Play';
+}
+
+/// Dutch message for a failed purchase or restore.
+String purchaseErrorMessage(PurchaseFailureKind kind, PremiumAction action) {
+  final store = _storeName();
+  switch (kind) {
+    case PurchaseFailureKind.network:
+      return 'Geen internetverbinding. Controleer je verbinding en probeer '
+          'het opnieuw.';
+    case PurchaseFailureKind.alreadyOwned:
+      return 'Je hebt dit al gekocht. Tik op "Herstellen" om het terug te '
+          'zetten.';
+    case PurchaseFailureKind.ownedByOtherAccount:
+      return 'Deze aankoop hoort al bij een ander BijbelQuiz-account. Log in '
+          'met dat account om je Premium te gebruiken.';
+    case PurchaseFailureKind.notAllowed:
+      return 'Aankopen zijn niet toegestaan op dit apparaat. Controleer de '
+          'instellingen van je $store-account.';
+    case PurchaseFailureKind.notAvailable:
+      return 'Dit abonnement is nu niet beschikbaar in de $store. Probeer '
+          'het later opnieuw.';
+    case PurchaseFailureKind.store:
+      return 'De $store geeft een fout. Probeer het later opnieuw.';
+    case PurchaseFailureKind.notConfigured:
+      return 'Aankopen zijn in deze versie van de app niet beschikbaar.';
+    case PurchaseFailureKind.cancelled:
+    case PurchaseFailureKind.pending:
+    case PurchaseFailureKind.unknown:
+      return action == PremiumAction.restore
+          ? 'Herstellen is niet gelukt. Probeer het opnieuw.'
+          : 'De aankoop is niet afgerond. Er is niets in rekening gebracht.';
   }
 }
