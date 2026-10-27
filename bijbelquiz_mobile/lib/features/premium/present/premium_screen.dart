@@ -8,6 +8,7 @@ import '../../../core/config/app_config.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/bq.dart';
 import '../../profile/present/profile_provider.dart';
+import '../../quiz/data/free_quiz_limit.dart';
 import '../data/purchase_service.dart';
 import '../domain/plan_pricing.dart';
 import 'premium_controller.dart';
@@ -25,7 +26,7 @@ const String _defaultTitle = 'Speel onbeperkt\nmet Premium';
 /// A paywall that opens on "Premium" sells a product; one that opens on what
 /// the player wanted to do answers the question they actually have.
 const Map<String, String> _triggerTitles = {
-  PaywallTrigger.freeLimit: 'Mooi gespeeld!\nSpeel verder met Premium',
+  PaywallTrigger.freeLimit: 'Je $kFreeQuizLimit gratis quizzen\nzijn gespeeld',
   PaywallTrigger.hostQuotaExhausted: 'Speel onbeperkt\nsamen verder',
   PaywallTrigger.hostQuotaWarning: 'Speel onbeperkt\nsamen verder',
   PaywallTrigger.hostPlayerCap: 'Speel met je\nhele groep',
@@ -302,6 +303,19 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                           ),
                         ),
                       ),
+                      if (widget.trigger == PaywallTrigger.freeLimit) ...[
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Speel verder met Premium.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            height: 22 / 16,
+                            color: AppTheme.inkMuted,
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 10),
                       const PaywallPreview(),
                       const SizedBox(height: 14),

@@ -44,18 +44,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   String _selectedSort = 'popular';
   String _searchQuery = '';
 
-  /// Set by tapping a tile under "Bijbelboeken".
-  String? _selectedBook;
-  bool _showAllBooks = false;
-
   static const List<MapEntry<String, String>> _difficultyChips = [
     MapEntry('all', 'Elk niveau'),
     MapEntry('easy', 'Makkelijk'),
     MapEntry('medium', 'Gemiddeld'),
     MapEntry('hard', 'Moeilijk'),
   ];
-
-  static const int _booksCollapsed = 6;
 
   @override
   void initState() {
@@ -109,9 +103,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         has(quiz.category?.name);
   }
 
-  bool _matchesBook(Quiz quiz) =>
-      _selectedBook == null || quiz.passage?.book == _selectedBook;
-
   bool _matchesDifficulty(Quiz quiz) =>
       _selectedDifficulty == 'all' ||
       quiz.difficultyBucket == _selectedDifficulty;
@@ -162,17 +153,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       Scrollable.ensureVisible(
         target,
         duration: const Duration(milliseconds: 320),
-        curve: Curves.easeOutCubic,
-      );
-    }
-  }
-
-  void _selectBook(String book) {
-    setState(() => _selectedBook = book);
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        0,
-        duration: const Duration(milliseconds: 280),
         curve: Curves.easeOutCubic,
       );
     }
@@ -277,22 +257,17 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
 
   List<Widget> _buildContent(List<Quiz> quizzes, Set<String> playedIds) {
     final inCategory = quizzes.where(_matchesCategory).toList();
-    final filtering = _searchQuery.isNotEmpty || _selectedBook != null;
+    final filtering = _searchQuery.isNotEmpty;
 
     final listed = _sorted(
-      inCategory.where(
-        (q) => _matchesSearch(q) && _matchesBook(q) && _matchesDifficulty(q),
-      ),
+      inCategory.where((q) => _matchesSearch(q) && _matchesDifficulty(q)),
       playedIds,
       _selectedSort,
     );
 
     final listSection = _AllQuizzesSection(
       key: _allQuizzesKey,
-      title: _selectedBook ?? (filtering ? 'Resultaten' : 'Alle quizzen'),
-      onClearBook: _selectedBook == null
-          ? null
-          : () => setState(() => _selectedBook = null),
+      title: filtering ? 'Resultaten' : 'Alle quizzen',
       quizzes: listed,
       playedIds: playedIds,
       difficultyChips: _difficultyChips,
@@ -326,10 +301,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       const <String>{},
       'popular',
     ).take(8).toList();
-    final books = _bookStats(inCategory, playedIds);
-    final visibleBooks = _showAllBooks
-        ? books
-        : books.take(_booksCollapsed).toList();
 
     final head = <Widget>[
       if (popular.isNotEmpty) ...[
@@ -353,23 +324,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: _PlayTogetherCard(onTap: () => context.go('/play-together')),
       ),
-      if (books.isNotEmpty) ...[
-        const SizedBox(height: 3),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: _SectionTitle(
-            title: 'Bijbelboeken',
-            actionLabel: books.length > _booksCollapsed
-                ? (_showAllBooks ? 'Minder' : 'Alle ${books.length}')
-                : null,
-            onAction: () => setState(() => _showAllBooks = !_showAllBooks),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: _BookGrid(books: visibleBooks, onOpen: _selectBook),
-        ),
-      ],
       const SizedBox(height: 22),
       listSection,
     ];
@@ -383,25 +337,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       ),
       rows,
     ];
-  }
-
-  /// Quizzes per Bible book, in canonical order, with how many this account
-  /// has finished.
-  List<_BookStat> _bookStats(List<Quiz> quizzes, Set<String> playedIds) {
-    final byBook = <String, _BookStat>{};
-    for (final quiz in quizzes) {
-      final book = quiz.passage?.book;
-      if (book == null || book.isEmpty) continue;
-      final stat = byBook.putIfAbsent(book, () => _BookStat(book));
-      stat.total++;
-      if (playedIds.contains(quiz.id)) stat.played++;
-    }
-    final list = byBook.values.toList()
-      ..sort((a, b) {
-        final order = a.info.order.compareTo(b.info.order);
-        return order != 0 ? order : a.name.compareTo(b.name);
-      });
-    return list;
   }
 }
 
@@ -691,7 +626,7 @@ class _PopularCard extends StatelessWidget {
                   children: [
                     QuizCover(
                       imagePath: quiz.imageOrFallback,
-                  thumbnailPath: quiz.thumbnail,
+                      thumbnailPath: quiz.thumbnail,
                       background: tint.background,
                     ),
                     if (quiz.isPremium)
@@ -846,155 +781,6 @@ class _PlayTogetherCard extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Bijbelboeken
-// ---------------------------------------------------------------------------
-
-class _BookStat {
-  _BookStat(this.name) : info = BibleBooks.info(name);
-
-  final String name;
-  final BibleBookInfo info;
-  int total = 0;
-  int played = 0;
-
-  bool get complete => total > 0 && played >= total;
-}
-
-class _BookGrid extends StatelessWidget {
-  const _BookGrid({required this.books, required this.onOpen});
-
-  final List<_BookStat> books;
-  final ValueChanged<String> onOpen;
-
-  @override
-  Widget build(BuildContext context) {
-    final rows = <Widget>[];
-    for (var start = 0; start < books.length; start += 3) {
-      if (start > 0) rows.add(const SizedBox(height: 10));
-      rows.add(
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (var i = start; i < start + 3; i++) ...[
-                if (i > start) const SizedBox(width: 10),
-                Expanded(
-                  child: i < books.length
-                      ? _BookTile(
-                          book: books[i],
-                          onTap: () => onOpen(books[i].name),
-                        )
-                      : const SizedBox.shrink(),
-                ),
-              ],
-            ],
-          ),
-        ),
-      );
-    }
-    return Column(children: rows);
-  }
-}
-
-class _BookTile extends StatelessWidget {
-  const _BookTile({required this.book, required this.onTap});
-
-  final _BookStat book;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final tint = book.info.oldTestament == true
-        ? BookTint.oldTestament
-        : BookTint.newTestament;
-
-    return Semantics(
-      button: true,
-      onTap: onTap,
-      label: '${book.name}, ${book.played} van ${book.total} quizzen gespeeld',
-      excludeSemantics: true,
-      child: BqCard(
-        radius: 14,
-        padding: const EdgeInsets.all(10),
-        onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                Container(
-                  constraints: const BoxConstraints(minWidth: 34),
-                  height: 34,
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  decoration: BoxDecoration(
-                    color: tint.background,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    book.info.abbreviation,
-                    maxLines: 1,
-                    style: TextStyle(
-                      fontFamily: AppTheme.sansFontName,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      color: tint.foreground,
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                if (book.complete)
-                  const BqIcon(
-                    BqIcons.check,
-                    size: 14,
-                    color: AppTheme.positive,
-                  ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              book.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontFamily: AppTheme.sansFontName,
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-                color: AppTheme.ink,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                Expanded(
-                  child: BqProgressBar(
-                    value: book.total > 0 ? book.played / book.total : 0,
-                    color: tint.foreground,
-                    height: 5,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  '${book.played}/${book.total}',
-                  style: const TextStyle(
-                    fontFamily: AppTheme.sansFontName,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    color: AppTheme.inkMuted,
-                    fontFeatures: [FontFeature.tabularFigures()],
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Alle quizzen
 // ---------------------------------------------------------------------------
 
@@ -1002,7 +788,6 @@ class _AllQuizzesSection extends StatelessWidget {
   const _AllQuizzesSection({
     super.key,
     required this.title,
-    required this.onClearBook,
     required this.quizzes,
     required this.playedIds,
     required this.difficultyChips,
@@ -1014,7 +799,6 @@ class _AllQuizzesSection extends StatelessWidget {
   });
 
   final String title;
-  final VoidCallback? onClearBook;
   final List<Quiz> quizzes;
   final Set<String> playedIds;
   final List<MapEntry<String, String>> difficultyChips;
@@ -1046,13 +830,6 @@ class _AllQuizzesSection extends StatelessWidget {
                   ),
                 ),
               ),
-              if (onClearBook != null)
-                BqCircleButton(
-                  icon: BqIcons.close,
-                  label: 'Boekfilter wissen',
-                  size: 36,
-                  onTap: onClearBook,
-                ),
             ],
           ),
         ),

@@ -36,6 +36,22 @@ import '../../features/duels/present/duel_play_screen.dart';
 import '../../features/settings/present/settings_screen.dart';
 
 /// The tab shell: Home, Quizzen, Duels, Ranglijst, Profiel.
+/// A page inside the tab shell: switching tabs swaps the screen with a short
+/// crossfade instead of a push animation sliding a page over the last one.
+CustomTransitionPage<void> _tabPage(GoRouterState state, Widget child) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 180),
+    reverseTransitionDuration: const Duration(milliseconds: 180),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+        FadeTransition(
+          opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+          child: child,
+        ),
+  );
+}
+
 class MainScaffold extends ConsumerWidget {
   final Widget child;
   const MainScaffold({super.key, required this.child});
@@ -289,31 +305,38 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(
             path: '/home',
-            builder: (context, state) => const HomeScreen(),
+            pageBuilder: (context, state) =>
+                _tabPage(state, const HomeScreen()),
           ),
           GoRoute(
             path: '/quizzes',
-            builder: (context, state) => const LibraryScreen(),
+            pageBuilder: (context, state) =>
+                _tabPage(state, const LibraryScreen()),
           ),
           GoRoute(
             path: '/duels',
-            builder: (context, state) => const DuelsScreen(),
+            pageBuilder: (context, state) =>
+                _tabPage(state, const DuelsScreen()),
           ),
           GoRoute(
             path: '/leaderboard',
-            builder: (context, state) => const LeaderboardScreen(),
+            pageBuilder: (context, state) =>
+                _tabPage(state, const LeaderboardScreen()),
           ),
           GoRoute(
             path: '/play-together',
-            builder: (context, state) => const PlayTogetherScreen(),
+            pageBuilder: (context, state) =>
+                _tabPage(state, const PlayTogetherScreen()),
           ),
           GoRoute(
             path: '/profile',
-            builder: (context, state) => const ProfileScreen(),
+            pageBuilder: (context, state) =>
+                _tabPage(state, const ProfileScreen()),
           ),
           GoRoute(
             path: '/profile/achievements',
-            builder: (context, state) => const ProfileAchievementsScreen(),
+            pageBuilder: (context, state) =>
+                _tabPage(state, const ProfileAchievementsScreen()),
           ),
         ],
       ),
