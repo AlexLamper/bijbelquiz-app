@@ -1,0 +1,36 @@
+{
+  "page": 1, "pageSize": 25, "total": 3, "pages": 2,
+  "revenue": {
+    "currency": "eur", "netCentsLast30d": 12345, "netCentsAllTime": 99999,
+    "refundedCentsAllTime": 499, "paymentsCompleted": 140, "renewalsAllTime": 30,
+    "bySource": {
+      "stripe": { "netCentsAllTime": 50000, "netCentsLast30d": 6000, "payments": 60 },
+      "store": { "netCentsAllTime": 49999, "netCentsLast30d": 6345, "payments": 80 }
+    },
+    "otherCurrenciesAllTime": [{ "currency": "usd", "netCents": 499 }],
+    "otherCurrenciesLast30d": []
+  },
+  "payments": [
+    {
+      "id": "p1", "userId": "u1", "userName": "Anna de Vries", "userEmail": "anna@example.nl",
+      "userDeleted": false, "provider": "revenuecat", "store": "app_store", "planType": "yearly",
+      "amountCents": 2499, "currency": "eur", "status": "completed", "refundedCents": 0,
+      "isTest": false, "isInternal": false, "isRenewal": false, "counted": true,
+      "createdAt": "2026-10-20T10:00:00.000Z"
+    },
+    {
+      "id": "p2", "userId": "u2", "userName": "Bram Jansen", "userEmail": "bram@example.nl",
+      "userDeleted": false, "provider": "stripe", "store": null, "planType": "monthly",
+      "amountCents": 399, "currency": "eur", "status": "refunded", "refundedCents": 399,
+      "isTest": false, "isInternal": false, "isRenewal": true, "counted": false,
+      "createdAt": "2026-10-18T10:00:00.000Z"
+    },
+    {
+      "id": "p3", "userId": null, "userName": "Verwijderd account", "userEmail": "",
+      "userDeleted": true, "provider": "revenuecat", "store": "play_store", "planType": "lifetime",
+      "amountCents": 4999, "currency": "usd", "status": "completed", "refundedCents": 1000,
+      "isTest": true, "isInternal": false, "isRenewal": false, "counted": false,
+      "createdAt": "2026-10-01T10:00:00.000Z"
+    }
+  ]
+}

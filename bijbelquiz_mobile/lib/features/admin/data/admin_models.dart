@@ -1152,13 +1152,28 @@ class AdminUserDetail {
         groupActive: premium.groupActive,
         groupUntil: premium.groupUntil,
         groupLicenses: premium.groupLicenses,
-        manual: premium.manual,
+        manual: _manualAfter(state, entry),
       ),
       grantLog: entry == null ? grantLog : [entry, ...grantLog],
       platformHistory: platformHistory,
       payments: payments,
       recentAttempts: recentAttempts,
       counts: counts,
+    );
+  }
+
+  /// The manual grant as a grant / revoke response leaves it.
+  AdminManualGrant _manualAfter(AdminPremiumState state, AdminGrantEntry? entry) {
+    if (!state.hasManual || entry?.isRevoke == true) {
+      return const AdminManualGrant();
+    }
+    if (entry == null) return premium.manual;
+    return AdminManualGrant(
+      active: true,
+      until: entry.until,
+      grantedAt: entry.at,
+      grantedBy: entry.by,
+      note: entry.note,
     );
   }
 
