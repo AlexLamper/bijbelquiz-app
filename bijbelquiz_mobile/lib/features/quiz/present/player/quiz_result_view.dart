@@ -158,6 +158,16 @@ class QuizResultView extends ConsumerWidget {
                     ),
                   ],
                 ),
+                const SizedBox(height: 12),
+                // Last on the page. `go`, not `push`: the home tab replaces
+                // the player, so back does not return to a finished quiz.
+                BqButton(
+                  key: const ValueKey('quiz-result-home'),
+                  label: 'Terug naar home',
+                  style: BqButtonStyle.secondary,
+                  icon: const BqIcon(BqIcons.home, size: 18),
+                  onPressed: () => context.go('/home'),
+                ),
               ],
             ),
           ),

@@ -1251,6 +1251,18 @@ class _OverviewView extends StatelessWidget {
             ),
           ),
         ],
+        if (duel.isFinished) ...[
+          const SizedBox(height: 20),
+          // The duel is over: the home tab replaces this screen (`go`), so
+          // back does not return to it.
+          BqButton(
+            key: const ValueKey('duel-finished-home'),
+            label: 'Terug naar home',
+            style: BqButtonStyle.secondary,
+            icon: const BqIcon(BqIcons.home, size: 18),
+            onPressed: () => context.go('/home'),
+          ),
+        ],
       ],
     );
   }
