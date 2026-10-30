@@ -428,14 +428,14 @@ class PaywallPlanCard extends StatelessWidget {
   final String? note;
   final String? badge;
 
-  /// The plan's per-week equivalent ("€0,77"), shown as a gold highlight under
+  /// The plan's per-week equivalent ("€0,77"), shown as a blue highlight under
   /// the billed price. Null when the store price cannot be read as a number.
   ///
   /// Deliberately smaller than [price]: App Store (3.1.2) and Google Play both
   /// require the amount that is actually billed to be the most prominent price
   /// on a subscription offer, and reject paywalls that lead with a breakdown.
-  /// The gold makes the week the first thing the eye catches without making it
-  /// the biggest number.
+  /// The tinted pill makes the week the first thing the eye catches without
+  /// making it the biggest number.
   final String? weekly;
   final bool selected;
   final VoidCallback? onTap;
@@ -575,7 +575,8 @@ class PaywallPlanCard extends StatelessWidget {
   }
 }
 
-/// "€0,77 per week" on a gold pill: the per-week equivalent of a plan.
+/// "€0,77 per week" on a lapis pill: the per-week equivalent of a plan, in
+/// the brand blue of the selected card rather than a second accent colour.
 class PaywallWeeklyChip extends StatelessWidget {
   const PaywallWeeklyChip({super.key, required this.amount});
 
@@ -586,9 +587,9 @@ class PaywallWeeklyChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
       decoration: BoxDecoration(
-        color: AppTheme.goldTint,
+        color: AppTheme.lapisTint,
         borderRadius: BorderRadius.circular(AppTheme.radiusPill),
-        border: Border.all(color: AppTheme.gold.withValues(alpha: 0.55)),
+        border: Border.all(color: AppTheme.lapisSoft),
       ),
       child: FittedBox(
         fit: BoxFit.scaleDown,
@@ -599,7 +600,7 @@ class PaywallWeeklyChip extends StatelessWidget {
             fontFamily: AppTheme.sansFontName,
             fontSize: 13,
             fontWeight: FontWeight.w900,
-            color: AppTheme.goldInk,
+            color: AppTheme.lapis,
           ),
         ),
       ),
@@ -644,7 +645,8 @@ class PaywallLifetimeOption extends StatelessWidget {
         inMutuallyExclusiveGroup: true,
         label: [
           'Levenslang Premium, $price eenmalig',
-          if (weekly != null) '$weekly per week over $lifetimeHorizonYears jaar',
+          if (weekly != null)
+            '$weekly per week over $lifetimeHorizonYears jaar',
         ].join(', '),
         excludeSemantics: true,
         child: Container(
@@ -687,7 +689,7 @@ class PaywallLifetimeOption extends StatelessWidget {
                           fontFamily: AppTheme.sansFontName,
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
-                          color: AppTheme.goldText,
+                          color: AppTheme.lapis,
                         ),
                       ),
                   ],

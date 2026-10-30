@@ -178,39 +178,42 @@ class _PremiumUpgradeSheetState extends ConsumerState<_PremiumUpgradeSheet> {
             const PaywallBenefits(),
             // Room for the badge on the top edge of the yearly card.
             const SizedBox(height: 30),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: PaywallPlanCard(
-                    title: 'Jaarlijks',
-                    price: yearlyPrice,
-                    period: 'per jaar',
-                    weekly: yearlyPerWeek,
-                    badge:
-                        yearlyTrial?.label ??
-                        (savings == null ? null : 'Bespaar $savings%'),
-                    selected: _plan == _SheetPlan.yearly,
-                    onTap: isLoading
-                        ? null
-                        : () => setState(() => _plan = _SheetPlan.yearly),
+            // Both cards as tall as the taller one.
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: PaywallPlanCard(
+                      title: 'Jaarlijks',
+                      price: yearlyPrice,
+                      period: 'per jaar',
+                      weekly: yearlyPerWeek,
+                      badge:
+                          yearlyTrial?.label ??
+                          (savings == null ? null : 'Bespaar $savings%'),
+                      selected: _plan == _SheetPlan.yearly,
+                      onTap: isLoading
+                          ? null
+                          : () => setState(() => _plan = _SheetPlan.yearly),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: PaywallPlanCard(
-                    title: 'Maandelijks',
-                    price: monthlyPrice,
-                    period: 'per maand',
-                    weekly: monthlyPerWeek,
-                    note: monthlyTrial?.label ?? 'Geen proefperiode',
-                    selected: _plan == _SheetPlan.monthly,
-                    onTap: isLoading
-                        ? null
-                        : () => setState(() => _plan = _SheetPlan.monthly),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: PaywallPlanCard(
+                      title: 'Maandelijks',
+                      price: monthlyPrice,
+                      period: 'per maand',
+                      weekly: monthlyPerWeek,
+                      note: monthlyTrial?.label ?? 'Geen proefperiode',
+                      selected: _plan == _SheetPlan.monthly,
+                      onTap: isLoading
+                          ? null
+                          : () => setState(() => _plan = _SheetPlan.monthly),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
             const SizedBox(height: 16),
             BqButton(

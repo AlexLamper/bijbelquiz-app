@@ -357,42 +357,48 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                       Semantics(
                         label: 'Kies een abonnement',
                         container: true,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: PaywallPlanCard(
-                                title: 'Jaarlijks',
-                                price: yearlyPrice,
-                                period: 'per jaar',
-                                weekly: yearlyPerWeek,
-                                badge:
-                                    yearlyTrial?.label ??
-                                    (savings == null
-                                        ? null
-                                        : 'Bespaar $savings%'),
-                                selected: _selectedPlan == PremiumPlan.yearly,
-                                onTap: isLoading
-                                    ? null
-                                    : () => _select(PremiumPlan.yearly),
+                        // Both cards as tall as the taller one, whatever
+                        // notes or trial badge either carries.
+                        child: IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(
+                                child: PaywallPlanCard(
+                                  title: 'Jaarlijks',
+                                  price: yearlyPrice,
+                                  period: 'per jaar',
+                                  weekly: yearlyPerWeek,
+                                  badge:
+                                      yearlyTrial?.label ??
+                                      (savings == null
+                                          ? null
+                                          : 'Bespaar $savings%'),
+                                  selected: _selectedPlan == PremiumPlan.yearly,
+                                  onTap: isLoading
+                                      ? null
+                                      : () => _select(PremiumPlan.yearly),
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: PaywallPlanCard(
-                                title: 'Maandelijks',
-                                price: monthlyPrice,
-                                period: 'per maand',
-                                weekly: monthlyPerWeek,
-                                note:
-                                    monthlyTrial?.label ?? 'Geen proefperiode',
-                                selected: _selectedPlan == PremiumPlan.monthly,
-                                onTap: isLoading
-                                    ? null
-                                    : () => _select(PremiumPlan.monthly),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: PaywallPlanCard(
+                                  title: 'Maandelijks',
+                                  price: monthlyPrice,
+                                  period: 'per maand',
+                                  weekly: monthlyPerWeek,
+                                  note:
+                                      monthlyTrial?.label ??
+                                      'Geen proefperiode',
+                                  selected:
+                                      _selectedPlan == PremiumPlan.monthly,
+                                  onTap: isLoading
+                                      ? null
+                                      : () => _select(PremiumPlan.monthly),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                       PaywallLifetimeOption(
