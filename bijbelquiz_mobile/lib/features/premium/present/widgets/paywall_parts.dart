@@ -11,6 +11,7 @@ import '../../../../core/ui/bq.dart';
 import '../../../quiz/data/free_quiz_limit.dart';
 import '../../data/purchase_service.dart';
 import '../../data/trial_reminder.dart';
+import '../../domain/plan_pricing.dart' show lifetimeHorizonYears;
 
 /// Building blocks shared by the paywall screen, the upgrade sheet and the
 /// Premium intro: the explanatory "Quizzen" card, the benefit list with solid
@@ -418,6 +419,7 @@ class PaywallPlanCard extends StatelessWidget {
     required this.onTap,
     this.note,
     this.badge,
+    this.weekly,
   });
 
   final String title;
@@ -425,6 +427,16 @@ class PaywallPlanCard extends StatelessWidget {
   final String period;
   final String? note;
   final String? badge;
+
+  /// The plan's per-week equivalent ("€0,77"), shown as a gold highlight under
+  /// the billed price. Null when the store price cannot be read as a number.
+  ///
+  /// Deliberately smaller than [price]: App Store (3.1.2) and Google Play both
+  /// require the amount that is actually billed to be the most prominent price
+  /// on a subscription offer, and reject paywalls that lead with a breakdown.
+  /// The gold makes the week the first thing the eye catches without making it
+  /// the biggest number.
+  final String? weekly;
   final bool selected;
   final VoidCallback? onTap;
 
@@ -441,6 +453,7 @@ class PaywallPlanCard extends StatelessWidget {
       label: [
         title,
         '$price $period',
+        if (weekly != null) '$weekly per week',
         if (noteText != null) noteText,
         if (badgeText != null) badgeText.toLowerCase(),
       ].join(', '),
@@ -505,6 +518,10 @@ class PaywallPlanCard extends StatelessWidget {
                           color: AppTheme.inkSoft,
                         ),
                       ),
+                      if (weekly != null) ...[
+                        const SizedBox(height: 6),
+                        PaywallWeeklyChip(amount: weekly!),
+                      ],
                       if (noteText != null) ...[
                         const SizedBox(height: 2),
                         Text(
@@ -558,6 +575,38 @@ class PaywallPlanCard extends StatelessWidget {
   }
 }
 
+/// "€0,77 per week" on a gold pill: the per-week equivalent of a plan.
+class PaywallWeeklyChip extends StatelessWidget {
+  const PaywallWeeklyChip({super.key, required this.amount});
+
+  final String amount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppTheme.goldTint,
+        borderRadius: BorderRadius.circular(AppTheme.radiusPill),
+        border: Border.all(color: AppTheme.gold.withValues(alpha: 0.55)),
+      ),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          '$amount per week',
+          maxLines: 1,
+          style: const TextStyle(
+            fontFamily: AppTheme.sansFontName,
+            fontSize: 13,
+            fontWeight: FontWeight.w900,
+            color: AppTheme.goldInk,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// "Of eenmalig: levenslang Premium". A link while another plan is chosen;
 /// once chosen it turns into a selected row that names the one-off price.
 class PaywallLifetimeOption extends StatelessWidget {
@@ -566,11 +615,15 @@ class PaywallLifetimeOption extends StatelessWidget {
     required this.selected,
     required this.price,
     required this.onTap,
+    this.weekly,
   });
 
   final bool selected;
   final String price;
   final VoidCallback? onTap;
+
+  /// The one-off price spread over [lifetimeHorizonYears] years, per week.
+  final String? weekly;
 
   @override
   Widget build(BuildContext context) {
@@ -589,7 +642,10 @@ class PaywallLifetimeOption extends StatelessWidget {
         button: true,
         selected: true,
         inMutuallyExclusiveGroup: true,
-        label: 'Levenslang Premium, $price eenmalig',
+        label: [
+          'Levenslang Premium, $price eenmalig',
+          if (weekly != null) '$weekly per week over $lifetimeHorizonYears jaar',
+        ].join(', '),
         excludeSemantics: true,
         child: Container(
           constraints: const BoxConstraints(minHeight: 56),
@@ -624,6 +680,16 @@ class PaywallLifetimeOption extends StatelessWidget {
                         color: AppTheme.inkSoft,
                       ),
                     ),
+                    if (weekly != null)
+                      Text(
+                        '$weekly per week over $lifetimeHorizonYears jaar',
+                        style: const TextStyle(
+                          fontFamily: AppTheme.sansFontName,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.goldText,
+                        ),
+                      ),
                   ],
                 ),
               ),

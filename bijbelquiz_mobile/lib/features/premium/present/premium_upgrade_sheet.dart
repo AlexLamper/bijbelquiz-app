@@ -137,7 +137,10 @@ class _PremiumUpgradeSheetState extends ConsumerState<_PremiumUpgradeSheet> {
         : monthlyOffer;
 
     final savings = yearlySavingsPercent(monthlyPrice, yearlyPrice);
-    final yearlyPerMonth = monthlyEquivalentOfYearly(yearlyPrice);
+    // Both plans are also quoted per week, as a highlight under the billed
+    // price (which the stores require to stay the most prominent number).
+    final yearlyPerWeek = pricePerWeek(yearlyPrice, months: 12);
+    final monthlyPerWeek = pricePerWeek(monthlyPrice, months: 1);
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -183,9 +186,7 @@ class _PremiumUpgradeSheetState extends ConsumerState<_PremiumUpgradeSheet> {
                     title: 'Jaarlijks',
                     price: yearlyPrice,
                     period: 'per jaar',
-                    note: yearlyPerMonth == null
-                        ? null
-                        : '= $yearlyPerMonth per maand',
+                    weekly: yearlyPerWeek,
                     badge:
                         yearlyTrial?.label ??
                         (savings == null ? null : 'Bespaar $savings%'),
@@ -201,6 +202,7 @@ class _PremiumUpgradeSheetState extends ConsumerState<_PremiumUpgradeSheet> {
                     title: 'Maandelijks',
                     price: monthlyPrice,
                     period: 'per maand',
+                    weekly: monthlyPerWeek,
                     note: monthlyTrial?.label ?? 'Geen proefperiode',
                     selected: _plan == _SheetPlan.monthly,
                     onTap: isLoading

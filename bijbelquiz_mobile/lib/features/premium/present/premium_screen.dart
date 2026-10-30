@@ -253,7 +253,11 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
     final selectedAvailable = premiumState.offerFor(_selectedPlan) != null;
 
     final savings = yearlySavingsPercent(monthlyPrice, yearlyPrice);
-    final yearlyPerMonth = monthlyEquivalentOfYearly(yearlyPrice);
+    // Every plan is also quoted per week, as a highlight under the billed
+    // price (which the stores require to stay the most prominent number).
+    final yearlyPerWeek = pricePerWeek(yearlyPrice, months: 12);
+    final monthlyPerWeek = pricePerWeek(monthlyPrice, months: 1);
+    final lifetimePerWeek = lifetimePricePerWeek(lifetimePrice);
 
     final locked = widget.isLocked;
     // Once Premium is active the locked wall has done its job.
@@ -316,6 +320,22 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                           ),
                         ),
                       ],
+                      // The cheapest way in, per week. Smaller than the billed
+                      // prices on the plan cards, as the stores require.
+                      if (yearlyPerWeek != null) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          'Vanaf $yearlyPerWeek per week',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontFamily: AppTheme.sansFontName,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            height: 22 / 16,
+                            color: AppTheme.lapis,
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 10),
                       const PaywallPreview(),
                       const SizedBox(height: 14),
@@ -345,9 +365,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                                 title: 'Jaarlijks',
                                 price: yearlyPrice,
                                 period: 'per jaar',
-                                note: yearlyPerMonth == null
-                                    ? null
-                                    : '= $yearlyPerMonth per maand',
+                                weekly: yearlyPerWeek,
                                 badge:
                                     yearlyTrial?.label ??
                                     (savings == null
@@ -365,6 +383,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                                 title: 'Maandelijks',
                                 price: monthlyPrice,
                                 period: 'per maand',
+                                weekly: monthlyPerWeek,
                                 note:
                                     monthlyTrial?.label ?? 'Geen proefperiode',
                                 selected: _selectedPlan == PremiumPlan.monthly,
@@ -379,6 +398,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                       PaywallLifetimeOption(
                         selected: _selectedPlan == PremiumPlan.lifetime,
                         price: lifetimePrice,
+                        weekly: lifetimePerWeek,
                         onTap: isLoading
                             ? null
                             : () => _select(PremiumPlan.lifetime),
