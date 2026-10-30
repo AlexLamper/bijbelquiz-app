@@ -11,6 +11,7 @@ import '../data/quiz_repository.dart';
 import '../domain/category.dart';
 import '../domain/quiz.dart';
 import 'library_category_request.dart';
+import 'quiz_order.dart';
 import 'widgets/bible_books.dart';
 import 'widgets/quiz_cover.dart';
 
@@ -41,7 +42,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
 
   String _selectedCategory = 'all';
   String _selectedDifficulty = 'all';
-  String _selectedSort = 'popular';
+  /// Bible order by default: Genesis 1, 2, 3 ... - the way a reader looks
+  /// for a chapter, and the order the website lists them in.
+  String _selectedSort = 'bible';
   String _searchQuery = '';
 
   static const List<MapEntry<String, String>> _difficultyChips = [
@@ -113,6 +116,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     String sort,
   ) {
     final list = quizzes.toList();
+    // In Bible order a played chapter keeps its place (it is marked as played
+    // instead): pulling it out would turn 1, 2, 3 into 2, 3, ... 1.
+    if (sort == 'bible') return list..sort(compareQuizzesInBibleOrder);
     list.sort((a, b) {
       // Quizzes still to play always come first. A library that opens on the
       // ones you already finished gets the same few replayed while the rest is
@@ -129,7 +135,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           final bKey = b.createdAt.isNotEmpty ? b.createdAt : b.id;
           return bKey.compareTo(aKey);
         case 'title':
-          return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+          return compareNatural(a.title, b.title);
         case 'short':
           return a.questionCount.compareTo(b.questionCount);
         case 'reward':
@@ -138,7 +144,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         default:
           final questionCompare = b.questionCount.compareTo(a.questionCount);
           if (questionCompare != 0) return questionCompare;
-          return b.xpReward.compareTo(a.xpReward);
+          final rewardCompare = b.xpReward.compareTo(a.xpReward);
+          if (rewardCompare != 0) return rewardCompare;
+          // Ties (most quizzes have the same size) stay in Bible order rather
+          // than in whatever order the sort happens to leave them.
+          return compareQuizzesInBibleOrder(a, b);
       }
     });
     return list;
@@ -616,6 +626,8 @@ class _PopularCard extends StatelessWidget {
         child: BqCard(
           padding: EdgeInsets.zero,
           onTap: onTap,
+          color: played ? AppTheme.positiveTint : AppTheme.paperRaised,
+          borderColor: played ? _playedBorder : AppTheme.rule,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -629,10 +641,15 @@ class _PopularCard extends StatelessWidget {
                       thumbnailPath: quiz.thumbnail,
                       background: tint.background,
                     ),
+                    if (played) const _PlayedCoverOverlay(checkSize: 34),
                     if (quiz.isPremium)
                       const Positioned(left: 8, top: 8, child: _PremiumBadge()),
                     if (played)
-                      const Positioned(right: 8, top: 8, child: _PlayedBadge()),
+                      const Positioned(
+                        right: 8,
+                        top: 8,
+                        child: _PlayedPill(),
+                      ),
                   ],
                 ),
               ),
@@ -651,7 +668,7 @@ class _PopularCard extends StatelessWidget {
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.44,
-                        color: tint.foreground,
+                        color: played ? AppTheme.positiveText : tint.foreground,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -659,20 +676,25 @@ class _PopularCard extends StatelessWidget {
                       quiz.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTheme.displayBase,
+                      style: played
+                          ? AppTheme.displayBase.copyWith(color: AppTheme.inkSoft)
+                          : AppTheme.displayBase,
                     ),
                     const SizedBox(height: 2),
-                    Text(
-                      '${quiz.questionCount} vragen · ${_minutesFor(quiz.questionCount)} min',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontFamily: AppTheme.sansFontName,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.inkMuted,
+                    if (played)
+                      const _PlayedMeta(fontSize: 12)
+                    else
+                      Text(
+                        '${quiz.questionCount} vragen · ${_minutesFor(quiz.questionCount)} min',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: AppTheme.sansFontName,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.inkMuted,
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -700,20 +722,103 @@ class _PremiumBadge extends StatelessWidget {
   }
 }
 
-class _PlayedBadge extends StatelessWidget {
-  const _PlayedBadge();
+/// Border of a played card: the green of the check, softened.
+const Color _playedBorder = Color(0x593F6B4F);
+
+/// Laid over the cover of a quiz the reader already finished: the art steps
+/// back under a green wash and a check sits in the middle, so a played
+/// chapter reads as done from a glance down the list - not only from a dot in
+/// the corner.
+class _PlayedCoverOverlay extends StatelessWidget {
+  const _PlayedCoverOverlay({required this.checkSize});
+
+  final double checkSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: AppTheme.paper.withValues(alpha: 0.42),
+      child: ColoredBox(
+        color: AppTheme.positive.withValues(alpha: 0.28),
+        child: Center(
+          child: Container(
+            width: checkSize,
+            height: checkSize,
+            decoration: const BoxDecoration(
+              color: AppTheme.positive,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(color: AppTheme.positiveDeep, offset: Offset(0, 2)),
+              ],
+            ),
+            alignment: Alignment.center,
+            child: BqIcon(
+              BqIcons.check,
+              size: checkSize * 0.56,
+              color: AppTheme.inkInverted,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "GESPEELD" on a white pill, on the cover of a played quiz.
+class _PlayedPill extends StatelessWidget {
+  const _PlayedPill();
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 22,
       height: 22,
-      decoration: const BoxDecoration(
-        color: AppTheme.positive,
-        shape: BoxShape.circle,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       alignment: Alignment.center,
-      child: const BqIcon(BqIcons.check, size: 13, color: AppTheme.inkInverted),
+      decoration: BoxDecoration(
+        color: AppTheme.paperRaised,
+        borderRadius: BorderRadius.circular(AppTheme.radiusPill),
+      ),
+      child: const Text(
+        'GESPEELD',
+        style: TextStyle(
+          fontFamily: AppTheme.sansFontName,
+          fontSize: 10.5,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.4,
+          color: AppTheme.positiveText,
+        ),
+      ),
+    );
+  }
+}
+
+/// "✓ Gespeeld" in place of the length line on a played quiz.
+class _PlayedMeta extends StatelessWidget {
+  const _PlayedMeta({required this.fontSize});
+
+  final double fontSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        BqIcon(BqIcons.check, size: fontSize + 1, color: AppTheme.positiveText),
+        const SizedBox(width: 4),
+        Flexible(
+          child: Text(
+            'Gespeeld',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontFamily: AppTheme.sansFontName,
+              fontSize: fontSize,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.positiveText,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -919,6 +1024,7 @@ class _SortSelector extends StatelessWidget {
   final ValueChanged<String> onChanged;
 
   static const Map<String, String> _labels = {
+    'bible': 'Bijbelvolgorde',
     'popular': 'Meest populair',
     'newest': 'Nieuwste eerst',
     'title': 'Titel (A-Z)',
@@ -970,7 +1076,7 @@ class _SortSelector extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  _labels[selectedSort] ?? _labels['popular']!,
+                  _labels[selectedSort] ?? _labels['bible']!,
                   style: const TextStyle(
                     fontFamily: AppTheme.sansFontName,
                     fontSize: 13,
@@ -1029,6 +1135,8 @@ class _QuizRow extends StatelessWidget {
       child: BqCard(
         padding: const EdgeInsets.all(12),
         onTap: onTap,
+        color: played ? AppTheme.positiveTint : AppTheme.paperRaised,
+        borderColor: played ? _playedBorder : AppTheme.rule,
         child: Row(
           children: [
             ClipRRect(
@@ -1036,10 +1144,16 @@ class _QuizRow extends StatelessWidget {
               child: SizedBox(
                 width: 64,
                 height: 64,
-                child: QuizCover(
-                  imagePath: quiz.imageOrFallback,
-                  thumbnailPath: quiz.thumbnail,
-                  background: tint.background,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    QuizCover(
+                      imagePath: quiz.imageOrFallback,
+                      thumbnailPath: quiz.thumbnail,
+                      background: tint.background,
+                    ),
+                    if (played) const _PlayedCoverOverlay(checkSize: 30),
+                  ],
                 ),
               ),
             ),
@@ -1058,7 +1172,7 @@ class _QuizRow extends StatelessWidget {
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.44,
-                      color: tint.foreground,
+                      color: played ? AppTheme.positiveText : tint.foreground,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -1066,9 +1180,15 @@ class _QuizRow extends StatelessWidget {
                     quiz.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: AppTheme.displayBase,
+                    style: played
+                        ? AppTheme.displayBase.copyWith(color: AppTheme.inkSoft)
+                        : AppTheme.displayBase,
                   ),
                   const SizedBox(height: 3),
+                  if (played) ...[
+                    const _PlayedMeta(fontSize: 12.5),
+                    const SizedBox(height: 1),
+                  ],
                   Text(
                     meta,
                     maxLines: 1,
@@ -1084,17 +1204,9 @@ class _QuizRow extends StatelessWidget {
                 ],
               ),
             ),
-            if (quiz.isPremium || played) ...[
+            if (quiz.isPremium) ...[
               const SizedBox(width: 8),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (quiz.isPremium)
-                    SvgPicture.string(BqIcons.crown, width: 20, height: 20),
-                  if (quiz.isPremium && played) const SizedBox(height: 6),
-                  if (played) const _PlayedBadge(),
-                ],
-              ),
+              SvgPicture.string(BqIcons.crown, width: 20, height: 20),
             ],
           ],
         ),

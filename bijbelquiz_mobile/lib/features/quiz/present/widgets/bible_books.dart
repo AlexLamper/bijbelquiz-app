@@ -147,6 +147,7 @@ class BibleBooks {
     '2timotheus': '2timoteus',
     'hebreen': 'hebreeen',
     'jacobus': 'jakobus',
+    'zefanja': 'sefanja',
     'openbaringen': 'openbaring',
   };
 

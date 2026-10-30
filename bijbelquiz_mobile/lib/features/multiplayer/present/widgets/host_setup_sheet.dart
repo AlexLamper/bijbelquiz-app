@@ -6,6 +6,7 @@ import '../../../../core/ui/app_widgets.dart';
 import '../../../../core/ui/bq.dart';
 import '../../../quiz/data/quiz_repository.dart';
 import '../../../quiz/domain/quiz.dart';
+import '../../../quiz/present/quiz_order.dart';
 import '../../domain/multiplayer_models.dart';
 import 'mp_ui.dart';
 
@@ -236,7 +237,9 @@ class _HostSetupSheetState extends ConsumerState<_HostSetupSheet> {
     final quizzesAsync = ref.watch(quizzesProvider(multiplayerQuizQuery));
 
     return quizzesAsync.when(
-      data: (quizzes) {
+      data: (catalogue) {
+        // Bible order, chapters as numbers, like the library.
+        final quizzes = sortedInBibleOrder(catalogue);
         if (quizzes.isEmpty) {
           return const Padding(
             padding: EdgeInsets.fromLTRB(20, 8, 20, 32),
