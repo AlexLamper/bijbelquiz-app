@@ -35,8 +35,9 @@ const String _checkSvg =
 const String _lockSvg =
     '<svg viewBox="0 0 24 24" fill="none" stroke="#8A877F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
 
-const String _crownSvg =
-    '<svg viewBox="0 0 24 24" fill="#FFFFFF" stroke="#3D2C05" stroke-width="1.8" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M3 18L5 7l5 5 2-7 2 7 5-5 2 11z"/></svg>';
+/// The crown on the blue "Met Premium alles open" sticker: outlined in white.
+const String _crownOnLapisSvg =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M3 18L5 7l5 5 2-7 2 7 5-5 2 11z"/></svg>';
 
 const String _shieldSvg =
     '<svg viewBox="0 0 24 24" fill="none" stroke="#3F6B4F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>';
@@ -47,7 +48,7 @@ double _deg(double degrees) => degrees * math.pi / 180;
 // Explanatory visual
 // ---------------------------------------------------------------------------
 
-/// The tilted "Quizzen" card: one free book, two locked ones, and a gold
+/// The tilted "Quizzen" card: one free book, two locked ones, and a blue
 /// "Met Premium alles open" pill. Drawn at 84% and slightly transparent so it
 /// explains without competing with the plans.
 class PaywallPreview extends StatelessWidget {
@@ -131,7 +132,7 @@ class _PreviewStack extends StatelessWidget {
                 height: 38,
                 padding: const EdgeInsets.symmetric(horizontal: 14),
                 decoration: BoxDecoration(
-                  color: AppTheme.gold,
+                  color: AppTheme.lapis,
                   borderRadius: BorderRadius.circular(AppTheme.radiusPill),
                   boxShadow: const [
                     BoxShadow(
@@ -144,7 +145,7 @@ class _PreviewStack extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    SvgPicture.string(_crownSvg, width: 16, height: 16),
+                    SvgPicture.string(_crownOnLapisSvg, width: 16, height: 16),
                     const SizedBox(width: 6),
                     const Text(
                       'Met Premium alles open',
@@ -152,7 +153,7 @@ class _PreviewStack extends StatelessWidget {
                         fontFamily: AppTheme.sansFontName,
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
-                        color: AppTheme.goldInk,
+                        color: AppTheme.inkInverted,
                       ),
                     ),
                   ],
