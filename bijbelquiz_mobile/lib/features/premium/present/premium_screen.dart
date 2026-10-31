@@ -39,7 +39,8 @@ const Map<String, String> _triggerTitles = {
 ///
 /// Two variants: the regular one (close button top-left) and the locked one
 /// shown after the free quizzes are used up - no close button, and the system
-/// back gesture does not dismiss it. Both offer "Herstellen".
+/// back gesture does not dismiss it. Both offer "Aankoop herstellen" in the
+/// small print at the bottom.
 class PremiumScreen extends ConsumerStatefulWidget {
   const PremiumScreen({
     super.key,
@@ -283,13 +284,6 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                         child: Row(
                           children: [
                             if (!locked) PaywallCloseButton(onTap: _leave),
-                            const Spacer(),
-                            PaywallLink(
-                              label: 'Herstellen',
-                              color: AppTheme.inkMuted,
-                              padding: const EdgeInsets.only(left: 12),
-                              onTap: isLoading ? null : _onRestore,
-                            ),
                           ],
                         ),
                       ),
@@ -441,6 +435,18 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                                 trial: trial,
                                 isSubscription: isSubscription,
                               ),
+                      ),
+                      // "Aankoop herstellen" lives down here with the other
+                      // small print: Apple requires a way to restore, but at
+                      // the top, next to the title, it read like the main
+                      // action of the screen.
+                      Center(
+                        child: PaywallLink(
+                          label: 'Aankoop herstellen',
+                          color: AppTheme.inkMuted,
+                          fontSize: 13,
+                          onTap: isLoading ? null : _onRestore,
+                        ),
                       ),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
