@@ -449,3 +449,149 @@ class AdminHealthIssues extends StatelessWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Free trials
+// ---------------------------------------------------------------------------
+
+/// Label and colours of a trial's status, shared by the list and the user page.
+(String, Color, Color) adminTrialStatusStyle(AdminTrialStatus status) =>
+    switch (status) {
+      AdminTrialStatus.running => ('Loopt', AppTheme.lapisTint, AppTheme.lapis),
+      AdminTrialStatus.cancelled => (
+        'Opgezegd',
+        AppTheme.coralTint,
+        AppTheme.coralDeep,
+      ),
+      AdminTrialStatus.converted => (
+        'Betaalt nu',
+        AppTheme.positiveTint,
+        AppTheme.positiveText,
+      ),
+      AdminTrialStatus.ended => (
+        'Gestopt',
+        AppTheme.paperSunken,
+        AppTheme.inkMuted,
+      ),
+    };
+
+String _trialPlan(String? plan) => switch (plan) {
+  'yearly' => 'Jaarlijks',
+  'monthly' => 'Maandelijks',
+  'lifetime' => 'Levenslang',
+  _ => 'Abonnement',
+};
+
+/// "nog 6 dagen" / "laatste dag" while open; null once over.
+String? adminTrialDaysLeft(AdminTrial trial) {
+  final days = trial.daysLeft;
+  if (days == null) return null;
+  if (days == 0) return 'laatste dag';
+  return days == 1 ? 'nog 1 dag' : 'nog $days dagen';
+}
+
+/// One sentence on a trial: what it is, until when, and what happens next.
+String adminTrialSentence(AdminTrial trial) {
+  final plan = _trialPlan(trial.plan).toLowerCase();
+  final via = trial.provider == 'stripe' ? 'website' : 'app';
+  final until = AdminFormat.date(trial.endsAt);
+  final left = adminTrialDaysLeft(trial);
+  final leftPart = left == null ? '' : ', $left';
+  return switch (trial.status) {
+    AdminTrialStatus.running =>
+      'Gratis proefweek ($plan, via $via) tot $until$leftPart. Daarna gaat '
+          'het betaalde abonnement automatisch in.',
+    AdminTrialStatus.cancelled =>
+      'Gratis proefweek ($plan, via $via) tot $until$leftPart, maar '
+          'opgezegd: stopt daarna zonder te betalen.',
+    AdminTrialStatus.converted =>
+      'Proefweek ($plan, via $via) gestart '
+          '${AdminFormat.date(trial.startedAt)} en omgezet: betaalt nu.',
+    AdminTrialStatus.ended =>
+      'Proefweek ($plan, via $via) liep tot $until en is niet omgezet.',
+  };
+}
+
+/// A trial in the overview list: who, status, when it ends.
+class AdminTrialTile extends StatelessWidget {
+  const AdminTrialTile({super.key, required this.trial, this.onTap});
+
+  final AdminTrial trial;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, bg, fg) = adminTrialStatusStyle(trial.status);
+    final who = (trial.name?.trim().isNotEmpty ?? false)
+        ? trial.name!
+        : (trial.email ?? 'Onbekend');
+    final left = adminTrialDaysLeft(trial);
+    final when = trial.isOpen
+        ? 'Tot ${AdminFormat.date(trial.endsAt)}'
+              '${left == null ? '' : ' · $left'}'
+        : trial.status == AdminTrialStatus.converted
+        ? 'Gestart ${AdminFormat.date(trial.startedAt)} · omgezet'
+        : 'Liep tot ${AdminFormat.date(trial.endsAt)}';
+    final content = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        children: [
+          BqAvatar(name: who, size: 38),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  who,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.bodyStrong,
+                ),
+                Text(
+                  when,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.caption,
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    BqPill(
+                      label: label,
+                      background: bg,
+                      foreground: fg,
+                      height: 22,
+                      fontSize: 11,
+                    ),
+                    BqPill(
+                      label:
+                          '${_trialPlan(trial.plan)} · '
+                          '${trial.provider == 'stripe' ? 'Website' : AdminLabels.platformShort(trial.platform)}',
+                      background: AppTheme.paperSunken,
+                      foreground: AppTheme.inkMuted,
+                      height: 22,
+                      fontSize: 11,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          if (onTap != null) ...[
+            const SizedBox(width: 8),
+            const BqIcon(
+              BqIcons.chevronRight,
+              size: 18,
+              color: AppTheme.inkFaint,
+            ),
+          ],
+        ],
+      ),
+    );
+    if (onTap == null) return content;
+    return InkWell(onTap: onTap, child: content);
+  }
+}

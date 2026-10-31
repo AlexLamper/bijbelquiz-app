@@ -1,1 +1,605 @@
-{"generatedAt":"2026-10-27T11:22:53.318Z","internalExcluded":0,"users":{"total":13,"derivedPlatforms":13,"registrations":{"today":{"total":4,"byPlatform":{"web-desktop":4}},"days7":{"total":4,"byPlatform":{"web-desktop":4}},"days30":{"total":4,"byPlatform":{"web-desktop":4}},"allTime":{"total":13,"byPlatform":{"web-mobile":8,"ios":1,"web-desktop":4}},"weekly":[{"weekStart":"2026-08-10","label":"10 aug","total":0,"byPlatform":{}},{"weekStart":"2026-08-17","label":"17 aug","total":0,"byPlatform":{}},{"weekStart":"2026-08-24","label":"24 aug","total":0,"byPlatform":{}},{"weekStart":"2026-08-31","label":"31 aug","total":0,"byPlatform":{}},{"weekStart":"2026-09-07","label":"7 sep","total":0,"byPlatform":{}},{"weekStart":"2026-09-14","label":"14 sep","total":9,"byPlatform":{"web-mobile":8,"ios":1}},{"weekStart":"2026-09-21","label":"21 sep","total":0,"byPlatform":{}},{"weekStart":"2026-09-28","label":"28 sep","total":0,"byPlatform":{}},{"weekStart":"2026-10-05","label":"5 okt","total":0,"byPlatform":{}},{"weekStart":"2026-10-12","label":"12 okt","total":0,"byPlatform":{}},{"weekStart":"2026-10-19","label":"19 okt","total":0,"byPlatform":{}},{"weekStart":"2026-10-26","label":"26 okt","total":4,"byPlatform":{"web-desktop":4}}]},"byMethod":{"email":11,"onbekend":2},"active":{"today":{"total":13,"byPlatform":{"web-mobile":11,"web-desktop":9,"ios":1}},"days7":{"total":13,"byPlatform":{"web-mobile":11,"web-desktop":10,"ios":6,"android":8}},"days30":{"total":13,"byPlatform":{"web-mobile":11,"android":9,"ios":9,"web-desktop":13}}},"retention":{"description":"Accounts ouder dan 30 dagen die in de laatste 7 dagen actief waren","total":{"cohort":9,"retained":9,"rate":100},"byPlatform":{"web-mobile":{"cohort":8,"retained":8,"rate":100},"ios":{"cohort":1,"retained":1,"rate":100}}}},"premium":{"total":7,"share":53.8,"bySource":{"stripe":2,"store":0,"lifetime":2,"group":2,"manual":1},"bySignupPlatform":{"web-mobile":3,"ios":1,"web-desktop":3},"conversion":{"description":"Deel van de echte accounts met Premium (test niet meegeteld)","total":{"accounts":13,"premium":7,"rate":53.8},"paid":{"premium":4,"rate":30.8},"byPlatform":{"web-mobile":{"accounts":8,"premium":3,"rate":37.5},"ios":{"accounts":1,"premium":1,"rate":100},"web-desktop":{"accounts":4,"premium":3,"rate":75}},"newLast30d":{"accounts":4,"premium":3,"rate":75}},"grantsActive":1,"grantsExpiringIn7d":1},"revenue":{"currency":"eur","netCentsLast30d":0,"netCentsAllTime":0,"refundedCentsAllTime":0,"paymentsCompleted":0,"renewalsAllTime":0,"bySource":{"stripe":{"netCentsAllTime":0,"netCentsLast30d":0,"payments":0},"store":{"netCentsAllTime":0,"netCentsLast30d":0,"payments":0}},"otherCurrenciesAllTime":[],"otherCurrenciesLast30d":[]},"quizzes":{"total":19,"pending":0,"plays":{"description":"Afgeronde quizzen volgens de app- en website-metingen","days7":{"total":120,"byPlatform":{"ios":16,"web":89,"android":15}},"days30":{"total":341,"byPlatform":{"android":42,"web":225,"ios":74}}}},"health":{"overall":"fail","checkedAt":"2026-10-27T11:22:53.318Z","okCount":4,"issues":[{"label":"Stripe geheime sleutel","status":"fail","detail":"STRIPE_SECRET_KEY ontbreekt (of is de bouw-placeholder). Er kan niet via de website betaald worden, en de Stripe-controles hieronder (sleutel, prijzen, webhook-endpoint, sessies) zijn daarom niet uitgevoerd.","action":"Zet STRIPE_SECRET_KEY (sk_live_...) in de omgeving. Zie docs/setup/betalingen-web.md."},{"label":"Stripe webhook-secret","status":"fail","detail":"STRIPE_WEBHOOK_SECRET ontbreekt - inkomende Stripe-webhooks worden geweigerd (400), dus betalingen en verlengingen komen niet aan.","action":"Kopieer de \"Signing secret\" van je webhook-endpoint in Stripe naar STRIPE_WEBHOOK_SECRET. Zie docs/setup/betalingen-web.md."},{"label":"Prijs-id monthly","status":"fail","detail":"STRIPE_PRICE_MONTHLY ontbreekt.","action":"Zet STRIPE_PRICE_MONTHLY met de price-id uit Stripe. Zonder dit plan kan er niet betaald worden."},{"label":"Prijs-id yearly","status":"warn","detail":"STRIPE_PRICE_YEARLY ontbreekt.","action":"Het jaarplan wordt niet verkocht zolang deze leeg is. Vul aan als je dit plan wilt aanbieden."},{"label":"Prijs-id lifetime","status":"fail","detail":"STRIPE_PRICE_LIFETIME ontbreekt.","action":"Zet STRIPE_PRICE_LIFETIME met de price-id uit Stripe. Zonder dit plan kan er niet betaald worden."},{"label":"Prijs-id group","status":"warn","detail":"STRIPE_PRICE_GROUP ontbreekt.","action":"De groepslicentie wordt niet verkocht zolang deze leeg is. Vul aan als je dit plan wilt aanbieden."},{"label":"RevenueCat webhook-autorisatie","status":"fail","detail":"REVENUECAT_WEBHOOK_AUTHORIZATION ontbreekt - de app-webhook weigert elke call (401). App-aankopen, verlengingen en terugbetalingen komen niet aan.","action":"Bedenk een lange willekeurige string en zet die zowel in de omgeving als in RevenueCat -> Integrations -> Webhooks -> Authorization header. Zie docs/setup/betalingen-app.md."},{"label":"RevenueCat REST-sleutel","status":"fail","detail":"REVENUECAT_SECRET_KEY (of het oudere REVENUECAT_REST_API_KEY) ontbreekt - de app kan een aankoop niet direct laten bevestigen; Premium komt dan pas met de webhook.","action":"Kopieer de secret API key (sk_...) uit RevenueCat -> API keys naar REVENUECAT_SECRET_KEY. Zie docs/setup/betalingen-app.md."},{"label":"Getoonde prijzen","status":"warn","detail":"Voor monthly, yearly, lifetime is geen prijslabel gezet en geen live Stripe-prijs opgehaald - de paywall toont dan een ingebouwd bedrag dat kan afwijken van wat Stripe rekent.","action":"Zet NEXT_PUBLIC_PREMIUM_MONTHLY_PRICE_LABEL, NEXT_PUBLIC_PREMIUM_YEARLY_PRICE_LABEL, NEXT_PUBLIC_PREMIUM_LIFETIME_PRICE_LABEL, of zorg dat de Stripe-sleutel en price-id werken."}],"accessGapCount":0},"recentUsers":[{"id":"6ae06b90ee3e7f999fdb1281","name":"Noor","email":"groepslid@voorbeeld.nl","createdAt":"2026-10-27T09:14:56.223Z","signupPlatform":"web-desktop","signupPlatformDerived":true,"signupMethod":"onbekend","lastActiveAt":null,"lastSeenPlatform":null,"premium":{"active":true,"source":"group","sources":["group"],"until":"2027-10-27T09:14:56.238Z"},"quizzesPlayed":0,"xp":0,"level":1,"role":"user","isInternal":false},{"id":"6ae06b90ee3e7f999fdb1280","name":"Marieke","email":"groepsleider@voorbeeld.nl","createdAt":"2026-10-27T09:14:56.195Z","signupPlatform":"web-desktop","signupPlatformDerived":true,"signupMethod":"onbekend","lastActiveAt":null,"lastSeenPlatform":null,"premium":{"active":true,"source":"group","sources":["group"],"until":"2027-10-27T09:14:56.238Z"},"quizzesPlayed":0,"xp":0,"level":1,"role":"user","isInternal":false},{"id":"6ae06a633fb7114afd9ac94f","name":"Petra","email":"w18-premium@voorbeeld.nl","createdAt":"2026-10-27T09:09:55.866Z","signupPlatform":"web-desktop","signupPlatformDerived":true,"signupMethod":"email","lastActiveAt":"2026-10-27T09:27:19.993Z","lastSeenPlatform":null,"premium":{"active":true,"source":"stripe","sources":["stripe"],"until":null},"quizzesPlayed":2,"xp":0,"level":1,"role":"user","isInternal":false},{"id":"6ae06a633fb7114afd9ac94e","name":"Gijs","email":"w18-gratis@voorbeeld.nl","createdAt":"2026-10-27T09:09:55.855Z","signupPlatform":"web-desktop","signupPlatformDerived":true,"signupMethod":"email","lastActiveAt":"2026-10-27T09:26:09.801Z","lastSeenPlatform":null,"premium":{"active":false,"source":null,"sources":[],"until":null},"quizzesPlayed":3,"xp":52,"level":1,"role":"user","isInternal":false},{"id":"6ae065fe86a8728b27b50672","name":"Nieuw","email":"nieuw@voorbeeld.nl","createdAt":"2026-09-17T08:51:10.304Z","signupPlatform":"web-mobile","signupPlatformDerived":true,"signupMethod":"email","lastActiveAt":"2026-10-27T09:15:58.141Z","lastSeenPlatform":null,"premium":{"active":false,"source":null,"sources":[],"until":null},"quizzesPlayed":0,"xp":0,"level":1,"role":"user","isInternal":false},{"id":"6ae065fe86a8728b27b5066a","name":"Ruben","email":"ruben@voorbeeld.nl","createdAt":"2026-09-17T08:51:10.285Z","signupPlatform":"web-mobile","signupPlatformDerived":true,"signupMethod":"email","lastActiveAt":"2026-10-27T08:51:10.296Z","lastSeenPlatform":null,"premium":{"active":false,"source":null,"sources":[],"until":null},"quizzesPlayed":1,"xp":20,"level":1,"role":"user","isInternal":false},{"id":"6ae065fe86a8728b27b5065c","name":"Noor","email":"noor@voorbeeld.nl","createdAt":"2026-09-17T08:51:10.263Z","signupPlatform":"web-mobile","signupPlatformDerived":true,"signupMethod":"email","lastActiveAt":"2026-10-27T08:51:10.278Z","lastSeenPlatform":null,"premium":{"active":true,"source":"manual","sources":["manual"],"until":"2026-11-03T11:22:36.065Z"},"quizzesPlayed":2,"xp":65,"level":1,"role":"user","isInternal":false},{"id":"6ae065fe86a8728b27b5063e","name":"Jonas","email":"jonas@voorbeeld.nl","createdAt":"2026-09-17T08:51:10.209Z","signupPlatform":"web-mobile","signupPlatformDerived":true,"signupMethod":"email","lastActiveAt":"2026-10-27T08:51:10.255Z","lastSeenPlatform":null,"premium":{"active":false,"source":null,"sources":[],"until":null},"quizzesPlayed":4,"xp":182,"level":1,"role":"user","isInternal":false},{"id":"6ae065fe86a8728b27b5062a","name":"Daan","email":"daan@voorbeeld.nl","createdAt":"2026-09-17T08:51:10.158Z","signupPlatform":"web-mobile","signupPlatformDerived":true,"signupMethod":"email","lastActiveAt":"2026-10-27T08:51:10.207Z","lastSeenPlatform":null,"premium":{"active":false,"source":null,"sources":[],"until":null},"quizzesPlayed":3,"xp":140,"level":1,"role":"user","isInternal":false},{"id":"6ae065fe86a8728b27b505ea","name":"Sanne","email":"sanne@voorbeeld.nl","createdAt":"2026-09-17T08:51:10.035Z","signupPlatform":"ios","signupPlatformDerived":true,"signupMethod":"email","lastActiveAt":"2026-10-27T08:51:10.154Z","lastSeenPlatform":null,"premium":{"active":true,"source":"lifetime","sources":["lifetime"],"until":null},"quizzesPlayed":9,"xp":445,"level":1,"role":"user","isInternal":false}],"recentPayments":[]}
+{
+  "generatedAt": "2026-10-27T11:22:53.318Z",
+  "internalExcluded": 0,
+  "users": {
+    "total": 13,
+    "derivedPlatforms": 13,
+    "registrations": {
+      "today": {
+        "total": 4,
+        "byPlatform": {
+          "web-desktop": 4
+        }
+      },
+      "days7": {
+        "total": 4,
+        "byPlatform": {
+          "web-desktop": 4
+        }
+      },
+      "days30": {
+        "total": 4,
+        "byPlatform": {
+          "web-desktop": 4
+        }
+      },
+      "allTime": {
+        "total": 13,
+        "byPlatform": {
+          "web-mobile": 8,
+          "ios": 1,
+          "web-desktop": 4
+        }
+      },
+      "weekly": [
+        {
+          "weekStart": "2026-08-10",
+          "label": "10 aug",
+          "total": 0,
+          "byPlatform": {}
+        },
+        {
+          "weekStart": "2026-08-17",
+          "label": "17 aug",
+          "total": 0,
+          "byPlatform": {}
+        },
+        {
+          "weekStart": "2026-08-24",
+          "label": "24 aug",
+          "total": 0,
+          "byPlatform": {}
+        },
+        {
+          "weekStart": "2026-08-31",
+          "label": "31 aug",
+          "total": 0,
+          "byPlatform": {}
+        },
+        {
+          "weekStart": "2026-09-07",
+          "label": "7 sep",
+          "total": 0,
+          "byPlatform": {}
+        },
+        {
+          "weekStart": "2026-09-14",
+          "label": "14 sep",
+          "total": 9,
+          "byPlatform": {
+            "web-mobile": 8,
+            "ios": 1
+          }
+        },
+        {
+          "weekStart": "2026-09-21",
+          "label": "21 sep",
+          "total": 0,
+          "byPlatform": {}
+        },
+        {
+          "weekStart": "2026-09-28",
+          "label": "28 sep",
+          "total": 0,
+          "byPlatform": {}
+        },
+        {
+          "weekStart": "2026-10-05",
+          "label": "5 okt",
+          "total": 0,
+          "byPlatform": {}
+        },
+        {
+          "weekStart": "2026-10-12",
+          "label": "12 okt",
+          "total": 0,
+          "byPlatform": {}
+        },
+        {
+          "weekStart": "2026-10-19",
+          "label": "19 okt",
+          "total": 0,
+          "byPlatform": {}
+        },
+        {
+          "weekStart": "2026-10-26",
+          "label": "26 okt",
+          "total": 4,
+          "byPlatform": {
+            "web-desktop": 4
+          }
+        }
+      ]
+    },
+    "byMethod": {
+      "email": 11,
+      "onbekend": 2
+    },
+    "active": {
+      "today": {
+        "total": 13,
+        "byPlatform": {
+          "web-mobile": 11,
+          "web-desktop": 9,
+          "ios": 1
+        }
+      },
+      "days7": {
+        "total": 13,
+        "byPlatform": {
+          "web-mobile": 11,
+          "web-desktop": 10,
+          "ios": 6,
+          "android": 8
+        }
+      },
+      "days30": {
+        "total": 13,
+        "byPlatform": {
+          "web-mobile": 11,
+          "android": 9,
+          "ios": 9,
+          "web-desktop": 13
+        }
+      }
+    },
+    "retention": {
+      "description": "Accounts ouder dan 30 dagen die in de laatste 7 dagen actief waren",
+      "total": {
+        "cohort": 9,
+        "retained": 9,
+        "rate": 100
+      },
+      "byPlatform": {
+        "web-mobile": {
+          "cohort": 8,
+          "retained": 8,
+          "rate": 100
+        },
+        "ios": {
+          "cohort": 1,
+          "retained": 1,
+          "rate": 100
+        }
+      }
+    }
+  },
+  "premium": {
+    "total": 7,
+    "share": 53.8,
+    "bySource": {
+      "stripe": 2,
+      "store": 0,
+      "lifetime": 2,
+      "group": 2,
+      "manual": 1
+    },
+    "bySignupPlatform": {
+      "web-mobile": 3,
+      "ios": 1,
+      "web-desktop": 3
+    },
+    "conversion": {
+      "description": "Deel van de echte accounts met Premium (test niet meegeteld)",
+      "total": {
+        "accounts": 13,
+        "premium": 7,
+        "rate": 53.8
+      },
+      "paid": {
+        "premium": 4,
+        "rate": 30.8
+      },
+      "byPlatform": {
+        "web-mobile": {
+          "accounts": 8,
+          "premium": 3,
+          "rate": 37.5
+        },
+        "ios": {
+          "accounts": 1,
+          "premium": 1,
+          "rate": 100
+        },
+        "web-desktop": {
+          "accounts": 4,
+          "premium": 3,
+          "rate": 75
+        }
+      },
+      "newLast30d": {
+        "accounts": 4,
+        "premium": 3,
+        "rate": 75
+      }
+    },
+    "grantsActive": 1,
+    "grantsExpiringIn7d": 1
+  },
+  "revenue": {
+    "currency": "eur",
+    "netCentsLast30d": 0,
+    "netCentsAllTime": 0,
+    "refundedCentsAllTime": 0,
+    "paymentsCompleted": 0,
+    "renewalsAllTime": 0,
+    "bySource": {
+      "stripe": {
+        "netCentsAllTime": 0,
+        "netCentsLast30d": 0,
+        "payments": 0
+      },
+      "store": {
+        "netCentsAllTime": 0,
+        "netCentsLast30d": 0,
+        "payments": 0
+      }
+    },
+    "otherCurrenciesAllTime": [],
+    "otherCurrenciesLast30d": []
+  },
+  "quizzes": {
+    "total": 19,
+    "pending": 0,
+    "plays": {
+      "description": "Afgeronde quizzen volgens de app- en website-metingen",
+      "days7": {
+        "total": 120,
+        "byPlatform": {
+          "ios": 16,
+          "web": 89,
+          "android": 15
+        }
+      },
+      "days30": {
+        "total": 341,
+        "byPlatform": {
+          "android": 42,
+          "web": 225,
+          "ios": 74
+        }
+      }
+    }
+  },
+  "health": {
+    "overall": "fail",
+    "checkedAt": "2026-10-27T11:22:53.318Z",
+    "okCount": 4,
+    "issues": [
+      {
+        "label": "Stripe geheime sleutel",
+        "status": "fail",
+        "detail": "STRIPE_SECRET_KEY ontbreekt (of is de bouw-placeholder). Er kan niet via de website betaald worden, en de Stripe-controles hieronder (sleutel, prijzen, webhook-endpoint, sessies) zijn daarom niet uitgevoerd.",
+        "action": "Zet STRIPE_SECRET_KEY (sk_live_...) in de omgeving. Zie docs/setup/betalingen-web.md."
+      },
+      {
+        "label": "Stripe webhook-secret",
+        "status": "fail",
+        "detail": "STRIPE_WEBHOOK_SECRET ontbreekt - inkomende Stripe-webhooks worden geweigerd (400), dus betalingen en verlengingen komen niet aan.",
+        "action": "Kopieer de \"Signing secret\" van je webhook-endpoint in Stripe naar STRIPE_WEBHOOK_SECRET. Zie docs/setup/betalingen-web.md."
+      },
+      {
+        "label": "Prijs-id monthly",
+        "status": "fail",
+        "detail": "STRIPE_PRICE_MONTHLY ontbreekt.",
+        "action": "Zet STRIPE_PRICE_MONTHLY met de price-id uit Stripe. Zonder dit plan kan er niet betaald worden."
+      },
+      {
+        "label": "Prijs-id yearly",
+        "status": "warn",
+        "detail": "STRIPE_PRICE_YEARLY ontbreekt.",
+        "action": "Het jaarplan wordt niet verkocht zolang deze leeg is. Vul aan als je dit plan wilt aanbieden."
+      },
+      {
+        "label": "Prijs-id lifetime",
+        "status": "fail",
+        "detail": "STRIPE_PRICE_LIFETIME ontbreekt.",
+        "action": "Zet STRIPE_PRICE_LIFETIME met de price-id uit Stripe. Zonder dit plan kan er niet betaald worden."
+      },
+      {
+        "label": "Prijs-id group",
+        "status": "warn",
+        "detail": "STRIPE_PRICE_GROUP ontbreekt.",
+        "action": "De groepslicentie wordt niet verkocht zolang deze leeg is. Vul aan als je dit plan wilt aanbieden."
+      },
+      {
+        "label": "RevenueCat webhook-autorisatie",
+        "status": "fail",
+        "detail": "REVENUECAT_WEBHOOK_AUTHORIZATION ontbreekt - de app-webhook weigert elke call (401). App-aankopen, verlengingen en terugbetalingen komen niet aan.",
+        "action": "Bedenk een lange willekeurige string en zet die zowel in de omgeving als in RevenueCat -> Integrations -> Webhooks -> Authorization header. Zie docs/setup/betalingen-app.md."
+      },
+      {
+        "label": "RevenueCat REST-sleutel",
+        "status": "fail",
+        "detail": "REVENUECAT_SECRET_KEY (of het oudere REVENUECAT_REST_API_KEY) ontbreekt - de app kan een aankoop niet direct laten bevestigen; Premium komt dan pas met de webhook.",
+        "action": "Kopieer de secret API key (sk_...) uit RevenueCat -> API keys naar REVENUECAT_SECRET_KEY. Zie docs/setup/betalingen-app.md."
+      },
+      {
+        "label": "Getoonde prijzen",
+        "status": "warn",
+        "detail": "Voor monthly, yearly, lifetime is geen prijslabel gezet en geen live Stripe-prijs opgehaald - de paywall toont dan een ingebouwd bedrag dat kan afwijken van wat Stripe rekent.",
+        "action": "Zet NEXT_PUBLIC_PREMIUM_MONTHLY_PRICE_LABEL, NEXT_PUBLIC_PREMIUM_YEARLY_PRICE_LABEL, NEXT_PUBLIC_PREMIUM_LIFETIME_PRICE_LABEL, of zorg dat de Stripe-sleutel en price-id werken."
+      }
+    ],
+    "accessGapCount": 0
+  },
+  "recentUsers": [
+    {
+      "id": "6ae06b90ee3e7f999fdb1281",
+      "name": "Noor",
+      "email": "groepslid@voorbeeld.nl",
+      "createdAt": "2026-10-27T09:14:56.223Z",
+      "signupPlatform": "web-desktop",
+      "signupPlatformDerived": true,
+      "signupMethod": "onbekend",
+      "lastActiveAt": null,
+      "lastSeenPlatform": null,
+      "premium": {
+        "active": true,
+        "source": "group",
+        "sources": [
+          "group"
+        ],
+        "until": "2027-10-27T09:14:56.238Z"
+      },
+      "quizzesPlayed": 0,
+      "xp": 0,
+      "level": 1,
+      "role": "user",
+      "isInternal": false
+    },
+    {
+      "id": "6ae06b90ee3e7f999fdb1280",
+      "name": "Marieke",
+      "email": "groepsleider@voorbeeld.nl",
+      "createdAt": "2026-10-27T09:14:56.195Z",
+      "signupPlatform": "web-desktop",
+      "signupPlatformDerived": true,
+      "signupMethod": "onbekend",
+      "lastActiveAt": null,
+      "lastSeenPlatform": null,
+      "premium": {
+        "active": true,
+        "source": "group",
+        "sources": [
+          "group"
+        ],
+        "until": "2027-10-27T09:14:56.238Z"
+      },
+      "quizzesPlayed": 0,
+      "xp": 0,
+      "level": 1,
+      "role": "user",
+      "isInternal": false
+    },
+    {
+      "id": "6ae06a633fb7114afd9ac94f",
+      "name": "Petra",
+      "email": "w18-premium@voorbeeld.nl",
+      "createdAt": "2026-10-27T09:09:55.866Z",
+      "signupPlatform": "web-desktop",
+      "signupPlatformDerived": true,
+      "signupMethod": "email",
+      "lastActiveAt": "2026-10-27T09:27:19.993Z",
+      "lastSeenPlatform": null,
+      "premium": {
+        "active": true,
+        "source": "stripe",
+        "sources": [
+          "stripe"
+        ],
+        "until": null
+      },
+      "quizzesPlayed": 2,
+      "xp": 0,
+      "level": 1,
+      "role": "user",
+      "isInternal": false
+    },
+    {
+      "id": "6ae06a633fb7114afd9ac94e",
+      "name": "Gijs",
+      "email": "w18-gratis@voorbeeld.nl",
+      "createdAt": "2026-10-27T09:09:55.855Z",
+      "signupPlatform": "web-desktop",
+      "signupPlatformDerived": true,
+      "signupMethod": "email",
+      "lastActiveAt": "2026-10-27T09:26:09.801Z",
+      "lastSeenPlatform": null,
+      "premium": {
+        "active": false,
+        "source": null,
+        "sources": [],
+        "until": null
+      },
+      "quizzesPlayed": 3,
+      "xp": 52,
+      "level": 1,
+      "role": "user",
+      "isInternal": false
+    },
+    {
+      "id": "6ae065fe86a8728b27b50672",
+      "name": "Nieuw",
+      "email": "nieuw@voorbeeld.nl",
+      "createdAt": "2026-09-17T08:51:10.304Z",
+      "signupPlatform": "web-mobile",
+      "signupPlatformDerived": true,
+      "signupMethod": "email",
+      "lastActiveAt": "2026-10-27T09:15:58.141Z",
+      "lastSeenPlatform": null,
+      "premium": {
+        "active": false,
+        "source": null,
+        "sources": [],
+        "until": null
+      },
+      "quizzesPlayed": 0,
+      "xp": 0,
+      "level": 1,
+      "role": "user",
+      "isInternal": false
+    },
+    {
+      "id": "6ae065fe86a8728b27b5066a",
+      "name": "Ruben",
+      "email": "ruben@voorbeeld.nl",
+      "createdAt": "2026-09-17T08:51:10.285Z",
+      "signupPlatform": "web-mobile",
+      "signupPlatformDerived": true,
+      "signupMethod": "email",
+      "lastActiveAt": "2026-10-27T08:51:10.296Z",
+      "lastSeenPlatform": null,
+      "premium": {
+        "active": false,
+        "source": null,
+        "sources": [],
+        "until": null
+      },
+      "quizzesPlayed": 1,
+      "xp": 20,
+      "level": 1,
+      "role": "user",
+      "isInternal": false
+    },
+    {
+      "id": "6ae065fe86a8728b27b5065c",
+      "name": "Noor",
+      "email": "noor@voorbeeld.nl",
+      "createdAt": "2026-09-17T08:51:10.263Z",
+      "signupPlatform": "web-mobile",
+      "signupPlatformDerived": true,
+      "signupMethod": "email",
+      "lastActiveAt": "2026-10-27T08:51:10.278Z",
+      "lastSeenPlatform": null,
+      "premium": {
+        "active": true,
+        "source": "manual",
+        "sources": [
+          "manual"
+        ],
+        "until": "2026-11-03T11:22:36.065Z"
+      },
+      "quizzesPlayed": 2,
+      "xp": 65,
+      "level": 1,
+      "role": "user",
+      "isInternal": false
+    },
+    {
+      "id": "6ae065fe86a8728b27b5063e",
+      "name": "Jonas",
+      "email": "jonas@voorbeeld.nl",
+      "createdAt": "2026-09-17T08:51:10.209Z",
+      "signupPlatform": "web-mobile",
+      "signupPlatformDerived": true,
+      "signupMethod": "email",
+      "lastActiveAt": "2026-10-27T08:51:10.255Z",
+      "lastSeenPlatform": null,
+      "premium": {
+        "active": false,
+        "source": null,
+        "sources": [],
+        "until": null
+      },
+      "quizzesPlayed": 4,
+      "xp": 182,
+      "level": 1,
+      "role": "user",
+      "isInternal": false
+    },
+    {
+      "id": "6ae065fe86a8728b27b5062a",
+      "name": "Daan",
+      "email": "daan@voorbeeld.nl",
+      "createdAt": "2026-09-17T08:51:10.158Z",
+      "signupPlatform": "web-mobile",
+      "signupPlatformDerived": true,
+      "signupMethod": "email",
+      "lastActiveAt": "2026-10-27T08:51:10.207Z",
+      "lastSeenPlatform": null,
+      "premium": {
+        "active": false,
+        "source": null,
+        "sources": [],
+        "until": null
+      },
+      "quizzesPlayed": 3,
+      "xp": 140,
+      "level": 1,
+      "role": "user",
+      "isInternal": false
+    },
+    {
+      "id": "6ae065fe86a8728b27b505ea",
+      "name": "Sanne",
+      "email": "sanne@voorbeeld.nl",
+      "createdAt": "2026-09-17T08:51:10.035Z",
+      "signupPlatform": "ios",
+      "signupPlatformDerived": true,
+      "signupMethod": "email",
+      "lastActiveAt": "2026-10-27T08:51:10.154Z",
+      "lastSeenPlatform": null,
+      "premium": {
+        "active": true,
+        "source": "lifetime",
+        "sources": [
+          "lifetime"
+        ],
+        "until": null
+      },
+      "quizzesPlayed": 9,
+      "xp": 445,
+      "level": 1,
+      "role": "user",
+      "isInternal": false
+    }
+  ],
+  "recentPayments": [],
+  "trials": {
+    "windowDays": 60,
+    "running": 1,
+    "cancelled": 1,
+    "converted": 1,
+    "ended": 0,
+    "conversionRate": 100,
+    "trials": [
+      {
+        "userId": "u1",
+        "name": "Lennon Wederfoort",
+        "email": "lennon@voorbeeld.nl",
+        "provider": "revenuecat",
+        "platform": "ios",
+        "plan": "yearly",
+        "startedAt": "2026-10-30T10:00:00.000Z",
+        "endsAt": "2026-11-06T10:00:00.000Z",
+        "status": "running",
+        "daysLeft": 6
+      },
+      {
+        "userId": "u2",
+        "name": "Jonas",
+        "email": "jonas@voorbeeld.nl",
+        "provider": "revenuecat",
+        "platform": "android",
+        "plan": "yearly",
+        "startedAt": "2026-10-28T10:00:00.000Z",
+        "endsAt": "2026-11-04T10:00:00.000Z",
+        "status": "cancelled",
+        "daysLeft": 4
+      },
+      {
+        "userId": "u3",
+        "name": "Lotte",
+        "email": "lotte@voorbeeld.nl",
+        "provider": "stripe",
+        "platform": "web",
+        "plan": "yearly",
+        "startedAt": "2026-10-11T10:00:00.000Z",
+        "endsAt": "2026-10-18T10:00:00.000Z",
+        "status": "converted",
+        "daysLeft": null
+      }
+    ]
+  }
+}

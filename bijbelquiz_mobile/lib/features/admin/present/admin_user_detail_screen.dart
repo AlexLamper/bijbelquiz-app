@@ -631,6 +631,11 @@ class _PremiumCard extends StatelessWidget {
             ],
           ),
         ),
+        // The latest free trial: whether this account is on its way to paying.
+        if (p.trial != null) ...[
+          const SizedBox(height: 10),
+          _TrialCard(trial: p.trial!),
+        ],
         const SizedBox(height: 10),
         BqListCard(
           children: [
@@ -674,6 +679,11 @@ class _PremiumCard extends StatelessWidget {
                   ? (p.storeActive ? 'actief' : 'Geen abonnement')
                   : '${p.storeActive ? 'loopt tot' : 'liep tot'} '
                         '${AdminFormat.date(p.storeExpiresAt)}',
+              extra: !p.storeActive || p.storeWillRenew == null
+                  ? null
+                  : p.storeWillRenew!
+                  ? 'Verlengt automatisch'
+                  : 'Opgezegd: stopt op de einddatum',
             ),
             row(
               'lifetime',
@@ -830,6 +840,49 @@ class _RevokeSheetState extends State<_RevokeSheet> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// "Proefweek" card on a user page: status pill and what happens next.
+class _TrialCard extends StatelessWidget {
+  const _TrialCard({required this.trial});
+
+  final AdminTrial trial;
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, bg, fg) = adminTrialStatusStyle(trial.status);
+    return BqCard(
+      color: bg,
+      borderColor: Colors.transparent,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Gratis proefweek',
+                  style: AppTheme.bodyStrong.copyWith(color: fg),
+                ),
+              ),
+              BqPill(
+                label: label,
+                background: AppTheme.paperRaised,
+                foreground: fg,
+                height: 22,
+                fontSize: 11,
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            adminTrialSentence(trial),
+            style: AppTheme.caption.copyWith(color: fg),
+          ),
+        ],
       ),
     );
   }

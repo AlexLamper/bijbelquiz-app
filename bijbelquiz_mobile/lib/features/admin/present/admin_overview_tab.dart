@@ -434,6 +434,31 @@ class _AdminOverviewBodyState extends ConsumerState<AdminOverviewBody> {
 
         // ------------------------------------------------------------------
         const SizedBox(height: 28),
+        AdminSectionTitle('Proefperiodes', caption: _trialsCaption(o.trials)),
+        if (o.trials.trials.isEmpty)
+          AdminEmptyCard(
+            'Nog geen gratis proefweken in de laatste '
+            '${o.trials.windowDays} dagen.',
+          )
+        else
+          BqListCard(
+            children: [
+              // Open trials first (soonest end first), then a few that ended.
+              for (final t in [
+                ...o.trials.trials.where((t) => t.isOpen),
+                ...o.trials.trials.where((t) => !t.isOpen).take(5),
+              ])
+                AdminTrialTile(
+                  trial: t,
+                  onTap: t.userId.isEmpty
+                      ? null
+                      : () => context.push('/beheer/gebruikers/${t.userId}'),
+                ),
+            ],
+          ),
+
+        // ------------------------------------------------------------------
+        const SizedBox(height: 28),
         AdminSectionTitle(
           'Nieuwste gebruikers',
           trailing: _TextLink(
@@ -483,6 +508,18 @@ class _AdminOverviewBodyState extends ConsumerState<AdminOverviewBody> {
       ],
     );
   }
+}
+
+/// "2 lopen nu (1 opgezegd) · 3 betalen nu · 1 gestopt · 75% omgezet".
+String _trialsCaption(AdminTrials t) {
+  final open = t.running + t.cancelled;
+  return [
+    '$open ${open == 1 ? 'loopt' : 'lopen'} nu'
+        '${t.cancelled > 0 ? ' (${t.cancelled} opgezegd)' : ''}',
+    '${t.converted} betaalt nu',
+    '${t.ended} gestopt',
+    if (t.conversionRate != null) '${t.conversionRate}% omgezet',
+  ].join(' · ');
 }
 
 /// Slices for a per-platform count, in the fixed platform order. Keys the

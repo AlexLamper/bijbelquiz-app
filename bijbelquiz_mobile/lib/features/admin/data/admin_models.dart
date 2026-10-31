@@ -530,6 +530,113 @@ class AdminPaymentRow {
 // 1. Overview
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Free trials
+// ---------------------------------------------------------------------------
+
+/// What became of a free trial: `running` (turns into a paid subscription at
+/// its end), `cancelled` (renewal turned off, stops at its end), `converted`
+/// (paid since), `ended` (over without paying).
+enum AdminTrialStatus { running, cancelled, converted, ended }
+
+AdminTrialStatus _trialStatus(Object? raw) => switch (jStringOrNull(raw)) {
+  'cancelled' => AdminTrialStatus.cancelled,
+  'converted' => AdminTrialStatus.converted,
+  'ended' => AdminTrialStatus.ended,
+  _ => AdminTrialStatus.running,
+};
+
+/// One free trial (`trials.trials[]` on the overview, `premium.trial` on a user).
+class AdminTrial {
+  const AdminTrial({
+    this.userId = '',
+    this.name,
+    this.email,
+    this.provider = 'revenuecat',
+    this.platform = 'ios',
+    this.plan,
+    this.startedAt,
+    this.endsAt,
+    this.status = AdminTrialStatus.running,
+    this.daysLeft,
+  });
+
+  final String userId;
+  final String? name;
+  final String? email;
+
+  /// `stripe` (website) or `revenuecat` (App Store / Google Play).
+  final String provider;
+  final String platform;
+
+  /// `yearly`, `monthly` or `lifetime`.
+  final String? plan;
+  final DateTime? startedAt;
+  final DateTime? endsAt;
+  final AdminTrialStatus status;
+
+  /// Whole days left while running; null once over.
+  final int? daysLeft;
+
+  bool get isOpen =>
+      status == AdminTrialStatus.running ||
+      status == AdminTrialStatus.cancelled;
+
+  static AdminTrial? fromJsonOrNull(Object? json) =>
+      json is Map ? AdminTrial.fromJson(jMap(json)) : null;
+
+  factory AdminTrial.fromJson(Map<String, dynamic> m) => AdminTrial(
+    userId: jString(m['userId']),
+    name: jStringOrNull(m['name']),
+    email: jStringOrNull(m['email']),
+    provider: jString(m['provider'], 'revenuecat'),
+    platform: jString(m['platform'], 'ios'),
+    plan: jStringOrNull(m['plan']),
+    startedAt: jDate(m['startedAt']),
+    endsAt: jDate(m['endsAt']),
+    status: _trialStatus(m['status']),
+    daysLeft: m['daysLeft'] is num ? (m['daysLeft'] as num).toInt() : null,
+  );
+}
+
+/// The overview's `trials` block.
+class AdminTrials {
+  const AdminTrials({
+    this.windowDays = 60,
+    this.running = 0,
+    this.cancelled = 0,
+    this.converted = 0,
+    this.ended = 0,
+    this.conversionRate,
+    this.trials = const [],
+  });
+
+  final int windowDays;
+  final int running;
+  final int cancelled;
+  final int converted;
+  final int ended;
+
+  /// Whole percentage of finished trials that turned into a payment.
+  final int? conversionRate;
+  final List<AdminTrial> trials;
+
+  factory AdminTrials.fromJson(Object? json) {
+    final m = jMap(json);
+    return AdminTrials(
+      windowDays: jInt(m['windowDays'], 60),
+      running: jInt(m['running']),
+      cancelled: jInt(m['cancelled']),
+      converted: jInt(m['converted']),
+      ended: jInt(m['ended']),
+      conversionRate: m['conversionRate'] is num
+          ? (m['conversionRate'] as num).toInt()
+          : null,
+      trials: jMapList(m['trials']).map(AdminTrial.fromJson).toList(),
+    );
+  }
+}
+
 class AdminOverview {
   const AdminOverview({
     this.generatedAt,
@@ -567,6 +674,7 @@ class AdminOverview {
     this.health,
     this.recentUsers = const [],
     this.recentPayments = const [],
+    this.trials = const AdminTrials(),
   });
 
   final DateTime? generatedAt;
@@ -609,6 +717,9 @@ class AdminOverview {
   final AdminHealth? health;
   final List<AdminUserRow> recentUsers;
   final List<AdminPaymentRow> recentPayments;
+
+  /// Free trials of the last [AdminTrials.windowDays] days.
+  final AdminTrials trials;
 
   factory AdminOverview.fromJson(Map<String, dynamic> json) {
     final users = jMap(json['users']);
@@ -669,6 +780,7 @@ class AdminOverview {
       recentPayments: jMapList(
         json['recentPayments'],
       ).map(AdminPaymentRow.fromJson).toList(),
+      trials: AdminTrials.fromJson(json['trials']),
     );
   }
 }
@@ -966,6 +1078,8 @@ class AdminPremiumDetail {
     this.stripe = const AdminStripeInfo(),
     this.storeActive = false,
     this.storeExpiresAt,
+    this.storeWillRenew,
+    this.trial,
     this.lifetime = false,
     this.groupActive = false,
     this.groupUntil,
@@ -977,6 +1091,12 @@ class AdminPremiumDetail {
   final AdminStripeInfo stripe;
   final bool storeActive;
   final DateTime? storeExpiresAt;
+
+  /// false once the player turned renewal off in the store; null when unknown.
+  final bool? storeWillRenew;
+
+  /// The latest free trial (store or website), null when there never was one.
+  final AdminTrial? trial;
   final bool lifetime;
   final bool groupActive;
   final DateTime? groupUntil;
@@ -992,6 +1112,10 @@ class AdminPremiumDetail {
       stripe: AdminStripeInfo.fromJson(m['stripe']),
       storeActive: jBool(store['active']),
       storeExpiresAt: jDate(store['expiresAt']),
+      storeWillRenew: store['willRenew'] is bool
+          ? store['willRenew'] as bool
+          : null,
+      trial: AdminTrial.fromJsonOrNull(m['trial']),
       lifetime: jBool(jMap(m['lifetime'])['active'], jBool(m['lifetime'])),
       groupActive: jBool(group['active']),
       groupUntil: jDate(group['until']),

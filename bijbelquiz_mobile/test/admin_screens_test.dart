@@ -154,6 +154,21 @@ void main() {
     await _shot(tester, '03_overzicht_premium');
     await _scrollThrough(tester, steps: 20);
     expect(find.text('Laatste betalingen'), findsOneWidget);
+    // Proefperiodes sits above the user and payment lists.
+    final pageList = find.byWidgetPredicate(
+      (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+    );
+    await tester.scrollUntilVisible(
+      find.text('Lennon Wederfoort'),
+      -200,
+      scrollable: pageList.last,
+    );
+    // A little further, so the section title above the first row shows too.
+    await tester.drag(pageList.last, const Offset(0, 160));
+    await tester.pump();
+    expect(find.text('Proefperiodes'), findsOneWidget);
+    expect(find.text('Opgezegd'), findsOneWidget);
+    await _shot(tester, '03b_overzicht_proefperiodes');
   });
 
   testWidgets('users list with filters renders', (tester) async {
