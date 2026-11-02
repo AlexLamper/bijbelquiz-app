@@ -381,11 +381,11 @@ class _EditableAvatar extends StatelessWidget {
                 ),
               ),
               Positioned(
-                right: -2,
-                bottom: -2,
+                right: -5,
+                bottom: -5,
                 child: Container(
-                  width: 24,
-                  height: 24,
+                  width: 32,
+                  height: 32,
                   decoration: BoxDecoration(
                     color: AppTheme.paperRaised,
                     shape: BoxShape.circle,
@@ -394,7 +394,7 @@ class _EditableAvatar extends StatelessWidget {
                   alignment: Alignment.center,
                   child: const BqIcon(
                     BqIcons.edit,
-                    size: 12,
+                    size: 16,
                     color: AppTheme.lapis,
                   ),
                 ),
