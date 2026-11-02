@@ -130,14 +130,16 @@ class QuizResultView extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 BqButton(
-                  label: 'Daag een vriend uit',
+                  label: 'Speel samen met anderen',
                   style: BqButtonStyle.secondary,
                   icon: const BqIcon(
-                    PlayerIcons.swords,
+                    BqIcons.users,
                     size: 18,
-                    color: AppTheme.vermilion,
+                    color: AppTheme.lapis,
                   ),
-                  onPressed: () => context.push('/duels/new'),
+                  onPressed: () => context.go(
+                    '/play-together?quiz=${Uri.encodeQueryComponent(quiz.id)}',
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Row(

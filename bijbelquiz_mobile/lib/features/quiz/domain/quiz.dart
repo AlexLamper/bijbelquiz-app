@@ -25,6 +25,10 @@ class Quiz {
 
   final List<Question> questions;
 
+  /// How many different players finished this quiz (the server's count, kept
+  /// a quarter of an hour). 0 when the server did not send one.
+  final int players;
+
   /// The chapter this quiz is about, when the server could work one out from
   /// the question references. Null for quizzes that span several books.
   final QuizPassage? passage;
@@ -44,6 +48,7 @@ class Quiz {
     this.isPremium = false,
     this.createdAt = '',
     this.questions = const [],
+    this.players = 0,
     this.passage,
   });
 
@@ -89,6 +94,7 @@ class Quiz {
           json['created_at']?.toString() ??
           '',
       questions: parsedQuestions,
+      players: (json['players'] as num?)?.toInt() ?? 0,
       passage: QuizPassage.fromJson(json['passage']),
     );
   }
@@ -108,6 +114,7 @@ class Quiz {
       'questionCount': questionCount,
       'isPremium': isPremium,
       'createdAt': createdAt,
+      'players': players,
       'questions': questions.map((q) => q.toJson()).toList(),
     };
   }

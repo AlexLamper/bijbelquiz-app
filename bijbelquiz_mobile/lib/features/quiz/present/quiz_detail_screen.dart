@@ -288,10 +288,12 @@ class _DetailBody extends ConsumerWidget {
         ),
       const SizedBox(height: 12),
       BqButton(
-        label: 'Daag een vriend uit',
+        label: 'Speel samen met anderen',
         style: BqButtonStyle.secondary,
-        icon: const BqIcon(BqIcons.swords, size: 18, color: AppTheme.vermilion),
-        onPressed: () => context.push('/duels/new'),
+        icon: const BqIcon(BqIcons.users, size: 18, color: AppTheme.lapis),
+        onPressed: () => context.go(
+          '/play-together?quiz=${Uri.encodeQueryComponent(quiz.id)}',
+        ),
       ),
       // Only offered when the questions agree on one chapter, and not
       // when "lees eerst" is already switched on for Start.

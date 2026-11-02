@@ -112,7 +112,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               AuthTextField(
                 label: 'Naam',
                 hint: 'Bijvoorbeeld Alex',
-                helper: 'Zo zien anderen je op de ranglijst en in duels.',
+                helper: 'Zo zien anderen je op de ranglijst en als je samen speelt.',
                 controller: _nameController,
                 textInputAction: TextInputAction.next,
                 textCapitalization: TextCapitalization.words,

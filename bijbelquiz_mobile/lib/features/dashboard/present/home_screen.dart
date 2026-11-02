@@ -8,7 +8,6 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/bq.dart';
 import '../../auth/present/auth_controller.dart';
-import '../../duels/present/home_duel_provider.dart';
 import '../../profile/data/profile_model.dart';
 import '../../profile/present/profile_provider.dart';
 import '../../quiz/data/quiz_of_the_day.dart';
@@ -16,6 +15,8 @@ import '../../quiz/data/quiz_repository.dart';
 import '../../quiz/domain/category.dart';
 import '../../quiz/domain/quiz.dart';
 import '../../quiz/present/library_category_request.dart';
+import '../../quiz/present/library_screen.dart';
+import '../../quiz/present/quiz_order.dart';
 import '../../quiz/present/widgets/bible_books.dart';
 import '../../seasons/data/season_repository.dart';
 import '../../seasons/domain/season.dart';
@@ -27,8 +28,8 @@ String _routeKey(Quiz quiz) => quiz.slug.isNotEmpty ? quiz.slug : quiz.id;
 int _minutesFor(int questionCount) => (questionCount / 2).ceil().clamp(3, 25);
 
 /// Home: header with streak and XP, the quiz of the day, the last quizzes
-/// played, the four topics, the duel waiting for the player and - when one is
-/// running - the seasonal pack.
+/// played, the four topics, the popular quizzes this player has not played
+/// yet and - when one is running - the seasonal pack.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
@@ -36,7 +37,6 @@ class HomeScreen extends ConsumerWidget {
     ref.invalidate(profileProvider);
     ref.invalidate(categoriesProvider);
     ref.invalidate(currentSeasonProvider);
-    ref.invalidate(homeDuelProvider);
     ref.invalidate(quizzesProvider(_homeQuery));
     ref.invalidate(quizOfTheDayProvider);
     await ref.read(quizOfTheDayProvider.future);
@@ -48,7 +48,6 @@ class HomeScreen extends ConsumerWidget {
     final categories =
         ref.watch(categoriesProvider).asData?.value ?? const <Category>[];
     final quizOfTheDayAsync = ref.watch(quizOfTheDayProvider);
-    final duel = ref.watch(homeDuelProvider).asData?.value;
     final season = ref.watch(currentSeasonProvider).asData?.value;
     final isPremiumUser = profile?.isPremium ?? false;
     // Unknown for the first frame reads as signed in: the returning player is
@@ -56,17 +55,19 @@ class HomeScreen extends ConsumerWidget {
     // often than the reverse.
     final signedIn = ref.watch(hasSessionProvider).asData?.value ?? true;
 
-    // The catalogue only supplies titles for "Verder spelen", and it is by far
-    // the heaviest request on this screen. It starts once the daily card is
-    // settled, and only for a player who has something to continue, so it
-    // never competes with the card for the connection.
-    final needsCatalogue =
-        signedIn &&
-        (profile?.recentProgress.isNotEmpty ?? false) &&
-        !quizOfTheDayAsync.isLoading;
+    // The catalogue supplies "Populaire quizzen" and the titles for "Verder
+    // spelen", and it is by far the heaviest request on this screen. It starts
+    // once the daily card is settled, so it never competes with the card for
+    // the connection.
+    final needsCatalogue = !quizOfTheDayAsync.isLoading;
     final quizzes = needsCatalogue
         ? ref.watch(quizzesProvider(_homeQuery)).asData?.value ?? const <Quiz>[]
         : const <Quiz>[];
+    final playedIds = signedIn
+        ? profile?.playedQuizIds ?? const <String>{}
+        : const <String>{};
+    // The most played quizzes this player has not played yet.
+    final popular = popularPicks(quizzes, playedIds);
 
     final recent = signedIn
         ? _recentEntries(profile, quizzes)
@@ -149,11 +150,24 @@ class HomeScreen extends ConsumerWidget {
                   context.go('/quizzes');
                 },
               ),
-              if (duel != null) ...[
-                const SizedBox(height: 20),
-                _DuelCard(
-                  duel: duel,
-                  onPlay: () => context.push('/duels/${duel.duelId}'),
+              if (popular.isNotEmpty) ...[
+                const SizedBox(height: 24),
+                BqSectionHeader(
+                  title: 'Populaire quizzen',
+                  actionLabel: 'Alles',
+                  onAction: () {
+                    ref
+                        .read(libraryCategoryRequestProvider.notifier)
+                        .request('all');
+                    context.go('/quizzes');
+                  },
+                ),
+                const SizedBox(height: 10),
+                PopularQuizStrip(
+                  quizzes: popular,
+                  playedIds: playedIds,
+                  horizontalPadding: 0,
+                  onOpen: (quiz) => context.push('/quiz/${_routeKey(quiz)}'),
                 ),
               ],
               // The seasonal pack, when one is running. Absent for most of the
@@ -244,10 +258,7 @@ class _HomeHeader extends StatelessWidget {
                   ? 'Reeks van 1 dag'
                   : 'Reeks van ${p.streak} dagen',
               excludeSemantics: true,
-              child: BqPill.outline(
-                label: '${p.streak}',
-                icon: SvgPicture.string(_flame, width: 16, height: 16),
-              ),
+              child: _StreakPill(streak: p.streak, flame: _flame),
             ),
             const SizedBox(width: 10),
             Semantics(
@@ -259,6 +270,46 @@ class _HomeHeader extends StatelessWidget {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+/// The reeks, larger than the XP next to it: coming back tomorrow to keep it
+/// is the habit Home is built around, so it should be the first thing seen.
+class _StreakPill extends StatelessWidget {
+  const _StreakPill({required this.streak, required this.flame});
+
+  final int streak;
+  final String flame;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 44,
+      padding: const EdgeInsets.only(left: 9, right: 14),
+      decoration: BoxDecoration(
+        color: AppTheme.coralTint,
+        borderRadius: BorderRadius.circular(AppTheme.radiusPill),
+        border: Border.all(color: AppTheme.coralLine),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SvgPicture.string(flame, width: 28, height: 28),
+          const SizedBox(width: 5),
+          Text(
+            '$streak',
+            style: const TextStyle(
+              fontFamily: AppTheme.sansFontName,
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              color: AppTheme.coralEdge,
+              height: 1.1,
+              fontFeatures: [FontFeature.tabularFigures()],
+            ),
+          ),
         ],
       ),
     );
@@ -854,157 +905,6 @@ class _TopicTile extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Duel
-// ---------------------------------------------------------------------------
-
-class _DuelCard extends StatelessWidget {
-  const _DuelCard({required this.duel, required this.onPlay});
-
-  final DuelCardData duel;
-  final VoidCallback onPlay;
-
-  static const String _swords =
-      '<svg viewBox="0 0 24 24" fill="none" stroke="#B4502B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M4 4l10 10"/><path d="M20 4L10 14"/><path d="M6 15l3 3"/><path d="M18 15l-3 3"/><path d="M4 20l3-3"/><path d="M20 20l-3-3"/></svg>';
-
-  @override
-  Widget build(BuildContext context) {
-    final name = duel.opponentName.trim().isEmpty
-        ? 'Je tegenstander'
-        : duel.opponentName.trim();
-    final letter = name[0].toUpperCase();
-
-    return Semantics(
-      container: true,
-      label: 'Duel met $name, jouw beurt',
-      child: BqCard(
-        borderColor: AppTheme.coralLine,
-        borderWidth: 1.5,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        onTap: onPlay,
-        child: Row(
-          children: [
-            SizedBox(
-              width: 46,
-              height: 46,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    width: 46,
-                    height: 46,
-                    decoration: const BoxDecoration(
-                      color: AppTheme.coralTint,
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      letter,
-                      style: const TextStyle(
-                        fontFamily: AppTheme.displayFontName,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 19,
-                        height: 1,
-                        color: AppTheme.vermilion,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 27,
-                    top: 27,
-                    child: Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: AppTheme.paperRaised,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: AppTheme.coralLine),
-                      ),
-                      alignment: Alignment.center,
-                      child: SvgPicture.string(_swords, width: 12, height: 12),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 7,
-                        height: 7,
-                        margin: const EdgeInsets.only(right: 6),
-                        decoration: const BoxDecoration(
-                          color: AppTheme.coral,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Color(0xFFF3D5C8),
-                              spreadRadius: 3,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Text(
-                        'JOUW BEURT',
-                        style: TextStyle(
-                          fontFamily: AppTheme.sansFontName,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.66,
-                          color: AppTheme.vermilion,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '$name wacht op jou',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontFamily: AppTheme.sansFontName,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: AppTheme.ink,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Duel · ${duel.myScore} - ${duel.opponentScore} · ronde ${duel.round}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontFamily: AppTheme.sansFontName,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.inkMuted,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            BqButton(
-              label: 'Speel',
-              style: BqButtonStyle.coral,
-              height: 44,
-              fontSize: 15,
-              expand: false,
-              onPressed: onPlay,
-            ),
-          ],
         ),
       ),
     );

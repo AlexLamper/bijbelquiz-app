@@ -35,6 +35,47 @@ final RegExp _partPattern = RegExp(
   caseSensitive: false,
 );
 
+/// The book a quiz is about, 1..66 in canonical order; 999 for a quiz that is
+/// not about one book (themes, people, general knowledge).
+int bookOrderOf(Quiz quiz) => _bookOrder(quiz);
+
+/// Most played first: the server's count of different players, then - for the
+/// many quizzes nobody played yet - the longer and more rewarding ones, then
+/// Bible order so ties never shuffle.
+int compareByPopularity(Quiz a, Quiz b) {
+  final players = b.players.compareTo(a.players);
+  if (players != 0) return players;
+  final questions = b.questionCount.compareTo(a.questionCount);
+  if (questions != 0) return questions;
+  final reward = b.xpReward.compareTo(a.xpReward);
+  if (reward != 0) return reward;
+  return compareQuizzesInBibleOrder(a, b);
+}
+
+/// The "Populair" picks for one player: the most played quizzes this player
+/// has NOT played yet. A strip that keeps opening on quizzes you already
+/// finished gets the same few replayed while the rest is never found. Only
+/// when nearly everything is played does it top up with played ones, so the
+/// strip is never empty.
+List<Quiz> popularPicks(
+  Iterable<Quiz> quizzes,
+  Set<String> playedIds, {
+  int count = 8,
+}) {
+  final ranked = quizzes.toList()..sort(compareByPopularity);
+  final fresh = ranked
+      .where((quiz) => !playedIds.contains(quiz.id))
+      .take(count)
+      .toList();
+  if (fresh.length >= count) return fresh;
+  return [
+    ...fresh,
+    ...ranked
+        .where((quiz) => playedIds.contains(quiz.id))
+        .take(count - fresh.length),
+  ];
+}
+
 int _bookOrder(Quiz quiz) {
   final slug = _seriesSlug.firstMatch(quiz.slug.trim().toLowerCase());
   if (slug != null) {

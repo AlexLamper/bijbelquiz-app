@@ -170,6 +170,89 @@ class BibleBooks {
     return buffer.toString();
   }
 
+  /// The 66 book names as the library shows them (NBV21 spelling), in
+  /// canonical order: index `order - 1`.
+  static const List<String> _names = [
+    'Genesis',
+    'Exodus',
+    'Leviticus',
+    'Numeri',
+    'Deuteronomium',
+    'Jozua',
+    'Rechters',
+    'Ruth',
+    '1 Samuël',
+    '2 Samuël',
+    '1 Koningen',
+    '2 Koningen',
+    '1 Kronieken',
+    '2 Kronieken',
+    'Ezra',
+    'Nehemia',
+    'Ester',
+    'Job',
+    'Psalmen',
+    'Spreuken',
+    'Prediker',
+    'Hooglied',
+    'Jesaja',
+    'Jeremia',
+    'Klaagliederen',
+    'Ezechiël',
+    'Daniël',
+    'Hosea',
+    'Joël',
+    'Amos',
+    'Obadja',
+    'Jona',
+    'Micha',
+    'Nahum',
+    'Habakuk',
+    'Sefanja',
+    'Haggai',
+    'Zacharia',
+    'Maleachi',
+    'Matteüs',
+    'Marcus',
+    'Lucas',
+    'Johannes',
+    'Handelingen',
+    'Romeinen',
+    '1 Korintiërs',
+    '2 Korintiërs',
+    'Galaten',
+    'Efeziërs',
+    'Filippenzen',
+    'Kolossenzen',
+    '1 Tessalonicenzen',
+    '2 Tessalonicenzen',
+    '1 Timoteüs',
+    '2 Timoteüs',
+    'Titus',
+    'Filemon',
+    'Hebreeën',
+    'Jakobus',
+    '1 Petrus',
+    '2 Petrus',
+    '1 Johannes',
+    '2 Johannes',
+    '3 Johannes',
+    'Judas',
+    'Openbaring',
+  ];
+
+  /// "1 Samuël" for order 9; null outside 1..66.
+  static String? nameFor(int order) =>
+      order >= 1 && order <= _names.length ? _names[order - 1] : null;
+
+  /// A stable, URL-safe key for a book ("1samuel"), for the book page route.
+  static String? keyFor(int order) =>
+      order >= 1 && order <= _canon.length ? _canon[order - 1].$1 : null;
+
+  /// The order of a book from its [keyFor] key (or any spelling [info] knows);
+  /// 999 when unknown.
+  static int orderForKey(String key) => info(key).order;
+
   static BibleBookInfo info(String rawName) {
     final key = _normalise(rawName);
     final resolved = _aliases[key] ?? key;

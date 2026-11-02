@@ -31,12 +31,11 @@ import '../../features/quiz/present/quiz_passage_screen.dart';
 import '../../features/quiz/present/quiz_player_screen.dart';
 import '../../features/admin/present/admin_screen.dart';
 import '../../features/admin/present/admin_user_detail_screen.dart';
-import '../../features/duels/present/duels_screen.dart';
 import '../../features/duels/present/new_duel_screen.dart';
 import '../../features/duels/present/duel_play_screen.dart';
 import '../../features/settings/present/settings_screen.dart';
 
-/// The tab shell: Home, Quizzen, Duels, Ranglijst, Profiel.
+/// The tab shell: Home, Quizzen, Samen spelen, Ranglijst, Profiel.
 /// A page inside the tab shell: switching tabs swaps the screen with a short
 /// crossfade instead of a push animation sliding a page over the last one.
 CustomTransitionPage<void> _tabPage(GoRouterState state, Widget child) {
@@ -60,7 +59,6 @@ class MainScaffold extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentIndex = _calculateSelectedIndex(context);
-    final duelBadge = ref.watch(duelsTurnCountProvider);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: AppTheme.overlayStyle,
@@ -84,7 +82,6 @@ class MainScaffold extends ConsumerWidget {
                       child: _NavItem(
                         item: _items[i],
                         active: currentIndex == i,
-                        badge: i == 2 ? duelBadge : 0,
                         onTap: () => _onItemTapped(i, context),
                       ),
                     ),
@@ -100,7 +97,9 @@ class MainScaffold extends ConsumerWidget {
   static const List<_NavItemData> _items = [
     _NavItemData(BqIcons.home, BqIcons.homeFilled, 'Home', '/home'),
     _NavItemData(BqIcons.book, BqIcons.book, 'Quizzen', '/quizzes'),
-    _NavItemData(BqIcons.swords, BqIcons.swords, 'Duels', '/duels'),
+    // Samen spelen took the place of Duels: a group around one phone or one
+    // table plays far more than two strangers taking turns.
+    _NavItemData(BqIcons.users, BqIcons.users, 'Samen', '/play-together'),
     _NavItemData(BqIcons.trophy, BqIcons.trophy, 'Ranglijst', '/leaderboard'),
     _NavItemData(BqIcons.user, BqIcons.user, 'Profiel', '/profile'),
   ];
@@ -108,10 +107,8 @@ class MainScaffold extends ConsumerWidget {
   static int _calculateSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).uri.path;
     if (location.startsWith('/home')) return 0;
-    // Samen spelen is reached from Quizzen, so it keeps that tab lit.
     if (location.startsWith('/quizzes')) return 1;
-    if (location.startsWith('/play-together')) return 1;
-    if (location.startsWith('/duels')) return 2;
+    if (location.startsWith('/play-together')) return 2;
     if (location.startsWith('/leaderboard')) return 3;
     if (location.startsWith('/profile')) return 4;
     return 0;
@@ -137,13 +134,11 @@ class _NavItem extends StatelessWidget {
     required this.item,
     required this.active,
     required this.onTap,
-    this.badge = 0,
   });
 
   final _NavItemData item;
   final bool active;
   final VoidCallback onTap;
-  final int badge;
 
   @override
   Widget build(BuildContext context) {
@@ -151,7 +146,7 @@ class _NavItem extends StatelessWidget {
     return Semantics(
       button: true,
       selected: active,
-      label: badge > 0 ? '${item.label}, $badge wacht op jou' : item.label,
+      label: item.label,
       excludeSemantics: true,
       child: InkWell(
         onTap: onTap,
@@ -184,31 +179,6 @@ class _NavItem extends StatelessWidget {
                       size: 22,
                       color: color,
                     ),
-                    if (badge > 0)
-                      Positioned(
-                        top: -2,
-                        right: 8,
-                        child: Container(
-                          constraints: const BoxConstraints(minWidth: 16),
-                          height: 16,
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          decoration: BoxDecoration(
-                            color: AppTheme.coralDeep,
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            '$badge',
-                            style: const TextStyle(
-                              fontFamily: AppTheme.sansFontName,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                              height: 1,
-                            ),
-                          ),
-                        ),
-                      ),
                   ],
                 ),
               ),
@@ -243,6 +213,11 @@ class _NavItem extends StatelessWidget {
 /// typed code.
 String? _redirectWebInviteLinks(BuildContext context, GoRouterState state) {
   final segments = state.uri.pathSegments;
+
+  // The Duels tab is gone; anything still pointing at its list (an old
+  // notification, the end of a duel that was already running) lands on the
+  // tab that took its place. Running duels and duel invites still open.
+  if (state.uri.path == '/duels') return '/play-together';
 
   // Duel invite: `/duel/<token>` from the website opens the challenge.
   if (segments.length >= 2 && segments.first == 'duel') {
@@ -314,10 +289,15 @@ final routerProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) =>
                 _tabPage(state, const LibraryScreen()),
           ),
+          // Browsing by book stays inside the tab shell, under Quizzen.
           GoRoute(
-            path: '/duels',
-            pageBuilder: (context, state) =>
-                _tabPage(state, const DuelsScreen()),
+            path: '/quizzes/boeken',
+            builder: (context, state) => const LibraryBooksScreen(),
+          ),
+          GoRoute(
+            path: '/quizzes/boek/:book',
+            builder: (context, state) =>
+                LibraryBookScreen(bookKey: state.pathParameters['book']!),
           ),
           GoRoute(
             path: '/leaderboard',
@@ -327,7 +307,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/play-together',
             pageBuilder: (context, state) =>
-                _tabPage(state, const PlayTogetherScreen()),
+                _tabPage(
+                  state,
+                  PlayTogetherScreen(
+                    initialQuizId: state.uri.queryParameters['quiz'],
+                  ),
+                ),
           ),
           GoRoute(
             path: '/profile',

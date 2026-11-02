@@ -417,11 +417,11 @@ class _StatsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Duels are not tracked on the profile yet, so the fourth tile shows the
-    // lifetime accuracy the server does report.
     final tiles = [
       _StatTile(
-        icon: const BqIcon(BqIcons.flame, size: 22),
+        // A little larger than its neighbours: the reeks is the number a
+        // player comes back for.
+        icon: const BqIcon(BqIcons.flame, size: 30),
         value: '${profile.streak}',
         label: 'Dagen op rij',
       ),

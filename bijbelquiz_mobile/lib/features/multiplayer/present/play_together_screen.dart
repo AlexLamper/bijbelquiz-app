@@ -23,12 +23,16 @@ enum _Pending { create, join, invite }
 
 /// Samen spelen: make a room as host, or join one with a code.
 ///
-/// Reached from Quizzen and still inside the tab shell, so the Quizzen tab
-/// stays lit and the back button returns there. The quiz picker and the host
-/// options (room size, read the chapter first, tempo) live in a bottom sheet
-/// behind "Kies een quiz".
+/// Its own tab (where Duels used to be). The quiz picker and the host options
+/// (room size, read the chapter first, tempo) live in a bottom sheet behind
+/// "Kies een quiz".
+///
+/// [initialQuizId] comes from "Speel samen" on a quiz (`?quiz=<id>`): the
+/// sheet then opens straight away with that quiz picked.
 class PlayTogetherScreen extends ConsumerStatefulWidget {
-  const PlayTogetherScreen({super.key});
+  const PlayTogetherScreen({super.key, this.initialQuizId});
+
+  final String? initialQuizId;
 
   @override
   ConsumerState<PlayTogetherScreen> createState() => _PlayTogetherScreenState();
@@ -54,6 +58,32 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
 
   _Pending? _pending;
   String? _pendingGroupId;
+
+  @override
+  void initState() {
+    super.initState();
+    _openForInitialQuiz();
+  }
+
+  @override
+  void didUpdateWidget(PlayTogetherScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialQuizId != oldWidget.initialQuizId) _openForInitialQuiz();
+  }
+
+  void _openForInitialQuiz() {
+    final quizId = widget.initialQuizId;
+    if (quizId == null || quizId.isEmpty) return;
+    _selectedQuizId = quizId;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      // Signed out, the screen asks to log in first; the sheet would only
+      // lead to a refusal.
+      final hasSession = await ref.read(hasSessionProvider.future);
+      if (!mounted || !hasSession) return;
+      await _openHostSetup();
+    });
+  }
 
   @override
   void dispose() {
@@ -310,8 +340,6 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
   // Build
   // -------------------------------------------------------------------------
 
-  void _back() => context.go('/quizzes');
-
   @override
   Widget build(BuildContext context) {
     final hasSession = ref.watch(hasSessionProvider).asData?.value ?? true;
@@ -342,11 +370,7 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           children: [
-            MpHeader(
-              title: 'Samen spelen',
-              buttonLabel: 'Terug',
-              onButton: _back,
-            ),
+            const BqPageTitle('Samen spelen'),
             const SizedBox(height: 16),
             _Intro(maxPlayers: maxPlayersPremium),
             const SizedBox(height: 16),
@@ -417,11 +441,7 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
           children: [
-            MpHeader(
-              title: 'Samen spelen',
-              buttonLabel: 'Terug',
-              onButton: _back,
-            ),
+            const BqPageTitle('Samen spelen'),
             const SizedBox(height: 16),
             const _Intro(maxPlayers: 20),
             const SizedBox(height: 16),
@@ -469,7 +489,8 @@ class _Intro extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Iedereen speelt tegelijk dezelfde quiz, ieder op een eigen telefoon.',
+          'Met je gezin, vrienden of de jeugdclub: iedereen speelt tegelijk '
+          'dezelfde quiz, ieder op een eigen telefoon.',
           style: AppTheme.bodyLead,
         ),
         const SizedBox(height: 10),

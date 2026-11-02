@@ -15,6 +15,8 @@ import 'quiz_order.dart';
 import 'widgets/bible_books.dart';
 import 'widgets/quiz_cover.dart';
 
+part 'library_books.dart';
+
 String _routeKey(Quiz quiz) => quiz.slug.isNotEmpty ? quiz.slug : quiz.id;
 
 int _minutesFor(int questionCount) => (questionCount / 2).ceil().clamp(3, 25);
@@ -46,6 +48,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   /// for a chapter, and the order the website lists them in.
   String _selectedSort = 'bible';
   String _searchQuery = '';
+
+  /// "Nog niet gespeeld": the list without the quizzes this player finished.
+  bool _hidePlayed = false;
 
   static const List<MapEntry<String, String>> _difficultyChips = [
     MapEntry('all', 'Elk niveau'),
@@ -116,18 +121,18 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     String sort,
   ) {
     final list = quizzes.toList();
-    // In Bible order a played chapter keeps its place (it is marked as played
-    // instead): pulling it out would turn 1, 2, 3 into 2, 3, ... 1.
-    if (sort == 'bible') return list..sort(compareQuizzesInBibleOrder);
     list.sort((a, b) {
-      // Quizzes still to play always come first. A library that opens on the
-      // ones you already finished gets the same few replayed while the rest is
-      // never found.
+      // Quizzes still to play always come first, in every order - Bible order
+      // too (Genesis 4, 5, 6 ... once 1 to 3 are played). A library that opens
+      // on the ones you already finished gets the same few replayed while the
+      // rest is never found. The book pages keep every chapter in its place.
       final aPlayed = playedIds.contains(a.id);
       final bPlayed = playedIds.contains(b.id);
       if (aPlayed != bPlayed) return aPlayed ? 1 : -1;
 
       switch (sort) {
+        case 'bible':
+          return compareQuizzesInBibleOrder(a, b);
         case 'newest':
           // ObjectId hex is time-ordered, so it is a fine tie-breaker / fallback
           // when the API did not send createdAt.
@@ -142,19 +147,18 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           return b.xpReward.compareTo(a.xpReward);
         case 'popular':
         default:
-          final questionCompare = b.questionCount.compareTo(a.questionCount);
-          if (questionCompare != 0) return questionCompare;
-          final rewardCompare = b.xpReward.compareTo(a.xpReward);
-          if (rewardCompare != 0) return rewardCompare;
-          // Ties (most quizzes have the same size) stay in Bible order rather
-          // than in whatever order the sort happens to leave them.
-          return compareQuizzesInBibleOrder(a, b);
+          return compareByPopularity(a, b);
       }
     });
     return list;
   }
 
   void _openQuiz(Quiz quiz) => context.push('/quiz/${_routeKey(quiz)}');
+
+  void _openBook(int order) {
+    final key = BibleBooks.keyFor(order);
+    if (key != null) context.push('/quizzes/boek/$key');
+  }
 
   void _showAllQuizzes() {
     setState(() => _selectedSort = 'popular');
@@ -270,7 +274,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     final filtering = _searchQuery.isNotEmpty;
 
     final listed = _sorted(
-      inCategory.where((q) => _matchesSearch(q) && _matchesDifficulty(q)),
+      inCategory.where(
+        (q) =>
+            _matchesSearch(q) &&
+            _matchesDifficulty(q) &&
+            !(_hidePlayed && playedIds.contains(q.id)),
+      ),
       playedIds,
       _selectedSort,
     );
@@ -283,6 +292,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       difficultyChips: _difficultyChips,
       selectedDifficulty: _selectedDifficulty,
       onDifficulty: (value) => setState(() => _selectedDifficulty = value),
+      // Only offered once there is something to hide.
+      hidePlayed: playedIds.isEmpty ? null : _hidePlayed,
+      onHidePlayed: () => setState(() => _hidePlayed = !_hidePlayed),
       selectedSort: _selectedSort,
       onSort: (value) => setState(() => _selectedSort = value),
       onOpen: _openQuiz,
@@ -306,11 +318,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       ];
     }
 
-    final popular = _sorted(
-      inCategory,
-      const <String>{},
-      'popular',
-    ).take(8).toList();
+    // The most played quizzes this player has not played yet.
+    final popular = popularPicks(inCategory, playedIds);
+    final books = libraryBooks(inCategory, playedIds);
 
     final head = <Widget>[
       if (popular.isNotEmpty) ...[
@@ -329,11 +339,18 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           onOpen: _openQuiz,
         ),
       ],
-      const SizedBox(height: 14),
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: _PlayTogetherCard(onTap: () => context.go('/play-together')),
-      ),
+      if (books.isNotEmpty) ...[
+        const SizedBox(height: 14),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: _SectionTitle(
+            title: 'Per bijbelboek',
+            actionLabel: 'Alle boeken',
+            onAction: () => context.push('/quizzes/boeken'),
+          ),
+        ),
+        _BookStrip(books: books, onOpen: _openBook),
+      ],
       const SizedBox(height: 22),
       listSection,
     ];
@@ -562,16 +579,43 @@ class _SectionTitle extends StatelessWidget {
 // Populair
 // ---------------------------------------------------------------------------
 
-class _PopularStrip extends StatelessWidget {
-  const _PopularStrip({
+/// The library's "Populair" strip, for Home: the most played quizzes this
+/// player has not played yet (see [popularPicks]), as horizontal cards.
+class PopularQuizStrip extends StatelessWidget {
+  const PopularQuizStrip({
+    super.key,
     required this.quizzes,
     required this.playedIds,
     required this.onOpen,
+    this.horizontalPadding = 20,
   });
 
   final List<Quiz> quizzes;
   final Set<String> playedIds;
   final ValueChanged<Quiz> onOpen;
+  final double horizontalPadding;
+
+  @override
+  Widget build(BuildContext context) => _PopularStrip(
+    quizzes: quizzes,
+    playedIds: playedIds,
+    onOpen: onOpen,
+    horizontalPadding: horizontalPadding,
+  );
+}
+
+class _PopularStrip extends StatelessWidget {
+  const _PopularStrip({
+    required this.quizzes,
+    required this.playedIds,
+    required this.onOpen,
+    this.horizontalPadding = 20,
+  });
+
+  final List<Quiz> quizzes;
+  final Set<String> playedIds;
+  final ValueChanged<Quiz> onOpen;
+  final double horizontalPadding;
 
   @override
   Widget build(BuildContext context) {
@@ -584,7 +628,7 @@ class _PopularStrip extends StatelessWidget {
       height: height,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
+        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
         itemCount: quizzes.length,
         separatorBuilder: (_, _) => const SizedBox(width: 12),
         itemBuilder: (context, i) => _PopularCard(
@@ -824,68 +868,6 @@ class _PlayedMeta extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Samen spelen
-// ---------------------------------------------------------------------------
-
-class _PlayTogetherCard extends StatelessWidget {
-  const _PlayTogetherCard({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      onTap: onTap,
-      label: 'Samen spelen, speel met je groep of klas',
-      excludeSemantics: true,
-      child: BqCard(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        onTap: onTap,
-        child: const Row(
-          children: [
-            BqIconTile(
-              size: 42,
-              radius: 12,
-              background: AppTheme.positiveTint,
-              child: BqIcon(BqIcons.users, size: 22, color: AppTheme.positive),
-            ),
-            SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Samen spelen',
-                    style: TextStyle(
-                      fontFamily: AppTheme.sansFontName,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      color: AppTheme.ink,
-                    ),
-                  ),
-                  Text(
-                    'Speel met je groep of klas',
-                    style: TextStyle(
-                      fontFamily: AppTheme.sansFontName,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.inkMuted,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(width: 8),
-            BqIcon(BqIcons.chevronRight, size: 18, color: AppTheme.inkFaint),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Alle quizzen
 // ---------------------------------------------------------------------------
 
@@ -898,6 +880,8 @@ class _AllQuizzesSection extends StatelessWidget {
     required this.difficultyChips,
     required this.selectedDifficulty,
     required this.onDifficulty,
+    required this.hidePlayed,
+    required this.onHidePlayed,
     required this.selectedSort,
     required this.onSort,
     required this.onOpen,
@@ -909,6 +893,10 @@ class _AllQuizzesSection extends StatelessWidget {
   final List<MapEntry<String, String>> difficultyChips;
   final String selectedDifficulty;
   final ValueChanged<String> onDifficulty;
+
+  /// Null hides the "Nog niet gespeeld" chip (nothing played yet).
+  final bool? hidePlayed;
+  final VoidCallback onHidePlayed;
   final String selectedSort;
   final ValueChanged<String> onSort;
   final ValueChanged<Quiz> onOpen;
@@ -941,18 +929,31 @@ class _AllQuizzesSection extends StatelessWidget {
         const SizedBox(height: 8),
         SizedBox(
           height: 32,
-          child: ListView.separated(
+          child: ListView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            itemCount: difficultyChips.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 8),
-            itemBuilder: (context, i) => _Chip(
-              label: difficultyChips[i].value,
-              active: difficultyChips[i].key == selectedDifficulty,
-              height: 32,
-              fontSize: 13,
-              onTap: () => onDifficulty(difficultyChips[i].key),
-            ),
+            children: [
+              if (hidePlayed != null) ...[
+                _Chip(
+                  label: 'Nog niet gespeeld',
+                  active: hidePlayed!,
+                  height: 32,
+                  fontSize: 13,
+                  onTap: onHidePlayed,
+                ),
+                const SizedBox(width: 8),
+              ],
+              for (var i = 0; i < difficultyChips.length; i++) ...[
+                if (i > 0) const SizedBox(width: 8),
+                _Chip(
+                  label: difficultyChips[i].value,
+                  active: difficultyChips[i].key == selectedDifficulty,
+                  height: 32,
+                  fontSize: 13,
+                  onTap: () => onDifficulty(difficultyChips[i].key),
+                ),
+              ],
+            ],
           ),
         ),
         const SizedBox(height: 10),
