@@ -258,7 +258,15 @@ class _HomeHeader extends StatelessWidget {
                   ? 'Reeks van 1 dag'
                   : 'Reeks van ${p.streak} dagen',
               excludeSemantics: true,
-              child: _StreakPill(streak: p.streak, flame: _flame),
+              child: BqPill.outline(
+                label: '${p.streak}',
+                // A larger flame than the XP bolt, set a touch lower so it
+                // sits on the number's baseline.
+                icon: Transform.translate(
+                  offset: const Offset(0, 2),
+                  child: SvgPicture.string(_flame, width: 30, height: 30),
+                ),
+              ),
             ),
             const SizedBox(width: 10),
             Semantics(
@@ -270,46 +278,6 @@ class _HomeHeader extends StatelessWidget {
               ),
             ),
           ],
-        ],
-      ),
-    );
-  }
-}
-
-/// The reeks, larger than the XP next to it: coming back tomorrow to keep it
-/// is the habit Home is built around, so it should be the first thing seen.
-class _StreakPill extends StatelessWidget {
-  const _StreakPill({required this.streak, required this.flame});
-
-  final int streak;
-  final String flame;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 44,
-      padding: const EdgeInsets.only(left: 9, right: 14),
-      decoration: BoxDecoration(
-        color: AppTheme.coralTint,
-        borderRadius: BorderRadius.circular(AppTheme.radiusPill),
-        border: Border.all(color: AppTheme.coralLine),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SvgPicture.string(flame, width: 28, height: 28),
-          const SizedBox(width: 5),
-          Text(
-            '$streak',
-            style: const TextStyle(
-              fontFamily: AppTheme.sansFontName,
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-              color: AppTheme.coralEdge,
-              height: 1.1,
-              fontFeatures: [FontFeature.tabularFigures()],
-            ),
-          ),
         ],
       ),
     );
