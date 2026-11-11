@@ -73,23 +73,26 @@ class _PremiumIntroScreenState extends ConsumerState<PremiumIntroScreen> {
 
   List<String> get _benefits {
     switch (_goal) {
+      // Only what Premium really adds. Bible references, the per-book pages
+      // and Samen spelen (any room size, as often as you like) are free for
+      // everyone, so they are never listed as a reason to pay.
       case _Goal.knowledge:
         return const [
-          'Uitleg en bijbelverwijzing bij elke vraag',
-          'Alle premium quizzen en verdiepingsreeksen',
+          'Uitleg bij elke vraag: waarom het antwoord klopt',
+          'Alle quizzen, zo vaak je wilt',
           'Een volledige review na elke quiz',
         ];
       case _Goal.habit:
         return const [
-          'Streakbescherming als je een dag mist',
-          'Voortgang per bijbelboek',
-          'Nieuwe seizoenspakketten en themaquizzen',
+          'Elke dag een nieuwe quiz, zonder limiet',
+          'Uitleg bij elke vraag, zodat het blijft hangen',
+          'Je antwoorden terugkijken na elke quiz',
         ];
       case _Goal.together:
         return const [
-          'Onbeperkt spellen hosten',
-          'Tot 20 spelers tegelijk in een kamer',
-          'Meedoen blijft altijd gratis',
+          'Samen spelen blijft voor iedereen gratis',
+          'Daarnaast alleen onbeperkt verder spelen',
+          'Uitleg bij elke vraag om samen na te praten',
         ];
     }
   }
