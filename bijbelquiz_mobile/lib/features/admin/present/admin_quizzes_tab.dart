@@ -8,7 +8,7 @@ import '../data/admin_repository.dart';
 import 'widgets/admin_ui.dart';
 
 /// Quizzen: moderation per status, with approve / reject / publish /
-/// unpublish and the Premium switch.
+/// unpublish.
 class AdminQuizzesTab extends ConsumerStatefulWidget {
   const AdminQuizzesTab({super.key});
 
@@ -270,40 +270,9 @@ class _AdminQuizCardState extends State<AdminQuizCard> {
               ),
             ],
           ),
+          // No Premium switch: there are no Premium quizzes any more (free
+          // players get 3 quizzes, Premium all of them).
           const SizedBox(height: 10),
-          const Divider(height: 1, color: AppTheme.ruleSoft),
-          Semantics(
-            toggled: q.isPremium,
-            label: 'Alleen voor Premium',
-            child: InkWell(
-              onTap: _busy != null
-                  ? null
-                  : () =>
-                        _run(AdminQuizAction.premium, isPremium: !q.isPremium),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Row(
-                  children: [
-                    const BqIcon(BqIcons.crown, size: 16),
-                    const SizedBox(width: 8),
-                    const Expanded(
-                      child: Text(
-                        'Alleen voor Premium',
-                        style: AppTheme.bodyStrong,
-                      ),
-                    ),
-                    Switch(
-                      value: q.isPremium,
-                      onChanged: _busy != null
-                          ? null
-                          : (v) => _run(AdminQuizAction.premium, isPremium: v),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 4),
           Row(
             children: [
               for (var i = 0; i < actions.length; i++) ...[
