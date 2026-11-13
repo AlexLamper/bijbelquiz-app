@@ -91,6 +91,32 @@
       "endsAt": "2026-11-06T10:00:00.000Z",
       "status": "running",
       "daysLeft": 6
+    },
+    "status": {
+      "kind": "lifetime",
+      "label": "Levenslang",
+      "channel": "website",
+      "plan": "lifetime",
+      "renews": null,
+      "endsAt": null,
+      "nextCharge": null,
+      "summary": "Levenslang Premium, eenmalig gekocht. Totaal betaald: € 59,99, laatst € 59,99 op 30 sep 2026."
+    },
+    "paid": {
+      "count": 1,
+      "totalCents": 5999,
+      "lastAt": "2026-09-30T10:00:00.000Z",
+      "lastAmount": 5999,
+      "lastCurrency": "eur",
+      "lastPlan": "lifetime",
+      "store": false,
+      "stripe": true,
+      "lastAmountByPlan": {
+        "lifetime": {
+          "amount": 5999,
+          "currency": "eur"
+        }
+      }
     }
   },
   "grantLog": [],

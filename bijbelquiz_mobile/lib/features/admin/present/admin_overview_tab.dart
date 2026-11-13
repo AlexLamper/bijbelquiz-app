@@ -307,6 +307,44 @@ class _AdminOverviewBodyState extends ConsumerState<AdminOverviewBody> {
             ),
           ],
         ),
+        if (o.premiumByKind != null) ...[
+          const SizedBox(height: 12),
+          AdminSplitCard(
+            title: 'Hoe hebben ze Premium?',
+            slices: [
+              AdminSlice(
+                label:
+                    'Proefperiode (nog niets betaald'
+                    '${o.premiumByKind!.trialCancelled > 0 ? ', ${o.premiumByKind!.trialCancelled} opgezegd' : ''})',
+                value: o.premiumByKind!.trial,
+                color: AppTheme.lapis,
+              ),
+              AdminSlice(
+                label:
+                    'Betaald abonnement (${o.premiumByKind!.paidYearly} jaar, '
+                    '${o.premiumByKind!.paidMonthly} maand)',
+                value: o.premiumByKind!.paid,
+                color: AppTheme.positive,
+              ),
+              AdminSlice(
+                label: 'Levenslang',
+                value: o.premiumByKind!.lifetime,
+                color: AppTheme.gold,
+              ),
+              AdminSlice(
+                label: 'Gegeven door beheer',
+                value: o.premiumByKind!.manual,
+                color: AppTheme.inkMuted,
+              ),
+              AdminSlice(
+                label: 'Groepslicentie',
+                value: o.premiumByKind!.group,
+                color: AppTheme.ruleStrong,
+              ),
+            ],
+            emptyText: 'Nog geen Premium-accounts.',
+          ),
+        ],
         const SizedBox(height: 12),
         AdminSplitCard(
           title: 'Premium per bron',

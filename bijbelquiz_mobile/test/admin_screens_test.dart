@@ -232,7 +232,8 @@ void main() {
     );
     expectNoLayoutError(tester);
     expect(find.text('Sanne'), findsWidgets);
-    expect(find.text('Premium actief'), findsOneWidget);
+    expect(find.text('Levenslang'), findsWidgets);
+    expect(find.text('Betaald tot nu'), findsOneWidget);
     await _shot(tester, '09_gebruiker');
     await _scrollThrough(tester, steps: 6);
     await _shot(tester, '10_gebruiker_account');

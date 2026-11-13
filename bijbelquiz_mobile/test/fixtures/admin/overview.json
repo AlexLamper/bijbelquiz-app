@@ -214,7 +214,25 @@
       }
     },
     "grantsActive": 1,
-    "grantsExpiringIn7d": 1
+    "grantsExpiringIn7d": 1,
+    "byKind": {
+      "total": 9,
+      "trial": {
+        "total": 3,
+        "renews": 2,
+        "cancelled": 1
+      },
+      "paid": {
+        "total": 3,
+        "yearly": 2,
+        "monthly": 1,
+        "other": 0,
+        "cancelled": 0
+      },
+      "lifetime": 2,
+      "group": 0,
+      "manual": 1
+    }
   },
   "revenue": {
     "currency": "eur",

@@ -152,13 +152,152 @@ class AdminActor {
 }
 
 /// `{ active, source, sources, until }` - Premium as one line.
+/// How an account has Premium, in one answer (`premium.status`):
+/// trial / paid / lifetime / group / manual, with what happens next.
+class AdminPremiumStatus {
+  const AdminPremiumStatus({
+    required this.kind,
+    required this.label,
+    required this.summary,
+    this.channel,
+    this.plan,
+    this.renews,
+    this.endsAt,
+    this.nextChargeAt,
+    this.nextChargeAmount,
+    this.nextChargeCurrency = 'eur',
+  });
+
+  /// `trial`, `paid`, `lifetime`, `group` or `manual`.
+  final String kind;
+  final String label;
+
+  /// One Dutch sentence, as the website shows it.
+  final String summary;
+
+  /// `website`, `app_store`, `play_store`, `app` or null.
+  final String? channel;
+
+  /// `yearly`, `monthly`, `lifetime` or null.
+  final String? plan;
+  final bool? renews;
+  final DateTime? endsAt;
+  final DateTime? nextChargeAt;
+
+  /// Cents; null when the price is not known.
+  final int? nextChargeAmount;
+  final String nextChargeCurrency;
+
+  static AdminPremiumStatus? fromJsonOrNull(Object? json) {
+    final m = jMap(json);
+    final kind = jStringOrNull(m['kind']);
+    if (kind == null) return null;
+    final next = jMap(m['nextCharge']);
+    return AdminPremiumStatus(
+      kind: kind,
+      label: jString(m['label']),
+      summary: jString(m['summary']),
+      channel: jStringOrNull(m['channel']),
+      plan: jStringOrNull(m['plan']),
+      renews: m['renews'] is bool ? m['renews'] as bool : null,
+      endsAt: jDate(m['endsAt']),
+      nextChargeAt: jDate(next['at']),
+      nextChargeAmount: jIntOrNull(next['amount']),
+      nextChargeCurrency: jStringOrNull(next['currency']) ?? 'eur',
+    );
+  }
+}
+
+/// Real money from one account (`premium.paid` on the user detail).
+class AdminPaidSummary {
+  const AdminPaidSummary({
+    this.count = 0,
+    this.totalCents = 0,
+    this.lastAt,
+    this.lastAmount,
+    this.lastCurrency,
+  });
+
+  final int count;
+
+  /// Euro cents.
+  final int totalCents;
+  final DateTime? lastAt;
+  final int? lastAmount;
+  final String? lastCurrency;
+
+  factory AdminPaidSummary.fromJson(Object? json) {
+    final m = jMap(json);
+    return AdminPaidSummary(
+      count: jInt(m['count']),
+      totalCents: jInt(m['totalCents']),
+      lastAt: jDate(m['lastAt']),
+      lastAmount: jIntOrNull(m['lastAmount']),
+      lastCurrency: jStringOrNull(m['lastCurrency']),
+    );
+  }
+}
+
+/// Premium accounts by kind (`premium.byKind` on the overview).
+class AdminPremiumByKind {
+  const AdminPremiumByKind({
+    this.total = 0,
+    this.trial = 0,
+    this.trialRenews = 0,
+    this.trialCancelled = 0,
+    this.paid = 0,
+    this.paidYearly = 0,
+    this.paidMonthly = 0,
+    this.paidCancelled = 0,
+    this.lifetime = 0,
+    this.group = 0,
+    this.manual = 0,
+  });
+
+  final int total;
+  final int trial;
+  final int trialRenews;
+  final int trialCancelled;
+  final int paid;
+  final int paidYearly;
+  final int paidMonthly;
+  final int paidCancelled;
+  final int lifetime;
+  final int group;
+  final int manual;
+
+  static AdminPremiumByKind? fromJsonOrNull(Object? json) {
+    if (json is! Map) return null;
+    final m = jMap(json);
+    final trial = jMap(m['trial']);
+    final paid = jMap(m['paid']);
+    return AdminPremiumByKind(
+      total: jInt(m['total']),
+      trial: jInt(trial['total']),
+      trialRenews: jInt(trial['renews']),
+      trialCancelled: jInt(trial['cancelled']),
+      paid: jInt(paid['total']),
+      paidYearly: jInt(paid['yearly']),
+      paidMonthly: jInt(paid['monthly']),
+      paidCancelled: jInt(paid['cancelled']),
+      lifetime: jInt(m['lifetime']),
+      group: jInt(m['group']),
+      manual: jInt(m['manual']),
+    );
+  }
+}
+
 class AdminPremiumState {
   const AdminPremiumState({
     this.active = false,
     this.source,
     this.sources = const [],
     this.until,
+    this.status,
   });
+
+  /// How the account has Premium; null without Premium or from older servers.
+  final AdminPremiumStatus? status;
 
   final bool active;
 
@@ -181,6 +320,7 @@ class AdminPremiumState {
       source: source,
       sources: sources.isEmpty && source != null ? [source] : sources,
       until: jDate(m['until']),
+      status: AdminPremiumStatus.fromJsonOrNull(m['status']),
     );
   }
 }
@@ -664,6 +804,7 @@ class AdminOverview {
     this.conversionByPlatform = const {},
     this.conversionNew30d = const AdminRate(),
     this.grantsActive = 0,
+    this.premiumByKind,
     this.grantsExpiringIn7d = 0,
     this.revenue = const AdminRevenue(),
     this.quizzesTotal = 0,
@@ -704,6 +845,9 @@ class AdminOverview {
   final Map<String, AdminRate> conversionByPlatform;
   final AdminRate conversionNew30d;
   final int grantsActive;
+
+  /// Premium accounts by kind (trial, paid, ...); null from older servers.
+  final AdminPremiumByKind? premiumByKind;
   final int grantsExpiringIn7d;
 
   final AdminRevenue revenue;
@@ -764,6 +908,7 @@ class AdminOverview {
       conversionByPlatform: AdminRate.mapFromJson(conversion['byPlatform']),
       conversionNew30d: AdminRate.fromJson(conversion['newLast30d']),
       grantsActive: jInt(premium['grantsActive']),
+      premiumByKind: AdminPremiumByKind.fromJsonOrNull(premium['byKind']),
       grantsExpiringIn7d: jInt(premium['grantsExpiringIn7d']),
       revenue: AdminRevenue.fromJson(json['revenue']),
       quizzesTotal: jInt(quizzes['total']),
@@ -795,6 +940,7 @@ class AdminUserQuery {
     this.platform,
     this.premium,
     this.source,
+    this.kind,
     this.test = 'include',
     this.sort = 'createdAt',
     this.order = 'desc',
@@ -809,6 +955,9 @@ class AdminUserQuery {
   final String? premium;
   final String? source;
 
+  /// How they have Premium: `trial`, `paid`, `lifetime`, `group`, `manual`.
+  final String? kind;
+
   /// `include` / `exclude` / `only`.
   final String test;
   final String sort;
@@ -821,6 +970,7 @@ class AdminUserQuery {
     'platform': ?platform,
     'premium': ?premium,
     'source': ?source,
+    'kind': ?kind,
     if (test != 'include') 'test': test,
     'sort': sort,
     'order': order,
@@ -833,6 +983,7 @@ class AdminUserQuery {
     Object? platform = _keep,
     Object? premium = _keep,
     Object? source = _keep,
+    Object? kind = _keep,
     String? test,
     String? sort,
     String? order,
@@ -843,6 +994,7 @@ class AdminUserQuery {
       platform: platform == _keep ? this.platform : platform as String?,
       premium: premium == _keep ? this.premium : premium as String?,
       source: source == _keep ? this.source : source as String?,
+      kind: kind == _keep ? this.kind : kind as String?,
       test: test ?? this.test,
       sort: sort ?? this.sort,
       order: order ?? this.order,
@@ -858,6 +1010,7 @@ class AdminUserQuery {
       other.platform == platform &&
       other.premium == premium &&
       other.source == source &&
+      other.kind == kind &&
       other.test == test &&
       other.sort == sort &&
       other.order == order &&
@@ -870,6 +1023,7 @@ class AdminUserQuery {
     platform,
     premium,
     source,
+    kind,
     test,
     sort,
     order,
@@ -1085,9 +1239,13 @@ class AdminPremiumDetail {
     this.groupUntil,
     this.groupLicenses = const [],
     this.manual = const AdminManualGrant(),
+    this.paid = const AdminPaidSummary(),
   });
 
   final AdminPremiumState state;
+
+  /// What this account really paid.
+  final AdminPaidSummary paid;
   final AdminStripeInfo stripe;
   final bool storeActive;
   final DateTime? storeExpiresAt;
@@ -1123,6 +1281,7 @@ class AdminPremiumDetail {
         group['licenses'],
       ).map(AdminGroupLicenseRef.fromJson).toList(),
       manual: AdminManualGrant.fromJson(m['manual']),
+      paid: AdminPaidSummary.fromJson(m['paid']),
     );
   }
 }

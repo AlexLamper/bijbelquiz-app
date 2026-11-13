@@ -595,42 +595,7 @@ class _PremiumCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        BqCard(
-          color: p.state.active ? AppTheme.goldTint : AppTheme.paperRaised,
-          borderColor: p.state.active ? const Color(0xFFF0DFAE) : AppTheme.rule,
-          child: Row(
-            children: [
-              BqIcon(
-                BqIcons.crown,
-                size: 26,
-                color: p.state.active ? null : AppTheme.inkFaint,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      p.state.active ? 'Premium actief' : 'Geen Premium',
-                      style: AppTheme.displayBase.copyWith(
-                        color: p.state.active ? AppTheme.goldInk : AppTheme.ink,
-                      ),
-                    ),
-                    Text(
-                      p.state.active
-                          ? 'Via ${AdminLabels.premiumSource(p.state.source ?? '').toLowerCase()}'
-                                ' · ${until(p.state.until)}'
-                          : 'Dit account speelt gratis.',
-                      style: AppTheme.caption.copyWith(
-                        color: p.state.active ? AppTheme.goldText : null,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+        _PremiumStatusCard(premium: p, now: now),
         // The latest free trial: whether this account is on its way to paying.
         if (p.trial != null) ...[
           const SizedBox(height: 10),
@@ -882,6 +847,97 @@ class _TrialCard extends StatelessWidget {
             adminTrialSentence(trial),
             style: AppTheme.caption.copyWith(color: fg),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The answer first: how this account has Premium (trial, paid, lifetime,
+/// given, group) in one sentence, what was paid, and the next payment.
+class _PremiumStatusCard extends StatelessWidget {
+  const _PremiumStatusCard({required this.premium, this.now});
+
+  final AdminPremiumDetail premium;
+  final DateTime? now;
+
+  @override
+  Widget build(BuildContext context) {
+    final status = premium.state.status;
+    final paid = premium.paid;
+    final (Color bg, Color border, Color ink) = switch (status?.kind) {
+      'trial' => (AppTheme.lapisTint, const Color(0xFFD3DCEE), AppTheme.lapis),
+      'paid' => (AppTheme.positiveTint, const Color(0xFFCFE0D3), AppTheme.positiveText),
+      'lifetime' => (AppTheme.goldTint, const Color(0xFFF0DFAE), AppTheme.goldText),
+      _ => (AppTheme.paperRaised, AppTheme.rule, AppTheme.ink),
+    };
+    final title = status?.label ??
+        (premium.state.active ? 'Premium actief' : 'Geen Premium');
+    final sentence = status?.summary ??
+        (premium.state.active
+            ? 'Via ${AdminLabels.premiumSource(premium.state.source ?? '').toLowerCase()}.'
+            : 'Dit account speelt gratis.');
+
+    String nextPayment() {
+      if (status == null) return 'Geen';
+      if (status.nextChargeAt != null) {
+        final amount = status.nextChargeAmount;
+        return '${AdminFormat.date(status.nextChargeAt)}'
+            '${amount == null ? '' : ' · ${AdminFormat.money(amount, status.nextChargeCurrency)}'}';
+      }
+      if (status.kind == 'lifetime') return 'Geen, eenmalig betaald';
+      if (status.renews == false) return 'Geen, opgezegd';
+      return 'Geen';
+    }
+
+    Widget line(String label, String value) => Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: AppTheme.caption.copyWith(fontWeight: FontWeight.w700),
+            ),
+          ),
+          Text(value, style: AppTheme.bodyStrong.copyWith(fontSize: 14)),
+        ],
+      ),
+    );
+
+    return BqCard(
+      color: bg,
+      borderColor: border,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              BqIcon(
+                BqIcons.crown,
+                size: 22,
+                color: premium.state.active ? ink : AppTheme.inkFaint,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  title,
+                  style: AppTheme.displayBase.copyWith(color: ink),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(sentence, style: AppTheme.bodyMuted.copyWith(fontSize: 14.5, color: AppTheme.ink)),
+          const SizedBox(height: 4),
+          line(
+            'Betaald tot nu',
+            paid.count == 0
+                ? 'Nog niets'
+                : '${AdminFormat.money(paid.totalCents)} in ${paid.count} '
+                      '${paid.count == 1 ? 'betaling' : 'betalingen'}',
+          ),
+          if (premium.state.active) line('Volgende betaling', nextPayment()),
         ],
       ),
     );

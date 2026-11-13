@@ -160,7 +160,18 @@ class _AdminUsersTabState extends ConsumerState<AdminUsersTab> {
     ('premiumUntil', 'Premium tot'),
   ];
 
+  static const _kinds = [
+    ('trial', 'In proefperiode'),
+    ('paid', 'Betaald abonnement'),
+    ('lifetime', 'Levenslang'),
+    ('manual', 'Gegeven door beheer'),
+    ('group', 'Groepslicentie'),
+  ];
+
   String _premiumLabel() {
+    if (_query.kind != null) {
+      return _kinds.firstWhere((k) => k.$1 == _query.kind, orElse: () => (_query.kind!, _query.kind!)).$2;
+    }
     if (_query.source != null) return AdminLabels.premiumSource(_query.source!);
     return switch (_query.premium) {
       'yes' => 'Premium',
@@ -201,14 +212,15 @@ class _AdminUsersTabState extends ConsumerState<AdminUsersTab> {
           const SizedBox(width: 8),
           _FilterButton(
             label: _premiumLabel(),
-            active: q.premium != null || q.source != null,
+            active: q.premium != null || q.source != null || q.kind != null,
             onTap: () => _pick<String?>(
               title: 'Premium',
-              current: q.source ?? q.premium,
+              current: q.kind != null ? 'kind:${q.kind}' : (q.source ?? q.premium),
               options: [
                 (null, 'Iedereen'),
                 ('yes', 'Alleen Premium'),
                 ('no', 'Alleen gratis'),
+                for (final k in _kinds) ('kind:${k.$1}', k.$2),
                 for (final s in kAdminPremiumSources)
                   (
                     s,
@@ -216,10 +228,14 @@ class _AdminUsersTabState extends ConsumerState<AdminUsersTab> {
                   ),
               ],
               onPicked: (v) {
-                if (v == null || v == 'yes' || v == 'no') {
-                  _setQuery(q.copyWith(premium: v, source: null, page: 1));
+                if (v != null && v.startsWith('kind:')) {
+                  _setQuery(
+                    q.copyWith(premium: null, source: null, kind: v.substring(5), page: 1),
+                  );
+                } else if (v == null || v == 'yes' || v == 'no') {
+                  _setQuery(q.copyWith(premium: v, source: null, kind: null, page: 1));
                 } else {
-                  _setQuery(q.copyWith(premium: 'yes', source: v, page: 1));
+                  _setQuery(q.copyWith(premium: 'yes', source: v, kind: null, page: 1));
                 }
               },
             ),

@@ -65,7 +65,9 @@ class AdminUserTile extends StatelessWidget {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     AdminPlatformPill(platform: user.signupPlatform),
-                    if (premium.active && premium.source != null)
+                    if (premium.active && premium.status != null)
+                      AdminPremiumKindPill(status: premium.status!)
+                    else if (premium.active && premium.source != null)
                       BqPill(
                         label: AdminLabels.premiumSource(premium.source!),
                         background: AppTheme.goldTint,
@@ -593,5 +595,34 @@ class AdminTrialTile extends StatelessWidget {
     );
     if (onTap == null) return content;
     return InkWell(onTap: onTap, child: content);
+  }
+}
+
+/// "Proefperiode", "Betaald", "Levenslang", "Gegeven" or "Groepslicentie";
+/// "opgezegd" added when it will not renew.
+class AdminPremiumKindPill extends StatelessWidget {
+  const AdminPremiumKindPill({super.key, required this.status});
+
+  final AdminPremiumStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final (String text, Color bg, Color fg) = switch (status.kind) {
+      'trial' => ('Proefperiode', AppTheme.lapisTint, AppTheme.lapis),
+      'paid' => ('Betaald', AppTheme.positiveTint, AppTheme.positiveText),
+      'lifetime' => ('Levenslang', AppTheme.goldTint, AppTheme.goldText),
+      'group' => ('Groepslicentie', AppTheme.paperSunken, AppTheme.inkMuted),
+      _ => ('Gegeven', AppTheme.paperSunken, AppTheme.inkMuted),
+    };
+    final cancelled =
+        status.renews == false &&
+        (status.kind == 'trial' || status.kind == 'paid');
+    return BqPill(
+      label: cancelled ? '$text · opgezegd' : text,
+      background: bg,
+      foreground: fg,
+      height: 22,
+      fontSize: 11,
+    );
   }
 }
