@@ -20,5 +20,361 @@
         "type": "String"
       }
     }
+  },
+  "errGenericTitle": "Er ging iets mis",
+  "errGenericMessage": "We konden dit niet afronden. Probeer het zo nog een keer.",
+  "errNetworkTitle": "Geen verbinding",
+  "errNetworkMessage": "Controleer je internetverbinding en probeer het opnieuw.",
+  "errSignedOutTitle": "Opnieuw inloggen",
+  "errSignedOutMessage": "Je sessie is verlopen. Log opnieuw in om verder te spelen.",
+  "errRoomNotFoundTitle": "Kamer niet gevonden",
+  "errRoomNotFoundMessage": "Deze kamer bestaat niet meer of is gesloten. Controleer de code, of start zelf een nieuwe kamer.",
+  "errRoomFullTitle": "Kamer is vol",
+  "errRoomFullMessage": "Er passen geen spelers meer bij in deze kamer. Vraag de host om een nieuwe kamer te openen.",
+  "errRoomStartedTitle": "Spel is al begonnen",
+  "errRoomStartedMessage": "Deze quiz loopt al. Wacht tot de ronde klaar is of start een nieuwe kamer.",
+  "errRoomFinishedTitle": "Spel is afgelopen",
+  "errRoomFinishedMessage": "Deze kamer is gesloten. Start een nieuwe kamer om verder te spelen.",
+  "errRoomCodeTitle": "Ongeldige kamercode",
+  "errRoomCodeMessage": "Deze code klopt niet. Een kamercode bestaat uit 6 tekens.",
+  "errAlreadyInRoomTitle": "Je zit al in deze kamer",
+  "errAlreadyInRoomMessage": "Ga terug naar de kamer om verder te spelen.",
+  "errPremiumTitle": "Premium vereist",
+  "errPremiumMessage": "Zelf een kamer hosten hoort bij Bijbelquiz Premium. Meespelen kan altijd gratis.",
+  "errForbiddenTitle": "Geen toegang",
+  "errForbiddenMessage": "Alleen de host kan dit doen.",
+  "errRateLimitedTitle": "Even wachten",
+  "errRateLimitedMessage": "Je probeerde het te vaak achter elkaar. Wacht een moment en probeer het opnieuw.",
+  "errNotFoundTitle": "Niet gevonden",
+  "errNotFoundMessage": "We konden dit niet vinden. Ga terug en probeer het opnieuw.",
+  "errConflictTitle": "Dat kan nu niet",
+  "errConflictMessage": "Deze actie past niet bij de huidige stand van het spel. Ververs en probeer het opnieuw.",
+  "errServerTitle": "Server reageert niet",
+  "errServerMessage": "Er ging iets mis aan onze kant. Probeer het over een paar seconden nog eens.",
+  "errLiveLostTitle": "Live verbinding weg",
+  "errLiveLostMessage": "De live verbinding viel weg. We halen de stand nu automatisch op.",
+  "errLoginTitle": "Inloggen mislukt",
+  "errLoginBadCredentials": "Dit e-mailadres of wachtwoord klopt niet.",
+  "errAccountExistsTitle": "Account bestaat al",
+  "errAccountExistsMessage": "Er bestaat al een account met dit e-mailadres. Log in.",
+  "errRegisterTitle": "Registreren mislukt",
+  "errRegisterMessage": "We konden je account niet aanmaken. Probeer het opnieuw.",
+  "errLoginMessage": "We konden je niet inloggen. Probeer het opnieuw.",
+  "errLeaderboardTitle": "Ranglijst niet geladen",
+  "errLeaderboardMessage": "We konden de ranglijst niet ophalen. Probeer het opnieuw.",
+  "errQuizzesTitle": "Quizzen niet geladen",
+  "errQuizzesMessage": "We konden de quizzen niet ophalen. Probeer het opnieuw.",
+  "errProfileTitle": "Profiel niet geladen",
+  "errProfileMessage": "We konden je profiel niet ophalen. Probeer het opnieuw.",
+  "errPurchaseTitle": "Aankoop mislukt",
+  "errPurchaseMessage": "De aankoop is niet afgerond. Er is niets in rekening gebracht.",
+  "streakReminderTitle": "Je reeks staat op het spel",
+  "streakReminderChannel": "Reeksherinnering",
+  "streakReminderChannelDescription": "Een herinnering op de avond dat je reeks dreigt te verlopen.",
+  "streakReminderBody": "Je reeks van {streak} dagen loopt vanavond af. Eén quiz is genoeg om hem te houden.",
+  "@streakReminderBody": {
+    "placeholders": {
+      "streak": {
+        "type": "Object"
+      }
+    }
+  },
+  "navQuizzes": "Quizzen",
+  "navTogether": "Samen",
+  "navLeaderboard": "Ranglijst",
+  "navProfile": "Profiel",
+  "savedQuizFallback": "je quiz",
+  "savedScoreOne": "Je score voor \"{title}\" is opgeslagen (+{xpEarned} XP).",
+  "@savedScoreOne": {
+    "placeholders": {
+      "title": {
+        "type": "Object"
+      },
+      "xpEarned": {
+        "type": "Object"
+      }
+    }
+  },
+  "savedScoreMany": "{saved} quizzen opgeslagen (+{xpEarned} XP).",
+  "@savedScoreMany": {
+    "placeholders": {
+      "saved": {
+        "type": "Object"
+      },
+      "xpEarned": {
+        "type": "Object"
+      }
+    }
+  },
+  "progressSaved": "Voortgang bewaard",
+  "navHome": "Home",
+  "avatarLamb": "Lam",
+  "avatarLion": "Leeuw",
+  "avatarDove": "Duif",
+  "avatarOwl": "Uil",
+  "avatarDeer": "Hert",
+  "avatarOx": "Os",
+  "avatarSand": "Zand",
+  "avatarLapis": "Lapis",
+  "avatarClay": "Klei",
+  "avatarOlive": "Olijf",
+  "avatarRose": "Roos",
+  "avatarSlate": "Leisteen",
+  "avatarParchment": "Perkament",
+  "avatarSky": "Hemel",
+  "avatarSage": "Salie",
+  "avatarSunrise": "Zonsopgang",
+  "avatarNight": "Nacht",
+  "avatarBlush": "Blos",
+  "avatarNone": "Geen",
+  "avatarGlasses": "Bril",
+  "avatarCap": "Pet",
+  "avatarScarf": "Sjaal",
+  "avatarCrown": "Kroon",
+  "avatarWith": "{character} met {accessory}",
+  "@avatarWith": {
+    "placeholders": {
+      "character": {
+        "type": "Object"
+      },
+      "accessory": {
+        "type": "Object"
+      }
+    }
+  },
+  "wordmarkFirst": "Bijbel",
+  "wordmarkSecond": "Quiz",
+  "actionClose": "Sluiten",
+  "actionBack": "Terug",
+  "questionsCount": "{questionCount} vragen",
+  "@questionsCount": {
+    "placeholders": {
+      "questionCount": {
+        "type": "Object"
+      }
+    }
+  },
+  "actionStart": "Start",
+  "authGoogleAndroidInterrupted": "Google-login onderbroken op Android. Controleer SHA-1/SHA-256 van de release key in Google Cloud OAuth client.",
+  "authGoogleNoToken": "Google gaf geen idToken terug. Probeer opnieuw of kies een ander account.",
+  "authAppleUnavailable": "Apple-login is niet beschikbaar op dit apparaat. Voeg web fallback toe met APPLE_SERVICE_ID en APPLE_REDIRECT_URI of controleer je Apple ID/provisioning.",
+  "authAppleError1000": "Apple-login kon niet worden gestart (AuthorizationError 1000). Dit is meestal een iOS-device/provisioning probleem: gebruik een echte iPhone (of iOS-simulator met Apple ID), vernieuw signing/provisioning in Xcode voor bundle ID com.bijbelquiz.app en installeer de app opnieuw.",
+  "authAppleWebNotConfigured": "Apple web-fallback is niet geconfigureerd. Stel APPLE_SERVICE_ID en APPLE_REDIRECT_URI in.",
+  "authWelcomeBack": "Welkom terug",
+  "authLoginSubtitle": "Log in om je voortgang bij te houden en mee te doen op de ranglijst.",
+  "authEmailHint": "naam@voorbeeld.nl",
+  "authPassword": "Wachtwoord",
+  "authPasswordHint": "Je wachtwoord",
+  "authSignIn": "Inloggen",
+  "authNoAccount": "Nog geen account?",
+  "authRegister": "Registreren",
+  "authCreateAccount": "Account aanmaken",
+  "authCreateSubtitle": "Gratis, en je voortgang blijft bewaard.",
+  "authName": "Naam",
+  "authNameHelp": "Zo zien anderen je op de ranglijst en als je samen speelt.",
+  "authTermsPrefixRegister": "Door een account te maken ga je akkoord met de ",
+  "authHaveAccount": "Heb je al een account?",
+  "splashTagline": "Hoe goed ken jij de Bijbel?",
+  "authOrEmail": "of met e-mail",
+  "authTermsPrefix": "Door verder te gaan ga je akkoord met de ",
+  "errLinkTitle": "Link niet geopend",
+  "errLinkMessage": "We konden deze pagina niet openen. Probeer het opnieuw.",
+  "authTermsAnd": " en het ",
+  "authShowPassword": "Wachtwoord tonen",
+  "authHidePassword": "Wachtwoord verbergen",
+  "authContinueGoogle": "Doorgaan met Google",
+  "authContinueApple": "Doorgaan met Apple",
+  "dataInfoTitle": "Hoe we met je gegevens omgaan",
+  "dataInfoBody": "Bij het inloggen of registreren gebruiken we alleen gegevens die nodig zijn om je account te laten werken, zoals je naam, e-mailadres en inloggegevens.\n\nJe gegevens worden via beveiligde verbindingen verzonden en we delen ze niet voor advertenties zonder jouw toestemming.\n\nJe kunt altijd je account laten verwijderen. Neem hiervoor contact op via info@bijbelquiz.com of via de supportkanalen in de app. Na verwijdering worden je accountgegevens verwijderd volgens ons privacybeleid.",
+  "dataInfoMore": "Meer over gegevensgebruik",
+  "homeContinue": "Verder spelen",
+  "homeAll": "Alles",
+  "homePickTopic": "Kies een onderwerp",
+  "homePopular": "Populaire quizzen",
+  "streakOneDay": "Reeks van 1 dag",
+  "streakDays": "Reeks van {streak} dagen",
+  "@streakDays": {
+    "placeholders": {
+      "streak": {
+        "type": "Object"
+      }
+    }
+  },
+  "questionsCountShort": "{count} vragen",
+  "@questionsCountShort": {
+    "placeholders": {
+      "count": {
+        "type": "Object"
+      }
+    }
+  },
+  "quizOfTheDayLabel": "Quiz van de dag: {title}",
+  "@quizOfTheDayLabel": {
+    "placeholders": {
+      "title": {
+        "type": "Object"
+      }
+    }
+  },
+  "quizOfTheDayKicker": "QUIZ VAN DE DAG",
+  "actionUnlock": "Ontgrendel",
+  "actionPlayNow": "Speel nu",
+  "homeChallengeLoading": "Nieuwe uitdaging verschijnt zodra quizdata geladen is.",
+  "homeLoadFailed": "Home kon niet laden",
+  "checkConnectionRetry": "Controleer je verbinding en probeer het opnieuw.",
+  "actionRetry": "Opnieuw proberen",
+  "homeGuestTitle": "Speel gratis, zonder account",
+  "homeGuestBody": "Maak er een aan om je score, punten en reeks te bewaren.",
+  "homeGuestAction": "Voortgang bewaren",
+  "chapterN": "Hoofdstuk {chapter}",
+  "@chapterN": {
+    "placeholders": {
+      "chapter": {
+        "type": "Object"
+      }
+    }
+  },
+  "scoreCorrect": "{scoreText} goed",
+  "@scoreCorrect": {
+    "placeholders": {
+      "scoreText": {
+        "type": "Object"
+      }
+    }
+  },
+  "played": "Gespeeld",
+  "scoreA11y": "{title}, {score} van {total} goed",
+  "@scoreA11y": {
+    "placeholders": {
+      "title": {
+        "type": "Object"
+      },
+      "score": {
+        "type": "Object"
+      },
+      "total": {
+        "type": "Object"
+      }
+    }
+  },
+  "books39": "39 boeken",
+  "books27": "27 boeken",
+  "catGeneral": "Algemeen",
+  "catWholeBible": "Hele Bijbel",
+  "catByTheme": "Per thema",
+  "questionsCountQuiz": "{questionCount} vragen",
+  "@questionsCountQuiz": {
+    "placeholders": {
+      "questionCount": {
+        "type": "Object"
+      }
+    }
+  },
+  "groupsLoadFailed": "Kon je groepen niet laden.",
+  "groupSaveFailed": "Groep bewaren is niet gelukt.",
+  "groupSaveFailedTitle": "Groep bewaren mislukt",
+  "groupSaveNoGroup": "De server gaf geen groep terug. Probeer het opnieuw.",
+  "groupRenameFailed": "Hernoemen is niet gelukt.",
+  "deleteFailed": "Verwijderen is niet gelukt.",
+  "groupStandingsFailed": "Kon de stand van deze groep niet laden.",
+  "groupsTitle": "Groepen",
+  "groupSingular": "Groep",
+  "leaderboardLoadFailed": "Ranglijst kon niet laden",
+  "leaderboardMonthHint": "XP van de afgelopen 30 dagen",
+  "leaderboardAllTimeHint": "Alle XP sinds de start telt mee",
+  "periodMonth": "Deze maand",
+  "periodAllTime": "Altijd",
+  "periodLabel": "Periode",
+  "everyone": "Iedereen",
+  "leaderboardGap": "Nog {gap} XP tot plek {rank}",
+  "@leaderboardGap": {
+    "placeholders": {
+      "gap": {
+        "type": "Object"
+      },
+      "rank": {
+        "type": "Object"
+      }
+    }
+  },
+  "showLess": "Toon minder",
+  "showAllPlayers": "Toon alle {total} spelers",
+  "@showAllPlayers": {
+    "placeholders": {
+      "total": {
+        "type": "Object"
+      }
+    }
+  },
+  "leaderboardGuestHint": "Met een gratis account telt je XP mee.",
+  "leaderboardNotOnIt": "Je staat nog niet op deze ranglijst",
+  "leaderboardPlayToJoin": "Speel een quiz om mee te doen.",
+  "leaderboardNoData": "Nog geen ranglijstdata beschikbaar.",
+  "leaderboardEmpty": "Nog niemand op de ranglijst",
+  "onboardingTagline": "Korte quizzen over de bijbelboeken, alleen of samen met anderen.",
+  "onboardingGuest": "Eerst spelen zonder account",
+  "onboardingPreviewA11y": "Voorbeeld: een quizvraag met het goede antwoord, een duel tegen Lotte, XP en een reeks",
+  "onboardingSampleQuestion": "Hoeveel broden had de jongen bij zich?",
+  "onboardingSampleStreak": "6 dagen op rij",
+  "seasonEndsToday": "Loopt vandaag af",
+  "seasonOneDayLeft": "Nog 1 dag",
+  "seasonDaysLeft": "Nog {daysRemaining} dagen",
+  "@seasonDaysLeft": {
+    "placeholders": {
+      "daysRemaining": {
+        "type": "Object"
+      }
+    }
+  },
+  "season": "Seizoen",
+  "manageSubscription": "Abonnement beheren",
+  "viaWebsite": "Via de website",
+  "lifetime": "Levenslang",
+  "active": "Actief",
+  "deleteSignInFirst": "Log eerst in met het account dat je wilt verwijderen.",
+  "deleteAccountQuestion": "Account verwijderen?",
+  "deleteAccountBody": "Je account, je voortgang, je XP en je duels worden definitief verwijderd. Dit kan niet ongedaan worden gemaakt.\n\nEen abonnement via de App Store of Google Play stopt hierdoor niet: zeg dat eerst op in de abonnementen van je telefoon.",
+  "deletePermanently": "Definitief verwijderen",
+  "deleteAccountFailed": "Verwijderen is niet gelukt. Probeer het opnieuw of mail {accountEmail}.",
+  "@deleteAccountFailed": {
+    "placeholders": {
+      "accountEmail": {
+        "type": "Object"
+      }
+    }
+  },
+  "accountNotDeleted": "Account niet verwijderd",
+  "accountDeleted": "Je account is verwijderd.",
+  "notificationsOff": "Meldingen staan uit voor BijbelQuiz. Zet ze aan in de instellingen van je telefoon.",
+  "purchasesRestored": "Aankopen hersteld",
+  "settingsReminder": "Herinnering",
+  "settingsTime": "Tijdstip",
+  "settingsPlaying": "Spelen",
+  "settingsReadChapterFirst": "Eerst het hoofdstuk lezen",
+  "settingsShowReference": "Bijbelverwijzing bij uitleg",
+  "settingsLargeText": "Grote vraagtekst",
+  "restorePurchases": "Aankopen herstellen",
+  "settingsManage": "Beheer",
+  "signOut": "Uitloggen",
+  "deleteAccount": "Account verwijderen",
+  "guestPlaying": "Je speelt zonder account",
+  "signInOrCreate": "Inloggen of een account aanmaken",
+  "yourAccount": "Je account",
+  "signedIn": "Ingelogd",
+  "signedInAs": "Ingelogd als {email}",
+  "@signedInAs": {
+    "placeholders": {
+      "email": {
+        "type": "Object"
+      }
+    }
+  },
+  "secondsN": "{choice} seconden",
+  "@secondsN": {
+    "placeholders": {
+      "choice": {
+        "type": "Object"
+      }
+    }
   }
 }

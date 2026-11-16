@@ -6,17 +6,19 @@ import '../../../../core/config/app_config.dart';
 import '../../../../core/errors/app_error.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/app_notice.dart';
+import '../../../../l10n/tr.dart';
 
 /// "... ga je akkoord met de voorwaarden en het privacybeleid." with both
 /// words opening the page in the browser.
 class AuthTermsLine extends StatefulWidget {
   const AuthTermsLine({
     super.key,
-    this.prefix = 'Door verder te gaan ga je akkoord met de ',
+    String? prefix,
     this.fontSize = 12,
-  });
+  }) : _prefix = prefix;
 
-  final String prefix;
+  final String? _prefix;
+  String get prefix => _prefix ?? tr.authTermsPrefix;
   final double fontSize;
 
   @override
@@ -44,9 +46,9 @@ class _AuthTermsLineState extends State<AuthTermsLine> {
     if (!launched && mounted) {
       AppNotice.error(
         context,
-        const AppError(
-          title: 'Link niet geopend',
-          message: 'We konden deze pagina niet openen. Probeer het opnieuw.',
+        AppError(
+          title: tr.errLinkTitle,
+          message: tr.errLinkMessage,
         ),
       );
     }
@@ -66,7 +68,7 @@ class _AuthTermsLineState extends State<AuthTermsLine> {
         children: [
           TextSpan(text: widget.prefix),
           TextSpan(text: 'voorwaarden', style: link, recognizer: _terms),
-          const TextSpan(text: ' en het '),
+          TextSpan(text: tr.authTermsAnd),
           TextSpan(text: 'privacybeleid', style: link, recognizer: _privacy),
           const TextSpan(text: '.'),
         ],

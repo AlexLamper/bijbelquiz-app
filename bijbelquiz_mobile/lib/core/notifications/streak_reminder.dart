@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
+import '../../l10n/tr.dart';
 
 /// The evening streak reminder.
 ///
@@ -162,15 +163,15 @@ class StreakReminder {
     try {
       await _plugin.zonedSchedule(
         _notificationId,
-        'Je reeks staat op het spel',
+        tr.streakReminderTitle,
         _body(streak),
         when,
-        const NotificationDetails(
+        NotificationDetails(
           android: AndroidNotificationDetails(
             _channelId,
-            'Reeksherinnering',
+            tr.streakReminderChannel,
             channelDescription:
-                'Een herinnering op de avond dat je reeks dreigt te verlopen.',
+                tr.streakReminderChannelDescription,
             importance: Importance.defaultImportance,
             priority: Priority.defaultPriority,
           ),
@@ -201,8 +202,7 @@ class StreakReminder {
   /// The copy. Names the number, because "je reeks" alone is abstract and the
   /// number is the whole reason anybody cares.
   String _body(int streak) {
-    return 'Je reeks van $streak dagen loopt vanavond af. '
-        'Eén quiz is genoeg om hem te houden.';
+    return tr.streakReminderBody(streak);
   }
 
   /// The next 19:00 that is not already covered.

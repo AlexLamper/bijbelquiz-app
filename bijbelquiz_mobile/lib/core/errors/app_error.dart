@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../features/multiplayer/data/multiplayer_api_exception.dart';
+import '../../l10n/tr.dart';
 
 /// A user-facing error, in Dutch.
 ///
@@ -28,22 +29,22 @@ class AppError {
 
   /// Generic last resort - used whenever the underlying error carries nothing
   /// a player could act on.
-  static const AppError unknown = AppError(
-    title: 'Er ging iets mis',
+  static final AppError unknown = AppError(
+    title: tr.errGenericTitle,
     message:
-        'We konden dit niet afronden. Probeer het zo nog een keer.',
+        tr.errGenericMessage,
   );
 
-  static const AppError _network = AppError(
-    title: 'Geen verbinding',
+  static final AppError _network = AppError(
+    title: tr.errNetworkTitle,
     message:
-        'Controleer je internetverbinding en probeer het opnieuw.',
+        tr.errNetworkMessage,
     icon: Icons.wifi_off_outlined,
   );
 
-  static const AppError _signedOut = AppError(
-    title: 'Opnieuw inloggen',
-    message: 'Je sessie is verlopen. Log opnieuw in om verder te spelen.',
+  static final AppError _signedOut = AppError(
+    title: tr.errSignedOutTitle,
+    message: tr.errSignedOutMessage,
     icon: Icons.lock_outline,
   );
 
@@ -74,66 +75,61 @@ class AppError {
   static AppError? _forCode(String rawCode) {
     switch (rawCode.trim().toUpperCase()) {
       case 'ROOM_NOT_FOUND':
-        return const AppError(
-          title: 'Kamer niet gevonden',
+        return AppError(
+          title: tr.errRoomNotFoundTitle,
           message:
-              'Deze kamer bestaat niet meer of is gesloten. Controleer de '
-              'code, of start zelf een nieuwe kamer.',
+              tr.errRoomNotFoundMessage,
           icon: Icons.meeting_room_outlined,
         );
       case 'ROOM_FULL':
-        return const AppError(
-          title: 'Kamer is vol',
+        return AppError(
+          title: tr.errRoomFullTitle,
           message:
-              'Er passen geen spelers meer bij in deze kamer. Vraag de host om '
-              'een nieuwe kamer te openen.',
+              tr.errRoomFullMessage,
           icon: Icons.groups_outlined,
         );
       case 'ROOM_ALREADY_STARTED':
       case 'GAME_ALREADY_STARTED':
       case 'ROOM_IN_PROGRESS':
-        return const AppError(
-          title: 'Spel is al begonnen',
+        return AppError(
+          title: tr.errRoomStartedTitle,
           message:
-              'Deze quiz loopt al. Wacht tot de ronde klaar is of start een '
-              'nieuwe kamer.',
+              tr.errRoomStartedMessage,
           icon: Icons.timer_outlined,
         );
       case 'ROOM_FINISHED':
-        return const AppError(
-          title: 'Spel is afgelopen',
-          message: 'Deze kamer is gesloten. Start een nieuwe kamer om verder '
-              'te spelen.',
+        return AppError(
+          title: tr.errRoomFinishedTitle,
+          message: tr.errRoomFinishedMessage,
           icon: Icons.flag_outlined,
         );
       case 'INVALID_ROOM_CODE':
       case 'INVALID_CODE':
-        return const AppError(
-          title: 'Ongeldige kamercode',
+        return AppError(
+          title: tr.errRoomCodeTitle,
           message:
-              'Deze code klopt niet. Een kamercode bestaat uit 6 tekens.',
+              tr.errRoomCodeMessage,
           icon: Icons.pin_outlined,
         );
       case 'ALREADY_IN_ROOM':
       case 'ALREADY_JOINED':
-        return const AppError(
-          title: 'Je zit al in deze kamer',
-          message: 'Ga terug naar de kamer om verder te spelen.',
+        return AppError(
+          title: tr.errAlreadyInRoomTitle,
+          message: tr.errAlreadyInRoomMessage,
           icon: Icons.groups_outlined,
         );
       case 'PREMIUM_REQUIRED':
-        return const AppError(
-          title: 'Premium vereist',
+        return AppError(
+          title: tr.errPremiumTitle,
           message:
-              'Zelf een kamer hosten hoort bij Bijbelquiz Premium. Meespelen '
-              'kan altijd gratis.',
+              tr.errPremiumMessage,
           icon: Icons.workspace_premium_outlined,
         );
       case 'NOT_HOST':
       case 'FORBIDDEN':
-        return const AppError(
-          title: 'Geen toegang',
-          message: 'Alleen de host kan dit doen.',
+        return AppError(
+          title: tr.errForbiddenTitle,
+          message: tr.errForbiddenMessage,
           icon: Icons.lock_outline,
         );
       case 'UNAUTHORIZED':
@@ -144,33 +140,30 @@ class AppError {
       case 'TIMEOUT':
         return _network;
       case 'RATE_LIMITED':
-        return const AppError(
-          title: 'Even wachten',
-          message: 'Je probeerde het te vaak achter elkaar. Wacht een moment '
-              'en probeer het opnieuw.',
+        return AppError(
+          title: tr.errRateLimitedTitle,
+          message: tr.errRateLimitedMessage,
           icon: Icons.hourglass_empty,
         );
       case 'NOT_FOUND':
-        return const AppError(
-          title: 'Niet gevonden',
-          message: 'We konden dit niet vinden. Ga terug en probeer het opnieuw.',
+        return AppError(
+          title: tr.errNotFoundTitle,
+          message: tr.errNotFoundMessage,
           icon: Icons.search_off_outlined,
         );
       case 'CONFLICT':
-        return const AppError(
-          title: 'Dat kan nu niet',
+        return AppError(
+          title: tr.errConflictTitle,
           message:
-              'Deze actie past niet bij de huidige stand van het spel. Ververs '
-              'en probeer het opnieuw.',
+              tr.errConflictMessage,
         );
       case 'SERVER_ERROR':
       case 'INTERNAL_SERVER_ERROR':
       case 'REQUEST_FAILED':
-        return const AppError(
-          title: 'Server reageert niet',
+        return AppError(
+          title: tr.errServerTitle,
           message:
-              'Er ging iets mis aan onze kant. Probeer het over een paar '
-              'seconden nog eens.',
+              tr.errServerMessage,
           icon: Icons.cloud_off_outlined,
         );
       default:
@@ -217,10 +210,10 @@ class AppError {
     }
 
     if (lower.contains('websocket')) {
-      return const AppError(
-        title: 'Live verbinding weg',
+      return AppError(
+        title: tr.errLiveLostTitle,
         message:
-            'De live verbinding viel weg. We halen de stand nu automatisch op.',
+            tr.errLiveLostMessage,
         icon: Icons.sync_problem_outlined,
       );
     }
@@ -231,7 +224,7 @@ class AppError {
 
     // 4. Already a written Dutch sentence? Show it as-is.
     if (text.isNotEmpty && !_technicalPattern.hasMatch(text) && !_looksLikeCode(text)) {
-      return AppError(title: 'Er ging iets mis', message: text);
+      return AppError(title: tr.errGenericTitle, message: text);
     }
 
     return unknown;
@@ -246,59 +239,59 @@ class AppError {
     if (lower.contains('invalid credentials') ||
         lower.contains('wrong password') ||
         lower.contains('invalid email or password')) {
-      return const AppError(
-        title: 'Inloggen mislukt',
-        message: 'Dit e-mailadres of wachtwoord klopt niet.',
+      return AppError(
+        title: tr.errLoginTitle,
+        message: tr.errLoginBadCredentials,
         icon: Icons.lock_outline,
       );
     }
     if (lower.contains('already exists') || lower.contains('already registered')) {
-      return const AppError(
-        title: 'Account bestaat al',
-        message: 'Er bestaat al een account met dit e-mailadres. Log in.',
+      return AppError(
+        title: tr.errAccountExistsTitle,
+        message: tr.errAccountExistsMessage,
         icon: Icons.person_outline,
       );
     }
     if (lower.contains('registration failed') || lower.contains('failed to register')) {
-      return const AppError(
-        title: 'Registreren mislukt',
-        message: 'We konden je account niet aanmaken. Probeer het opnieuw.',
+      return AppError(
+        title: tr.errRegisterTitle,
+        message: tr.errRegisterMessage,
         icon: Icons.person_outline,
       );
     }
     if (lower.contains('failed to login')) {
-      return const AppError(
-        title: 'Inloggen mislukt',
-        message: 'We konden je niet inloggen. Probeer het opnieuw.',
+      return AppError(
+        title: tr.errLoginTitle,
+        message: tr.errLoginMessage,
         icon: Icons.lock_outline,
       );
     }
     if (lower.contains('leaderboard')) {
-      return const AppError(
-        title: 'Ranglijst niet geladen',
-        message: 'We konden de ranglijst niet ophalen. Probeer het opnieuw.',
+      return AppError(
+        title: tr.errLeaderboardTitle,
+        message: tr.errLeaderboardMessage,
         icon: Icons.leaderboard_outlined,
       );
     }
     if (lower.contains('quiz') || lower.contains('categor')) {
-      return const AppError(
-        title: 'Quizzen niet geladen',
-        message: 'We konden de quizzen niet ophalen. Probeer het opnieuw.',
+      return AppError(
+        title: tr.errQuizzesTitle,
+        message: tr.errQuizzesMessage,
         icon: Icons.menu_book_outlined,
       );
     }
     if (lower.contains('profiel') || lower.contains('profile')) {
-      return const AppError(
-        title: 'Profiel niet geladen',
-        message: 'We konden je profiel niet ophalen. Probeer het opnieuw.',
+      return AppError(
+        title: tr.errProfileTitle,
+        message: tr.errProfileMessage,
         icon: Icons.person_outline,
       );
     }
     if (lower.contains('purchase') || lower.contains('aankoop')) {
-      return const AppError(
-        title: 'Aankoop mislukt',
+      return AppError(
+        title: tr.errPurchaseTitle,
         message:
-            'De aankoop is niet afgerond. Er is niets in rekening gebracht.',
+            tr.errPurchaseMessage,
         icon: Icons.workspace_premium_outlined,
       );
     }

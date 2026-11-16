@@ -10,6 +10,7 @@ import '../data/auth_local_storage.dart';
 import '../domain/user.dart';
 import '../../profile/data/profile_repository.dart';
 import '../../premium/present/premium_controller.dart';
+import '../../../l10n/tr.dart';
 
 // Provides shared access
 final authStorageProvider = Provider((ref) => AuthLocalStorage());
@@ -178,7 +179,7 @@ class AuthController extends AsyncNotifier<User?> {
         }
         state = AsyncValue.error(
           Exception(
-            'Google-login onderbroken op Android. Controleer SHA-1/SHA-256 van de release key in Google Cloud OAuth client.',
+            tr.authGoogleAndroidInterrupted,
           ),
           st,
         );
@@ -197,7 +198,7 @@ class AuthController extends AsyncNotifier<User?> {
     final String? idToken = auth.idToken;
     if (idToken == null || idToken.isEmpty) {
       throw Exception(
-        'Google gaf geen idToken terug. Probeer opnieuw of kies een ander account.',
+        tr.authGoogleNoToken,
       );
     }
 
@@ -215,7 +216,7 @@ class AuthController extends AsyncNotifier<User?> {
       final isAvailable = await SignInWithApple.isAvailable();
       if (!isAvailable && !AppleSignInConfig.hasWebFallbackConfig) {
         throw Exception(
-          'Apple-login is niet beschikbaar op dit apparaat. Voeg web fallback toe met APPLE_SERVICE_ID en APPLE_REDIRECT_URI of controleer je Apple ID/provisioning.',
+          tr.authAppleUnavailable,
         );
       }
       if (!isAvailable && AppleSignInConfig.hasWebFallbackConfig) {
@@ -250,7 +251,7 @@ class AuthController extends AsyncNotifier<User?> {
       if (e.code == AuthorizationErrorCode.unknown) {
         state = AsyncValue.error(
           Exception(
-            'Apple-login kon niet worden gestart (AuthorizationError 1000). Dit is meestal een iOS-device/provisioning probleem: gebruik een echte iPhone (of iOS-simulator met Apple ID), vernieuw signing/provisioning in Xcode voor bundle ID com.bijbelquiz.app en installeer de app opnieuw.',
+            tr.authAppleError1000,
           ),
           StackTrace.current,
         );
@@ -274,7 +275,7 @@ class AuthController extends AsyncNotifier<User?> {
       final credential = await _getAppleCredentialViaWeb(scopes);
       if (credential != null) return credential;
       throw Exception(
-        'Apple web-fallback is niet geconfigureerd. Stel APPLE_SERVICE_ID en APPLE_REDIRECT_URI in.',
+        tr.authAppleWebNotConfigured,
       );
     }
 

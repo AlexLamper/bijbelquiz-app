@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../l10n/tr.dart';
 
 /// Labelled input for the sign-in forms: a bold label above a 52px white
 /// field, an optional hint below, and a show/hide toggle for passwords.
@@ -112,8 +113,8 @@ class _AuthTextFieldState extends State<AuthTextField> {
               suffixIcon: widget.obscure
                   ? IconButton(
                       tooltip: _hidden
-                          ? 'Wachtwoord tonen'
-                          : 'Wachtwoord verbergen',
+                          ? tr.authShowPassword
+                          : tr.authHidePassword,
                       onPressed: () => setState(() => _hidden = !_hidden),
                       icon: Icon(
                         _hidden

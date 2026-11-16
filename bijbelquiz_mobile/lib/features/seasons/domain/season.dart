@@ -1,3 +1,4 @@
+import '../../../l10n/tr.dart';
 /// One quiz inside a seasonal pack.
 class SeasonQuiz {
   final String id;
@@ -17,7 +18,7 @@ class SeasonQuiz {
   factory SeasonQuiz.fromJson(Map<String, dynamic> json) {
     return SeasonQuiz(
       id: json['id']?.toString() ?? '',
-      title: json['title'] as String? ?? 'Quiz',
+      title: json['title'] as String? ?? tr.wordmarkSecond,
       slug: json['slug'] as String? ?? '',
       questionCount: (json['questionCount'] as num?)?.toInt() ?? 0,
       isPremium: json['isPremium'] == true,
@@ -55,15 +56,15 @@ class SeasonPack {
   bool get hasQuizzes => quizzes.isNotEmpty;
 
   String get countdownLabel {
-    if (daysRemaining <= 0) return 'Loopt vandaag af';
-    if (daysRemaining == 1) return 'Nog 1 dag';
-    return 'Nog $daysRemaining dagen';
+    if (daysRemaining <= 0) return tr.seasonEndsToday;
+    if (daysRemaining == 1) return tr.seasonOneDayLeft;
+    return tr.seasonDaysLeft(daysRemaining);
   }
 
   factory SeasonPack.fromJson(Map<String, dynamic> json, List<dynamic> quizzes) {
     return SeasonPack(
       slug: json['slug'] as String? ?? '',
-      title: json['title'] as String? ?? 'Seizoen',
+      title: json['title'] as String? ?? tr.season,
       description: json['description'] as String? ?? '',
       daysRemaining: (json['daysRemaining'] as num?)?.toInt() ?? 0,
       categorySlug: json['categorySlug'] as String?,

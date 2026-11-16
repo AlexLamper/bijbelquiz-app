@@ -7,6 +7,7 @@ import '../../auth/present/auth_controller.dart';
 import '../../leaderboard/data/leaderboard_repository.dart';
 import '../../leaderboard/domain/leaderboard_entry.dart';
 import '../domain/player_group.dart';
+import '../../../l10n/tr.dart';
 
 final playerGroupRepositoryProvider = Provider<PlayerGroupRepository>((ref) {
   return PlayerGroupRepository(ref.watch(apiClientProvider));
@@ -42,7 +43,7 @@ class PlayerGroupRepository {
 
   Future<List<PlayerGroup>> list() {
     return _guard(
-      fallback: 'Kon je groepen niet laden.',
+      fallback: tr.groupsLoadFailed,
       request: () async {
         final response = await _apiClient.dio.get('/player-groups');
         final data = response.data;
@@ -61,7 +62,7 @@ class PlayerGroupRepository {
   /// tap on a slow connection returns the group that already exists.
   Future<PlayerGroup> createFromRoom(String roomCode, {String? name}) {
     return _guard(
-      fallback: 'Groep bewaren is niet gelukt.',
+      fallback: tr.groupSaveFailed,
       request: () async {
         final response = await _apiClient.dio.post(
           '/player-groups',
@@ -74,9 +75,9 @@ class PlayerGroupRepository {
         final data = response.data;
         final group = data is Map ? data['group'] : null;
         if (group is! Map) {
-          throw const AppError(
-            title: 'Groep bewaren mislukt',
-            message: 'De server gaf geen groep terug. Probeer het opnieuw.',
+          throw AppError(
+            title: tr.groupSaveFailedTitle,
+            message: tr.groupSaveNoGroup,
           );
         }
 
@@ -86,14 +87,14 @@ class PlayerGroupRepository {
   }
 
   Future<List<PlayerGroup>> rename(String groupId, String name) {
-    return _patch({'groupId': groupId, 'name': name}, 'Hernoemen is niet gelukt.');
+    return _patch({'groupId': groupId, 'name': name}, tr.groupRenameFailed);
   }
 
   /// Passing your own id leaves the group.
   Future<List<PlayerGroup>> removeMember(String groupId, String memberId) {
     return _patch(
       {'groupId': groupId, 'removeMemberId': memberId},
-      'Verwijderen is niet gelukt.',
+      tr.deleteFailed,
     );
   }
 
@@ -102,7 +103,7 @@ class PlayerGroupRepository {
     LeaderboardPeriod period = LeaderboardPeriod.all,
   }) {
     return _guard(
-      fallback: 'Kon de stand van deze groep niet laden.',
+      fallback: tr.groupStandingsFailed,
       request: () async {
         final response = await _apiClient.dio.get(
           '/player-groups/$groupId/leaderboard',
@@ -161,13 +162,13 @@ class PlayerGroupRepository {
       final message = data is Map ? data['error'] : null;
 
       throw AppError(
-        title: 'Groepen',
+        title: tr.groupsTitle,
         message: message is String && message.trim().isNotEmpty
             ? message
             : fallback,
       );
     } catch (_) {
-      throw AppError(title: 'Groepen', message: fallback);
+      throw AppError(title: tr.groupsTitle, message: fallback);
     }
   }
 }

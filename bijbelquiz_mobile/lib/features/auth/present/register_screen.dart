@@ -13,6 +13,7 @@ import 'widgets/auth_text_field.dart';
 import 'widgets/google_sign_in_button.dart';
 import 'widgets/social_auth_button.dart';
 import 'widgets/user_data_info_link.dart';
+import '../../../l10n/tr.dart';
 
 enum _Method { email, apple, google }
 
@@ -93,8 +94,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     ];
 
     return AuthPage(
-      title: 'Account aanmaken',
-      subtitle: 'Gratis, en je voortgang blijft bewaard.',
+      title: tr.authCreateAccount,
+      subtitle: tr.authCreateSubtitle,
       card: [
         for (var i = 0; i < providers.length; i++) ...[
           if (i > 0) const SizedBox(height: 12),
@@ -110,9 +111,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               AuthTextField(
-                label: 'Naam',
+                label: tr.authName,
                 hint: 'Bijvoorbeeld Alex',
-                helper: 'Zo zien anderen je op de ranglijst en als je samen speelt.',
+                helper: tr.authNameHelp,
                 controller: _nameController,
                 textInputAction: TextInputAction.next,
                 textCapitalization: TextCapitalization.words,
@@ -122,7 +123,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               const SizedBox(height: 16),
               AuthTextField(
                 label: 'E-mailadres',
-                hint: 'naam@voorbeeld.nl',
+                hint: tr.authEmailHint,
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.next,
@@ -131,7 +132,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               ),
               const SizedBox(height: 16),
               AuthTextField(
-                label: 'Wachtwoord',
+                label: tr.authPassword,
                 hint: 'Minimaal 6 tekens',
                 controller: _passwordController,
                 obscure: true,
@@ -147,20 +148,20 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         ),
         const SizedBox(height: 20),
         BqButton(
-          label: 'Account aanmaken',
+          label: tr.authCreateAccount,
           loading: _pending == _Method.email,
           onPressed: busy ? null : () => _run(_Method.email),
         ),
         const SizedBox(height: 12),
-        const AuthTermsLine(
-          prefix: 'Door een account te maken ga je akkoord met de ',
+        AuthTermsLine(
+          prefix: tr.authTermsPrefixRegister,
           fontSize: 13,
         ),
       ],
       footer: [
         AuthSwitchLink(
-          question: 'Heb je al een account?',
-          action: 'Inloggen',
+          question: tr.authHaveAccount,
+          action: tr.authSignIn,
           onTap: busy ? null : () => context.pushReplacement('/login'),
         ),
         Center(child: buildUserDataInfoLink(context)),

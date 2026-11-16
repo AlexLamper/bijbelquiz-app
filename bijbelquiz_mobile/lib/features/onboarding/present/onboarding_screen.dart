@@ -15,6 +15,7 @@ import '../../auth/present/widgets/auth_terms_line.dart';
 import '../../auth/present/widgets/google_sign_in_button.dart';
 import '../../auth/present/widgets/social_auth_button.dart';
 import '../data/onboarding_storage.dart';
+import '../../../l10n/tr.dart';
 
 enum _Provider { apple, google }
 
@@ -107,15 +108,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     const SizedBox(height: 40),
                     Semantics(
                       header: true,
-                      child: const Text(
-                        'Hoe goed ken jij de Bijbel?',
+                      child: Text(
+                        tr.splashTagline,
                         style: AppTheme.displayLarge,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Korte quizzen over de bijbelboeken, alleen of samen met '
-                      'anderen.',
+                      tr.onboardingTagline,
                       style: AppTheme.bodyLead.copyWith(
                         color: AppTheme.inkMuted,
                       ),
@@ -157,7 +157,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                               child: Center(
                                 widthFactor: 1,
                                 child: Text(
-                                  'Eerst spelen zonder account',
+                                  tr.onboardingGuest,
                                   style: TextStyle(
                                     fontFamily: AppTheme.sansFontName,
                                     fontSize: 15,
@@ -224,8 +224,7 @@ class _WelcomeIllustration extends StatelessWidget {
     return Semantics(
       image: true,
       label:
-          'Voorbeeld: een quizvraag met het goede antwoord, een duel tegen '
-          'Lotte, XP en een reeks',
+          tr.onboardingPreviewA11y,
       child: ExcludeSemantics(
         child: Center(
           child: FittedBox(
@@ -338,8 +337,8 @@ class _MiniQuizCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          const Text(
-            'Hoeveel broden had de jongen bij zich?',
+          Text(
+            tr.onboardingSampleQuestion,
             style: AppTheme.displayTitle,
           ),
           const SizedBox(height: 10),
@@ -504,13 +503,13 @@ class _StreakChip extends StatelessWidget {
         border: Border.all(color: AppTheme.rule),
         boxShadow: const [_floatShadow],
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           BqIcon(BqIcons.flame, size: 16),
           SizedBox(width: 6),
           Text(
-            '6 dagen op rij',
+            tr.onboardingSampleStreak,
             style: TextStyle(
               fontFamily: AppTheme.sansFontName,
               fontSize: 14,

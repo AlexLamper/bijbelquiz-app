@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 import 'server_image.dart';
+import '../../l10n/tr.dart';
 
 /// Quiz card, copied from the `Populaire Quizzen` grid on www.bijbelquiz.com.
 ///
@@ -131,7 +132,7 @@ class QuizCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    questionCount != null ? '$questionCount vragen' : '',
+                    questionCount != null ? tr.questionsCount(questionCount!) : '',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppTheme.caption,
@@ -139,7 +140,7 @@ class QuizCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  'Start',
+                  tr.actionStart,
                   style: AppTheme.caption.copyWith(
                     color: AppTheme.inkSoft,
                     fontWeight: FontWeight.w500,

@@ -34,6 +34,7 @@ import '../../features/admin/present/admin_user_detail_screen.dart';
 import '../../features/duels/present/new_duel_screen.dart';
 import '../../features/duels/present/duel_play_screen.dart';
 import '../../features/settings/present/settings_screen.dart';
+import '../../l10n/tr.dart';
 
 /// The tab shell: Home, Quizzen, Samen spelen, Ranglijst, Profiel.
 /// A page inside the tab shell: switching tabs swaps the screen with a short
@@ -94,14 +95,14 @@ class MainScaffold extends ConsumerWidget {
     );
   }
 
-  static const List<_NavItemData> _items = [
-    _NavItemData(BqIcons.home, BqIcons.homeFilled, 'Home', '/home'),
-    _NavItemData(BqIcons.book, BqIcons.book, 'Quizzen', '/quizzes'),
+  static final List<_NavItemData> _items = [
+    _NavItemData(BqIcons.home, BqIcons.homeFilled, tr.navHome, '/home'),
+    _NavItemData(BqIcons.book, BqIcons.book, tr.navQuizzes, '/quizzes'),
     // Samen spelen took the place of Duels: a group around one phone or one
     // table plays far more than two strangers taking turns.
-    _NavItemData(BqIcons.users, BqIcons.users, 'Samen', '/play-together'),
-    _NavItemData(BqIcons.trophy, BqIcons.trophy, 'Ranglijst', '/leaderboard'),
-    _NavItemData(BqIcons.user, BqIcons.user, 'Profiel', '/profile'),
+    _NavItemData(BqIcons.users, BqIcons.users, tr.navTogether, '/play-together'),
+    _NavItemData(BqIcons.trophy, BqIcons.trophy, tr.navLeaderboard, '/leaderboard'),
+    _NavItemData(BqIcons.user, BqIcons.user, tr.navProfile, '/profile'),
   ];
 
   static int _calculateSelectedIndex(BuildContext context) {

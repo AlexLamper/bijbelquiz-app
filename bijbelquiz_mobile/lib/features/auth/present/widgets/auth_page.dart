@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/bq.dart';
+import '../../../../l10n/tr.dart';
 
 /// Shared frame of the login and register pages: back button with the logo,
 /// a Fredoka title and lead, one white card holding the form, and a footer
@@ -35,7 +36,7 @@ class AuthPage extends StatelessWidget {
                 // quiz - so it is a pushed page with a way back.
                 BqCircleButton(
                   icon: BqIcons.chevronLeft,
-                  label: 'Terug',
+                  label: tr.actionBack,
                   onTap: () =>
                       context.canPop() ? context.pop() : context.go('/home'),
                 ),
@@ -74,9 +75,10 @@ class AuthPage extends StatelessWidget {
 
 /// "------ of met e-mail ------"
 class AuthOrDivider extends StatelessWidget {
-  const AuthOrDivider({super.key, this.label = 'of met e-mail'});
+  const AuthOrDivider({super.key, String? label}) : _label = label;
 
-  final String label;
+  final String? _label;
+  String get label => _label ?? tr.authOrEmail;
 
   @override
   Widget build(BuildContext context) {

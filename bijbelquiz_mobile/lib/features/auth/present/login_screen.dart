@@ -12,6 +12,7 @@ import 'widgets/auth_text_field.dart';
 import 'widgets/google_sign_in_button.dart';
 import 'widgets/social_auth_button.dart';
 import 'widgets/user_data_info_link.dart';
+import '../../../l10n/tr.dart';
 
 enum _Method { email, apple, google }
 
@@ -86,10 +87,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     ];
 
     return AuthPage(
-      title: 'Welkom terug',
+      title: tr.authWelcomeBack,
       subtitle:
-          'Log in om je voortgang bij te houden en mee te doen op de '
-          'ranglijst.',
+          tr.authLoginSubtitle,
       card: [
         for (var i = 0; i < providers.length; i++) ...[
           if (i > 0) const SizedBox(height: 12),
@@ -106,7 +106,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             children: [
               AuthTextField(
                 label: 'E-mailadres',
-                hint: 'naam@voorbeeld.nl',
+                hint: tr.authEmailHint,
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.next,
@@ -115,8 +115,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
               const SizedBox(height: 16),
               AuthTextField(
-                label: 'Wachtwoord',
-                hint: 'Je wachtwoord',
+                label: tr.authPassword,
+                hint: tr.authPasswordHint,
                 controller: _passwordController,
                 obscure: true,
                 textInputAction: TextInputAction.done,
@@ -131,15 +131,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ),
         const SizedBox(height: 20),
         BqButton(
-          label: 'Inloggen',
+          label: tr.authSignIn,
           loading: _pending == _Method.email,
           onPressed: busy ? null : () => _run(_Method.email),
         ),
       ],
       footer: [
         AuthSwitchLink(
-          question: 'Nog geen account?',
-          action: 'Registreren',
+          question: tr.authNoAccount,
+          action: tr.authRegister,
           onTap: busy ? null : () => context.pushReplacement('/register'),
         ),
         Center(child: buildUserDataInfoLink(context)),

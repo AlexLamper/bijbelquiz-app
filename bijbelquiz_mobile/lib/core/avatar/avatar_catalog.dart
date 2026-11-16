@@ -11,6 +11,7 @@
 library;
 
 import 'dart:math' as math;
+import '../../l10n/tr.dart';
 
 class AvatarConfig {
   const AvatarConfig({
@@ -150,76 +151,76 @@ class AvatarBackgroundOption extends AvatarOption {
   final String fill;
 }
 
-const List<AvatarOption> avatarCharacters = <AvatarOption>[
-  AvatarOption('lam', 'Lam'),
-  AvatarOption('leeuw', 'Leeuw'),
-  AvatarOption('duif', 'Duif'),
-  AvatarOption('uil', 'Uil'),
-  AvatarOption('hert', 'Hert'),
-  AvatarOption('os', 'Os'),
+final List<AvatarOption> avatarCharacters = <AvatarOption>[
+  AvatarOption('lam', tr.avatarLamb),
+  AvatarOption('leeuw', tr.avatarLion),
+  AvatarOption('duif', tr.avatarDove),
+  AvatarOption('uil', tr.avatarOwl),
+  AvatarOption('hert', tr.avatarDeer),
+  AvatarOption('os', tr.avatarOx),
 ];
 
-const List<AvatarColorOption> avatarColors = <AvatarColorOption>[
+final List<AvatarColorOption> avatarColors = <AvatarColorOption>[
   AvatarColorOption(
     'zand',
-    'Zand',
+    tr.avatarSand,
     base: '#E2C48D',
     shade: '#C4A268',
     light: '#F2E3C6',
   ),
   AvatarColorOption(
     'lapis',
-    'Lapis',
+    tr.avatarLapis,
     base: '#6A87C4',
     shade: '#4C68A2',
     light: '#CBD8EE',
   ),
   AvatarColorOption(
     'klei',
-    'Klei',
+    tr.avatarClay,
     base: '#CE8163',
     shade: '#AC6446',
     light: '#F0CDBD',
   ),
   AvatarColorOption(
     'olijf',
-    'Olijf',
+    tr.avatarOlive,
     base: '#7E9A6B',
     shade: '#5F7A4E',
     light: '#D3E0C9',
   ),
   AvatarColorOption(
     'roos',
-    'Roos',
+    tr.avatarRose,
     base: '#D18BA0',
     shade: '#B06B81',
     light: '#F1D3DC',
   ),
   AvatarColorOption(
     'leisteen',
-    'Leisteen',
+    tr.avatarSlate,
     base: '#8A93A6',
     shade: '#6A7386',
     light: '#D5DAE3',
   ),
 ];
 
-const List<AvatarBackgroundOption> avatarBackgrounds =
+final List<AvatarBackgroundOption> avatarBackgrounds =
     <AvatarBackgroundOption>[
-      AvatarBackgroundOption('perkament', 'Perkament', fill: '#F1EFE9'),
-      AvatarBackgroundOption('hemel', 'Hemel', fill: '#DCE6F5'),
-      AvatarBackgroundOption('salie', 'Salie', fill: '#DFE9DC'),
-      AvatarBackgroundOption('zonsopgang', 'Zonsopgang', fill: '#FAE3D2'),
-      AvatarBackgroundOption('nacht', 'Nacht', fill: '#2A3242'),
-      AvatarBackgroundOption('blos', 'Blos', fill: '#F6E0E6'),
+      AvatarBackgroundOption('perkament', tr.avatarParchment, fill: '#F1EFE9'),
+      AvatarBackgroundOption('hemel', tr.avatarSky, fill: '#DCE6F5'),
+      AvatarBackgroundOption('salie', tr.avatarSage, fill: '#DFE9DC'),
+      AvatarBackgroundOption('zonsopgang', tr.avatarSunrise, fill: '#FAE3D2'),
+      AvatarBackgroundOption('nacht', tr.avatarNight, fill: '#2A3242'),
+      AvatarBackgroundOption('blos', tr.avatarBlush, fill: '#F6E0E6'),
     ];
 
-const List<AvatarOption> avatarAccessories = <AvatarOption>[
-  AvatarOption('geen', 'Geen'),
-  AvatarOption('bril', 'Bril'),
-  AvatarOption('pet', 'Pet'),
-  AvatarOption('sjaal', 'Sjaal'),
-  AvatarOption('kroon', 'Kroon'),
+final List<AvatarOption> avatarAccessories = <AvatarOption>[
+  AvatarOption('geen', tr.avatarNone),
+  AvatarOption('bril', tr.avatarGlasses),
+  AvatarOption('pet', tr.avatarCap),
+  AvatarOption('sjaal', tr.avatarScarf),
+  AvatarOption('kroon', tr.avatarCrown),
 ];
 
 const String _ink = '#1B1A18';
@@ -263,7 +264,7 @@ String describeAvatar(AvatarConfig config) {
       .label
       .toLowerCase();
 
-  return '$character met $accessory';
+  return tr.avatarWith(character, accessory);
 }
 
 /// Trim the trailing zeros a raw `toString()` leaves on doubles, so the SVG

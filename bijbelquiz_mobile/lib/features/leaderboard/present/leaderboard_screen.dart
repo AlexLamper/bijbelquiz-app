@@ -13,6 +13,7 @@ import '../../groups/domain/player_group.dart';
 import '../../profile/present/profile_provider.dart';
 import '../data/leaderboard_repository.dart';
 import '../domain/leaderboard_entry.dart';
+import '../../../l10n/tr.dart';
 
 /// Ranglijst - BijbelQuiz 2.0 (`R-Ranglijst`).
 ///
@@ -109,7 +110,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                   const SizedBox(height: 24),
                   AppEmptyState(
                     icon: Icons.error_outline,
-                    title: 'Ranglijst kon niet laden',
+                    title: tr.leaderboardLoadFailed,
                     description: '$err',
                   ),
                 ],
@@ -132,9 +133,9 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
       case LeaderboardPeriod.month:
         // The server's monthly board is a rolling window (the last 30 days),
         // not the calendar month, so no end date is promised here.
-        return 'XP van de afgelopen 30 dagen';
+        return tr.leaderboardMonthHint;
       case LeaderboardPeriod.all:
-        return 'Alle XP sinds de start telt mee';
+        return tr.leaderboardAllTimeHint;
     }
   }
 
@@ -236,15 +237,15 @@ class _PeriodTabs extends StatelessWidget {
   final LeaderboardPeriod selected;
   final ValueChanged<LeaderboardPeriod> onSelect;
 
-  static const List<(LeaderboardPeriod, String)> _options = [
-    (LeaderboardPeriod.month, 'Deze maand'),
-    (LeaderboardPeriod.all, 'Altijd'),
+  static final List<(LeaderboardPeriod, String)> _options = [
+    (LeaderboardPeriod.month, tr.periodMonth),
+    (LeaderboardPeriod.all, tr.periodAllTime),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: 'Periode',
+      label: tr.periodLabel,
       container: true,
       child: Container(
         padding: const EdgeInsets.all(3),
@@ -343,7 +344,7 @@ class _ScopeSelector extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         children: [
           _ScopeChip(
-            label: 'Iedereen',
+            label: tr.everyone,
             active: selectedGroupId == null,
             onTap: () => onSelect(null),
           ),
@@ -761,7 +762,7 @@ class _BoardRow extends StatelessWidget {
                   ),
                   if (gap != null)
                     Text(
-                      'Nog ${_formatXp(gap)} XP tot plek ${rank - 1}',
+                      tr.leaderboardGap(_formatXp(gap), rank - 1),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -832,7 +833,7 @@ class _ShowMoreRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: expanded ? 'Toon minder' : 'Toon alle $total spelers',
+      label: expanded ? tr.showLess : tr.showAllPlayers(total),
       excludeSemantics: true,
       onTap: onTap,
       child: InkWell(
@@ -844,7 +845,7 @@ class _ShowMoreRow extends StatelessWidget {
             children: [
               Flexible(
                 child: Text(
-                  expanded ? 'Toon minder' : 'Toon alle $total spelers',
+                  expanded ? tr.showLess : tr.showAllPlayers(total),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -890,15 +891,15 @@ class _GuestCard extends StatelessWidget {
             child: BqIcon(BqIcons.trophy, size: 22, color: AppTheme.goldText),
           ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Met een gratis account telt je XP mee.',
+              tr.leaderboardGuestHint,
               style: AppTheme.bodyMuted,
             ),
           ),
           const SizedBox(width: 10),
           BqButton(
-            label: 'Inloggen',
+            label: tr.authSignIn,
             style: BqButtonStyle.tint,
             height: 44,
             expand: false,
@@ -918,7 +919,7 @@ class _NotPlacedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const BqCard(
+    return BqCard(
       color: AppTheme.lapisTint,
       borderColor: AppTheme.lapisSoft,
       child: Row(
@@ -933,11 +934,11 @@ class _NotPlacedCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Je staat nog niet op deze ranglijst',
+                  tr.leaderboardNotOnIt,
                   style: AppTheme.bodyStrong,
                 ),
                 Text(
-                  'Speel een quiz om mee te doen.',
+                  tr.leaderboardPlayToJoin,
                   style: TextStyle(
                     fontFamily: AppTheme.sansFontName,
                     fontSize: 13,
@@ -965,7 +966,7 @@ class _EmptyBoard extends StatelessWidget {
     final message = period == LeaderboardPeriod.month
         ? 'Deze maand heeft nog niemand${inGroup ? ' in deze groep' : ''} XP '
               'verdiend. Speel een quiz en sta bovenaan.'
-        : 'Nog geen ranglijstdata beschikbaar.';
+        : tr.leaderboardNoData;
 
     return BqCard(
       padding: const EdgeInsets.all(20),
@@ -978,8 +979,8 @@ class _EmptyBoard extends StatelessWidget {
             child: BqIcon(BqIcons.trophy, size: 26, color: AppTheme.goldText),
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Nog niemand op de ranglijst',
+          Text(
+            tr.leaderboardEmpty,
             textAlign: TextAlign.center,
             style: AppTheme.displaySmall,
           ),

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../theme/app_theme.dart';
+import '../../l10n/tr.dart';
 
 /// BijbelQuiz 2.0 building blocks.
 ///
@@ -116,7 +117,7 @@ class BqLogo extends StatelessWidget {
   final double markSize;
   final double fontSize;
 
-  static const String mark =
+  static final String mark =
       '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M12 24Q31 13 50 23Q69 13 88 24L88 71Q69 63 50 73Q42 69 36 69L24 86L25 69.5Q18 70 12 72Z" fill="#263E69" stroke="#263E69" stroke-width="8" stroke-linejoin="round" transform="translate(0 5)"/><path d="M12 24Q31 13 50 23Q69 13 88 24L88 71Q69 63 50 73Q42 69 36 69L24 86L25 69.5Q18 70 12 72Z" fill="#35548C" stroke="#35548C" stroke-width="8" stroke-linejoin="round"/><path d="M18 30Q32 22 46 30L46 64Q32 59 18 63Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"/><path d="M54 30Q68 22 82 30L82 63Q68 59 54 64Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"/><path d="M24 40Q32 36 40 40M24 50Q32 46 40 50" stroke="#35548C" stroke-width="5" stroke-linecap="round" fill="none"/><path d="M61.5 39Q61.5 31.5 68 31.5Q74.5 31.5 74.5 37.5Q74.5 41.5 70.5 43.5Q68 44.8 68 48" stroke="#35548C" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="68" cy="56" r="4.4" fill="#E9B12E"/></svg>';
 
   @override
@@ -130,10 +131,10 @@ class BqLogo extends StatelessWidget {
           SizedBox(width: markSize * 0.2),
           Text.rich(
             TextSpan(
-              children: const [
-                TextSpan(text: 'Bijbel'),
+              children: [
+                TextSpan(text: tr.wordmarkFirst),
                 TextSpan(
-                  text: 'Quiz',
+                  text: tr.wordmarkSecond,
                   style: TextStyle(color: AppTheme.lapis),
                 ),
               ],
@@ -889,7 +890,7 @@ class BqTopBar extends StatelessWidget {
       children: [
         BqCircleButton(
           icon: close ? BqIcons.close : BqIcons.chevronLeft,
-          label: close ? 'Sluiten' : 'Terug',
+          label: close ? tr.actionClose : tr.actionBack,
           onTap: onBack ?? () => Navigator.of(context).maybePop(),
         ),
         if (title != null) ...[

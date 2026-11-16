@@ -5,6 +5,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/bq.dart';
 import '../../onboarding/data/onboarding_storage.dart';
 import '../present/auth_controller.dart';
+import '../../../l10n/tr.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -55,7 +56,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   Widget build(BuildContext context) {
     // The welcome screen's logo lockup on the paper background, while the
     // stored session is checked.
-    return const Scaffold(
+    return Scaffold(
       backgroundColor: AppTheme.paper,
       body: Center(
         child: Column(
@@ -64,7 +65,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             BqLogo(markSize: 64, fontSize: 36),
             SizedBox(height: 14),
             Text(
-              'Hoe goed ken jij de Bijbel?',
+              tr.splashTagline,
               style: TextStyle(
                 fontFamily: AppTheme.sansFontName,
                 fontSize: 15,
@@ -106,10 +107,10 @@ class BijbelQuizWordmark extends StatelessWidget {
           letterSpacing: fontSize * -0.02,
           color: AppTheme.ink,
         ),
-        children: const [
-          TextSpan(text: 'Bijbel'),
+        children: [
+          TextSpan(text: tr.wordmarkFirst),
           TextSpan(
-            text: 'Quiz',
+            text: tr.wordmarkSecond,
             style: TextStyle(color: AppTheme.lapis),
           ),
         ],

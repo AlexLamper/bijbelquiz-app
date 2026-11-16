@@ -20,6 +20,7 @@ import '../../quiz/present/quiz_order.dart';
 import '../../quiz/present/widgets/bible_books.dart';
 import '../../seasons/data/season_repository.dart';
 import '../../seasons/domain/season.dart';
+import '../../../l10n/tr.dart';
 
 const QuizQuery _homeQuery = QuizQuery(includePremium: true);
 
@@ -117,8 +118,8 @@ class HomeScreen extends ConsumerWidget {
               ] else if (recent.isNotEmpty) ...[
                 const SizedBox(height: 20),
                 BqSectionHeader(
-                  title: 'Verder spelen',
-                  actionLabel: 'Alles',
+                  title: tr.homeContinue,
+                  actionLabel: tr.homeAll,
                   onAction: () => context.go('/profile'),
                 ),
                 const SizedBox(height: 10),
@@ -139,7 +140,7 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ],
               const SizedBox(height: 20),
-              const Text('Kies een onderwerp', style: AppTheme.displaySmall),
+              Text(tr.homePickTopic, style: AppTheme.displaySmall),
               const SizedBox(height: 10),
               _TopicGrid(
                 onOpen: (topic) {
@@ -153,8 +154,8 @@ class HomeScreen extends ConsumerWidget {
               if (popular.isNotEmpty) ...[
                 const SizedBox(height: 24),
                 BqSectionHeader(
-                  title: 'Populaire quizzen',
-                  actionLabel: 'Alles',
+                  title: tr.homePopular,
+                  actionLabel: tr.homeAll,
                   onAction: () {
                     ref
                         .read(libraryCategoryRequestProvider.notifier)
@@ -231,7 +232,7 @@ class _HomeHeader extends StatelessWidget {
   /// number, it is the absence of one, so the pills are left out.
   final ProfileModel? profile;
 
-  static const String _flame =
+  static final String _flame =
       '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="#D9734F" d="M12 2s5 4.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-4.2 2.5-5 0 2 1 3 2 3 0-3.5.5-6 .5-8z"/></svg>';
 
   @override
@@ -255,8 +256,8 @@ class _HomeHeader extends StatelessWidget {
             const SizedBox(width: 10),
             Semantics(
               label: p.streak == 1
-                  ? 'Reeks van 1 dag'
-                  : 'Reeks van ${p.streak} dagen',
+                  ? tr.streakOneDay
+                  : tr.streakDays(p.streak),
               excludeSemantics: true,
               child: BqPill.outline(
                 label: '${p.streak}',
@@ -299,10 +300,10 @@ class _DailyQuizCard extends StatelessWidget {
   final bool locked;
   final VoidCallback onPlay;
 
-  static const String _bookOutline =
+  static final String _bookOutline =
       '<svg viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M2 5c3-1 6-1 10 1 4-2 7-2 10-1v14c-3-1-6-1-10 1-4-2-7-2-10-1z"/><path d="M12 6v14"/></svg>';
 
-  static const String _boltInk =
+  static final String _boltInk =
       '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="#3D2C05" d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>';
 
   @override
@@ -313,13 +314,13 @@ class _DailyQuizCard extends StatelessWidget {
     final reference = quiz.passage?.label ?? quiz.category?.name;
     final meta = [
       if (reference != null && reference.isNotEmpty) reference,
-      '$count vragen',
+      tr.questionsCountShort(count),
       '${_minutesFor(count)} min',
     ].join(' · ');
 
     return Semantics(
       container: true,
-      label: 'Quiz van de dag: ${quiz.title}',
+      label: tr.quizOfTheDayLabel(quiz.title),
       child: Material(
         color: AppTheme.lapis,
         borderRadius: BorderRadius.circular(20),
@@ -340,8 +341,8 @@ class _DailyQuizCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'QUIZ VAN DE DAG',
+                    Text(
+                      tr.quizOfTheDayKicker,
                       style: TextStyle(
                         fontFamily: AppTheme.sansFontName,
                         fontSize: 12,
@@ -379,7 +380,7 @@ class _DailyQuizCard extends StatelessWidget {
                     Row(
                       children: [
                         BqButton(
-                          label: locked ? 'Ontgrendel' : 'Speel nu',
+                          label: locked ? tr.actionUnlock : tr.actionPlayNow,
                           style: BqButtonStyle.white,
                           height: 48,
                           expand: false,
@@ -442,9 +443,9 @@ class _EmptyDailyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const BqCard(
+    return BqCard(
       child: Text(
-        'Nieuwe uitdaging verschijnt zodra quizdata geladen is.',
+        tr.homeChallengeLoading,
         style: AppTheme.bodyMuted,
       ),
     );
@@ -462,15 +463,15 @@ class _HomeErrorCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Home kon niet laden', style: AppTheme.bodyStrong),
+          Text(tr.homeLoadFailed, style: AppTheme.bodyStrong),
           const SizedBox(height: 2),
-          const Text(
-            'Controleer je verbinding en probeer het opnieuw.',
+          Text(
+            tr.checkConnectionRetry,
             style: AppTheme.caption,
           ),
           const SizedBox(height: 12),
           BqButton(
-            label: 'Opnieuw proberen',
+            label: tr.actionRetry,
             style: BqButtonStyle.secondary,
             height: 44,
             onPressed: onRetry,
@@ -497,7 +498,7 @@ class _GuestCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Row(
+          Row(
             children: [
               BqIconTile(
                 size: 42,
@@ -510,7 +511,7 @@ class _GuestCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Speel gratis, zonder account',
+                      tr.homeGuestTitle,
                       style: TextStyle(
                         fontFamily: AppTheme.sansFontName,
                         fontSize: 15,
@@ -519,7 +520,7 @@ class _GuestCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'Maak er een aan om je score, punten en reeks te bewaren.',
+                      tr.homeGuestBody,
                       style: AppTheme.caption,
                     ),
                   ],
@@ -529,7 +530,7 @@ class _GuestCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           BqButton(
-            label: 'Voortgang bewaren',
+            label: tr.homeGuestAction,
             style: BqButtonStyle.tint,
             height: 44,
             onPressed: () => context.push('/register'),
@@ -562,24 +563,24 @@ class _ContinueCard extends StatelessWidget {
       category: categoryName,
     );
 
-    final label = passage?.book ?? categoryName ?? 'Quiz';
+    final label = passage?.book ?? categoryName ?? tr.wordmarkSecond;
     final total = progress.totalQuestions;
     final score = progress.score;
     final scoreText = total > 0 ? '$score/$total' : null;
     final line = passage != null
         ? [
-            'Hoofdstuk ${passage.chapter}',
+            tr.chapterN(passage.chapter),
             if (scoreText != null) scoreText,
           ].join(' · ')
-        : (scoreText != null ? '$scoreText goed' : 'Gespeeld');
+        : (scoreText != null ? tr.scoreCorrect(scoreText) : tr.played);
     final title = progress.quizTitle.isNotEmpty
         ? progress.quizTitle
-        : (quiz?.title ?? 'Quiz');
+        : (quiz?.title ?? tr.wordmarkSecond);
 
     return Semantics(
       button: true,
       onTap: onTap,
-      label: total > 0 ? '$title, $score van $total goed' : title,
+      label: total > 0 ? tr.scoreA11y(title, score, total) : title,
       excludeSemantics: true,
       child: BqCard(
         radius: 18,
@@ -698,10 +699,10 @@ class _Topic {
   }
 }
 
-const List<_Topic> _topics = [
+final List<_Topic> _topics = [
   _Topic(
     title: 'Oude Testament',
-    subtitle: '39 boeken',
+    subtitle: tr.books39,
     circle: Color(0xFFDCE9DF),
     subtitleColor: AppTheme.positiveMutedText,
     svgSize: 66,
@@ -713,7 +714,7 @@ const List<_Topic> _topics = [
   ),
   _Topic(
     title: 'Nieuwe Testament',
-    subtitle: '27 boeken',
+    subtitle: tr.books27,
     circle: Color(0xFFDCE4F3),
     subtitleColor: AppTheme.lapisMutedText,
     svgSize: 68,
@@ -724,8 +725,8 @@ const List<_Topic> _topics = [
         '<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="42" cy="22" r="15" fill="#F3D27A"/><path d="M0 64Q30 44 64 58V64Z" fill="#B9C7E3"/><path d="M28 8h8v13h11v8H36v31h-8V29H17v-8h11z" fill="#35548C" stroke="#263E69" stroke-width="2" stroke-linejoin="round"/></svg>',
   ),
   _Topic(
-    title: 'Algemeen',
-    subtitle: 'Hele Bijbel',
+    title: tr.catGeneral,
+    subtitle: tr.catWholeBible,
     circle: Color(0xFFF8E7B8),
     subtitleColor: AppTheme.goldText,
     svgSize: 70,
@@ -737,7 +738,7 @@ const List<_Topic> _topics = [
   ),
   _Topic(
     title: "Thema's",
-    subtitle: 'Per thema',
+    subtitle: tr.catByTheme,
     circle: Color(0xFFF4DCD0),
     subtitleColor: AppTheme.vermilion,
     svgSize: 64,
@@ -922,7 +923,7 @@ class _SeasonSection extends StatelessWidget {
                   child: BqIcon(BqIcons.book, size: 18, color: AppTheme.lapis),
                 ),
                 title: quiz.title,
-                subtitle: '${quiz.questionCount} vragen',
+                subtitle: tr.questionsCountQuiz(quiz.questionCount),
                 trailing: quiz.isPremium
                     ? SvgPicture.string(BqIcons.crown, width: 18, height: 18)
                     : null,

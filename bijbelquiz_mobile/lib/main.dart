@@ -22,6 +22,7 @@ import 'features/profile/data/profile_model.dart';
 import 'features/profile/present/profile_provider.dart';
 import 'features/quiz/data/pending_attempt_claimer.dart';
 import 'features/quiz/data/pending_attempt_store.dart';
+import 'l10n/tr.dart';
 
 /// The app-wide messenger, for notices raised outside any screen.
 final rootScaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
@@ -39,13 +40,13 @@ Future<void> _claimPendingAttempts(WidgetRef ref) async {
   final messenger = rootScaffoldMessengerKey.currentState;
   if (messenger == null) return;
 
-  final title = summary.firstTitle ?? 'je quiz';
+  final title = summary.firstTitle ?? tr.savedQuizFallback;
   AppNotice.successOn(
     messenger,
     summary.saved == 1
-        ? 'Je score voor "$title" is opgeslagen (+${summary.xpEarned} XP).'
-        : '${summary.saved} quizzen opgeslagen (+${summary.xpEarned} XP).',
-    title: 'Voortgang bewaard',
+        ? tr.savedScoreOne(title, summary.xpEarned)
+        : tr.savedScoreMany(summary.saved, summary.xpEarned),
+    title: tr.progressSaved,
   );
 }
 

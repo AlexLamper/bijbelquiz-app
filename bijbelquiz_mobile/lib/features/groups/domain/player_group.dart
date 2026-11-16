@@ -1,4 +1,5 @@
 import '../../../core/avatar/avatar_catalog.dart';
+import '../../../l10n/tr.dart';
 
 /// One member of a saved group.
 class PlayerGroupMember {
@@ -58,7 +59,7 @@ class PlayerGroup {
 
     return PlayerGroup(
       id: json['id']?.toString() ?? '',
-      name: json['name'] as String? ?? 'Groep',
+      name: json['name'] as String? ?? tr.groupSingular,
       memberCount: (json['memberCount'] as num?)?.toInt() ?? 0,
       isOwner: json['isOwner'] == true,
       createdFromRoomCode: json['createdFromRoomCode'] as String?,

@@ -19,6 +19,7 @@ import '../../profile/data/profile_model.dart';
 import '../../profile/present/profile_provider.dart';
 import '../data/quiz_preferences_controller.dart';
 import '../domain/quiz_preferences.dart';
+import '../../../l10n/tr.dart';
 
 /// Instellingen - BijbelQuiz 2.0 (`R-Instellingen`).
 ///
@@ -82,15 +83,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   static String? _premiumSourceLabel(ProfileModel profile) {
     switch (profile.premiumSource) {
       case 'store':
-        return 'Abonnement beheren';
+        return tr.manageSubscription;
       case 'stripe':
-        return 'Via de website';
+        return tr.viaWebsite;
       case 'lifetime':
-        return 'Levenslang';
+        return tr.lifetime;
       case 'group':
         return 'Groepslicentie';
       default:
-        return 'Actief';
+        return tr.active;
     }
   }
 
@@ -109,9 +110,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (!launched && mounted) {
       AppNotice.error(
         context,
-        const AppError(
-          title: 'Link niet geopend',
-          message: 'We konden deze pagina niet openen. Probeer het opnieuw.',
+        AppError(
+          title: tr.errLinkTitle,
+          message: tr.errLinkMessage,
         ),
       );
     }
@@ -124,19 +125,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (profile == null) {
       AppNotice.info(
         context,
-        'Log eerst in met het account dat je wilt verwijderen.',
+        tr.deleteSignInFirst,
       );
       return;
     }
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Account verwijderen?'),
-        content: const Text(
-          'Je account, je voortgang, je XP en je duels worden definitief '
-          'verwijderd. Dit kan niet ongedaan worden gemaakt.\n\n'
-          'Een abonnement via de App Store of Google Play stopt hierdoor '
-          'niet: zeg dat eerst op in de abonnementen van je telefoon.',
+        title: Text(tr.deleteAccountQuestion),
+        content: Text(
+          tr.deleteAccountBody,
         ),
         actions: [
           TextButton(
@@ -146,7 +144,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
             style: TextButton.styleFrom(foregroundColor: AppTheme.vermilion),
-            child: const Text('Definitief verwijderen'),
+            child: Text(tr.deletePermanently),
           ),
         ],
       ),
@@ -165,11 +163,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       final data = e.response?.data;
       final message = data is Map && data['error'] is String
           ? data['error'] as String
-          : 'Verwijderen is niet gelukt. Probeer het opnieuw of mail '
-                '$_accountEmail.';
+          : tr.deleteAccountFailed(_accountEmail);
       AppNotice.error(
         context,
-        AppError(title: 'Account niet verwijderd', message: message),
+        AppError(title: tr.accountNotDeleted, message: message),
       );
       return;
     }
@@ -178,7 +175,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     ref.invalidate(profileProvider);
     if (!mounted) return;
     setState(() => _deleting = false);
-    AppNotice.info(context, 'Je account is verwijderd.');
+    AppNotice.info(context, tr.accountDeleted);
     context.go('/home');
   }
 
@@ -195,8 +192,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (value && !result) {
       AppNotice.info(
         context,
-        'Meldingen staan uit voor BijbelQuiz. Zet ze aan in de '
-        'instellingen van je telefoon.',
+        tr.notificationsOff,
       );
     }
   }
@@ -228,7 +224,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         onPremium: (_) => AppNotice.success(
           context,
           'Je Premium staat weer aan op dit account.',
-          title: 'Aankopen hersteld',
+          title: tr.purchasesRestored,
         ),
       );
     });
@@ -260,7 +256,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   context.push(hasSession ? '/profile/edit' : '/login'),
             ),
             const SizedBox(height: 16),
-            const _SectionTitle('Herinnering'),
+            _SectionTitle(tr.settingsReminder),
             const SizedBox(height: 8),
             _SettingsGroup(
               children: [
@@ -272,16 +268,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   value: reminderOn,
                   onChanged: (value) => _toggleReminder(value, profile),
                 ),
-                const _ValueRow(
+                _ValueRow(
                   icon: BqIcons.clock,
-                  title: 'Tijdstip',
+                  title: tr.settingsTime,
                   value: _reminderTime,
                   valueColor: AppTheme.inkSoft,
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            const _SectionTitle('Spelen'),
+            _SectionTitle(tr.settingsPlaying),
             const SizedBox(height: 8),
             _SettingsGroup(
               children: [
@@ -293,19 +289,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 _SwitchRow(
                   icon: _iconBookOpen,
-                  title: 'Eerst het hoofdstuk lezen',
+                  title: tr.settingsReadChapterFirst,
                   value: preferences.readPassageFirst,
                   onChanged: prefs.setReadPassageFirst,
                 ),
                 _SwitchRow(
                   icon: BqIcons.book,
-                  title: 'Bijbelverwijzing bij uitleg',
+                  title: tr.settingsShowReference,
                   value: preferences.showBibleReferences,
                   onChanged: prefs.setShowBibleReferences,
                 ),
                 _SwitchRow(
                   icon: _iconTextSize,
-                  title: 'Grote vraagtekst',
+                  title: tr.settingsLargeText,
                   value: preferences.largeQuestionText,
                   onChanged: prefs.setLargeQuestionText,
                 ),
@@ -339,7 +335,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 if (!kIsWeb)
                   _ValueRow(
                     icon: _iconRestore,
-                    title: 'Aankopen herstellen',
+                    title: tr.restorePurchases,
                     value:
                         premiumState.isBusy &&
                             premiumState.action == PremiumAction.restore
@@ -352,7 +348,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     icon: BqIcons.shield,
                     iconColor: AppTheme.lapis,
                     tileColor: AppTheme.lapisTint,
-                    title: 'Beheer',
+                    title: tr.settingsManage,
                     onTap: () => context.push('/beheer'),
                   ),
                 _ValueRow(
@@ -367,13 +363,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               _SettingsGroup(
                 children: [
                   _TextRow(
-                    title: 'Uitloggen',
+                    title: tr.signOut,
                     color: AppTheme.vermilion,
                     loading: _loggingOut,
                     onTap: _logout,
                   ),
                   _TextRow(
-                    title: 'Account verwijderen',
+                    title: tr.deleteAccount,
                     color: AppTheme.inkMuted,
                     showChevron: true,
                     onTap: () => _requestDeletion(profile),
@@ -701,14 +697,14 @@ class _AccountCard extends StatelessWidget {
     final String title;
     final String subtitle;
     if (!hasSession) {
-      title = 'Je speelt zonder account';
-      subtitle = 'Inloggen of een account aanmaken';
+      title = tr.guestPlaying;
+      subtitle = tr.signInOrCreate;
     } else if (p == null) {
-      title = 'Je account';
-      subtitle = 'Ingelogd';
+      title = tr.yourAccount;
+      subtitle = tr.signedIn;
     } else {
       title = p.name;
-      subtitle = p.email.isEmpty ? 'Ingelogd' : 'Ingelogd als ${p.email}';
+      subtitle = p.email.isEmpty ? tr.signedIn : tr.signedInAs(p.email);
     }
 
     return Semantics(
@@ -797,7 +793,7 @@ class _TimerSheet extends StatelessWidget {
                   Semantics(
                     button: true,
                     selected: choice == selected,
-                    label: choice == 0 ? 'Uit' : '$choice seconden',
+                    label: choice == 0 ? 'Uit' : tr.secondsN(choice),
                     excludeSemantics: true,
                     onTap: () => Navigator.of(context).pop(choice),
                     child: InkWell(
@@ -809,7 +805,7 @@ class _TimerSheet extends StatelessWidget {
                           children: [
                             Expanded(
                               child: Text(
-                                choice == 0 ? 'Uit' : '$choice seconden',
+                                choice == 0 ? 'Uit' : tr.secondsN(choice),
                                 style: _rowTitle.copyWith(
                                   color: choice == selected
                                       ? AppTheme.lapis
