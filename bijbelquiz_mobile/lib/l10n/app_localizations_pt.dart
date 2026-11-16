@@ -2263,4 +2263,159 @@ class AppLocalizationsPt extends AppLocalizations {
   String secondsPerQuestionLong(Object i) {
     return '$i segundos por pergunta';
   }
+
+  @override
+  String get player => 'Jogador';
+
+  @override
+  String get you => 'Você';
+
+  @override
+  String get sampleName => 'Sara';
+
+  @override
+  String get streak7Days => 'Sequência de 7 dias';
+
+  @override
+  String readReference(Object reference) {
+    return 'Ler $reference';
+  }
+
+  @override
+  String get rightAnswer => 'Resposta certa';
+
+  @override
+  String get wrongAnswer => 'Resposta errada';
+
+  @override
+  String get textFetchFailed => 'Não foi possível carregar o texto.';
+
+  @override
+  String get leaderboardMonthEmpty =>
+      'Ninguém ganhou XP este mês ainda. Jogue um quiz e fique no topo.';
+
+  @override
+  String get leaderboardMonthEmptyGroup =>
+      'Ninguém deste grupo ganhou XP este mês ainda. Jogue um quiz e fique no topo.';
+
+  @override
+  String trialFree(Object period) {
+    return '$period grátis';
+  }
+
+  @override
+  String trialDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dias',
+      one: '1 dia',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String trialWeeks(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count semanas',
+      one: '1 semana',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String trialMonths(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count meses',
+      one: '1 mês',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String trialYears(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count anos',
+      one: '1 ano',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String legalLifetime(Object price, Object store) {
+    return 'O Premium vitalício é uma compra única de $price pela sua conta $store e não renova automaticamente.';
+  }
+
+  @override
+  String legalYearly(Object price) {
+    return 'Bible Quizzes Premium Anual: $price por ano.';
+  }
+
+  @override
+  String legalMonthly(Object price) {
+    return 'Bible Quizzes Premium Mensal: $price por mês.';
+  }
+
+  @override
+  String legalTrial(Object period) {
+    return ' A assinatura começa após um teste grátis de $period.';
+  }
+
+  @override
+  String legalRenews(Object store) {
+    return ' A assinatura é cobrada pela sua conta $store e renova automaticamente, a menos que você cancele pelo menos 24 horas antes do fim do período atual.';
+  }
+
+  @override
+  String get authEmail => 'E-mail';
+
+  @override
+  String get termsWord => 'termos';
+
+  @override
+  String get privacyWord => 'política de privacidade';
+
+  @override
+  String get oldTestament => 'Antigo Testamento';
+
+  @override
+  String get newTestament => 'Novo Testamento';
+
+  @override
+  String get themes => 'Temas';
+
+  @override
+  String get correctLower => 'certas';
+
+  @override
+  String get questionsLower => 'perguntas';
+
+  @override
+  String get aboutLower => 'aprox.';
+
+  @override
+  String get busy => 'Processando...';
+
+  @override
+  String get termsEnd => '.';
+
+  @override
+  String get settingsLanguage => 'Idioma';
+
+  @override
+  String get languageDevice => 'Idioma do celular';
+
+  @override
+  String get languageExplain =>
+      'Cada idioma tem seus próprios quizzes e contas. Depois de trocar, você entra de novo.';
+
+  @override
+  String get languageRestart =>
+      'Feche e abra o app de novo para usar o novo idioma.';
 }

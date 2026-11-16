@@ -20,7 +20,7 @@ class PlayerGroupMember {
 
     return PlayerGroupMember(
       id: id,
-      name: json['name'] as String? ?? 'Speler',
+      name: json['name'] as String? ?? tr.player,
       isOwner: json['isOwner'] == true,
       avatar: AvatarConfig.resolve(
         json['avatar'] is Map

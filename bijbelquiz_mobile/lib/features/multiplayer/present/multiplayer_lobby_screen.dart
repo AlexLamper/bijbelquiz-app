@@ -361,7 +361,7 @@ class _MultiplayerLobbyScreenState
       title: error.title,
       description: error.message,
       action: MpSecondaryButton(
-        label: 'Opnieuw proberen',
+        label: tr.actionRetry,
         expand: false,
         height: 44,
         onPressed: () => _controller.refreshRoom(showLoading: true),
@@ -529,8 +529,8 @@ class _PlayerTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final offline = !player.isConnected;
-    final name = player.name.isEmpty ? 'Speler' : player.name;
-    final shown = isMe ? 'Jij' : name;
+    final name = player.name.isEmpty ? tr.player : player.name;
+    final shown = isMe ? tr.you : name;
     final label = isHost ? '$shown (host)' : shown;
 
     return Semantics(

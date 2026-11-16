@@ -1488,5 +1488,120 @@
         "type": "Object"
       }
     }
-  }
+  },
+  "player": "Speler",
+  "you": "Jij",
+  "sampleName": "Lotte",
+  "streak7Days": "7 dagen reeks",
+  "readReference": "Lees {reference}",
+  "@readReference": {
+    "placeholders": {
+      "reference": {
+        "type": "Object"
+      }
+    }
+  },
+  "rightAnswer": "Goed antwoord",
+  "wrongAnswer": "Fout antwoord",
+  "textFetchFailed": "De tekst kon niet worden opgehaald.",
+  "leaderboardMonthEmpty": "Deze maand heeft nog niemand XP verdiend. Speel een quiz en sta bovenaan.",
+  "leaderboardMonthEmptyGroup": "Deze maand heeft nog niemand in deze groep XP verdiend. Speel een quiz en sta bovenaan.",
+  "trialFree": "{period} gratis",
+  "@trialFree": {
+    "placeholders": {
+      "period": {
+        "type": "Object"
+      }
+    }
+  },
+  "trialDays": "{count, plural, =1{1 dag} other{{count} dagen}}",
+  "@trialDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trialWeeks": "{count, plural, =1{1 week} other{{count} weken}}",
+  "@trialWeeks": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trialMonths": "{count, plural, =1{1 maand} other{{count} maanden}}",
+  "@trialMonths": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trialYears": "{count} jaar",
+  "@trialYears": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "legalLifetime": "Levenslang Premium is een eenmalige aankoop van {price} via je {store}-account en verlengt niet automatisch.",
+  "@legalLifetime": {
+    "placeholders": {
+      "price": {
+        "type": "Object"
+      },
+      "store": {
+        "type": "Object"
+      }
+    }
+  },
+  "legalYearly": "BijbelQuiz Premium Jaarlijks: {price} per jaar.",
+  "@legalYearly": {
+    "placeholders": {
+      "price": {
+        "type": "Object"
+      }
+    }
+  },
+  "legalMonthly": "BijbelQuiz Premium Maandelijks: {price} per maand.",
+  "@legalMonthly": {
+    "placeholders": {
+      "price": {
+        "type": "Object"
+      }
+    }
+  },
+  "legalTrial": " Na een gratis proefperiode van {period} gaat het abonnement in.",
+  "@legalTrial": {
+    "placeholders": {
+      "period": {
+        "type": "Object"
+      }
+    }
+  },
+  "legalRenews": " Het abonnement loopt via je {store}-account en verlengt automatisch, tenzij je minimaal 24 uur voor het einde van de lopende periode opzegt.",
+  "@legalRenews": {
+    "placeholders": {
+      "store": {
+        "type": "Object"
+      }
+    }
+  },
+  "authEmail": "E-mailadres",
+  "termsWord": "voorwaarden",
+  "privacyWord": "privacybeleid",
+  "oldTestament": "Oude Testament",
+  "newTestament": "Nieuwe Testament",
+  "themes": "Thema's",
+  "correctLower": "goed",
+  "questionsLower": "vragen",
+  "aboutLower": "ongeveer",
+  "busy": "Bezig...",
+  "termsEnd": ".",
+  "settingsLanguage": "Taal",
+  "languageDevice": "Taal van je telefoon",
+  "languageExplain": "Elke taal heeft zijn eigen quizzen en accounts. Na het wisselen log je opnieuw in.",
+  "languageRestart": "Sluit de app en open hem opnieuw om de nieuwe taal te gebruiken."
 }

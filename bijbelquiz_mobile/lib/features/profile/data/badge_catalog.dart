@@ -135,7 +135,7 @@ final List<BadgeDefinition> kFallbackBadgeCatalog = <BadgeDefinition>[
     label: tr.badgeDedicated,
     icon: Icons.local_fire_department_outlined,
     description: tr.badgeDedicatedDesc,
-    aliases: <String>['7 dagen reeks', 'week streak'],
+    aliases: <String>[tr.streak7Days, 'week streak'],
   ),
   BadgeDefinition(
     code: 'scholar',

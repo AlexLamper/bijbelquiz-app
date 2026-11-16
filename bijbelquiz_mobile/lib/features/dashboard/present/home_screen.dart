@@ -21,6 +21,7 @@ import '../../quiz/present/widgets/bible_books.dart';
 import '../../seasons/data/season_repository.dart';
 import '../../seasons/domain/season.dart';
 import '../../../l10n/tr.dart';
+import '../../../core/config/brand.dart';
 
 const QuizQuery _homeQuery = QuizQuery(includePremium: true);
 
@@ -701,26 +702,26 @@ class _Topic {
 
 final List<_Topic> _topics = [
   _Topic(
-    title: 'Oude Testament',
+    title: tr.oldTestament,
     subtitle: tr.books39,
     circle: Color(0xFFDCE9DF),
     subtitleColor: AppTheme.positiveMutedText,
     svgSize: 66,
     svgRight: -2,
     svgBottom: -8,
-    keyword: 'oude',
+    keyword: Brand.isBijbelQuiz ? 'oude' : 'old-testament',
     svg:
         '<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 60V24a12 12 0 0 1 24 0v36z" fill="#D8D2C4" stroke="#6F6758" stroke-width="2.5" stroke-linejoin="round"/><path d="M32 60V24a12 12 0 0 1 24 0v36z" fill="#E6E1D5" stroke="#6F6758" stroke-width="2.5" stroke-linejoin="round"/><path d="M14 29h12M14 35h12M14 41h12M14 47h8M38 29h12M38 35h12M38 41h12M38 47h8" stroke="#8E8676" stroke-width="2.2" stroke-linecap="round"/></svg>',
   ),
   _Topic(
-    title: 'Nieuwe Testament',
+    title: tr.newTestament,
     subtitle: tr.books27,
     circle: Color(0xFFDCE4F3),
     subtitleColor: AppTheme.lapisMutedText,
     svgSize: 68,
     svgRight: -4,
     svgBottom: -6,
-    keyword: 'nieuwe',
+    keyword: Brand.isBijbelQuiz ? 'nieuwe' : 'new-testament',
     svg:
         '<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="42" cy="22" r="15" fill="#F3D27A"/><path d="M0 64Q30 44 64 58V64Z" fill="#B9C7E3"/><path d="M28 8h8v13h11v8H36v31h-8V29H17v-8h11z" fill="#35548C" stroke="#263E69" stroke-width="2" stroke-linejoin="round"/></svg>',
   ),
@@ -732,19 +733,19 @@ final List<_Topic> _topics = [
     svgSize: 70,
     svgRight: -6,
     svgBottom: -10,
-    keyword: 'algemeen',
+    keyword: Brand.isBijbelQuiz ? 'algemeen' : 'general',
     svg:
         '<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 30c9-5 19-5 28 1 9-6 19-6 28-1v28c-9-5-19-5-28 1-9-6-19-6-28-1z" fill="#FFFFFF" stroke="#8A6410" stroke-width="2.5" stroke-linejoin="round"/><path d="M32 31v28" stroke="#8A6410" stroke-width="2.5"/><path d="M10 39q6-3 16 0M10 46q6-3 16 0M38 39q6-3 16 0M38 46q6-3 16 0" stroke="#D6B565" stroke-width="2.2" stroke-linecap="round"/><circle cx="32" cy="16" r="11" fill="#E9B12E" stroke="#A87C14" stroke-width="2"/><path d="M28.5 13.5q0-3.5 3.5-3.5t3.5 3.2q0 2.3-2.2 3.3-1.3.6-1.3 2.2" stroke="#3D2C05" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="32" cy="22.4" r="1.5" fill="#3D2C05"/></svg>',
   ),
   _Topic(
-    title: "Thema's",
+    title: tr.themes,
     subtitle: tr.catByTheme,
     circle: Color(0xFFF4DCD0),
     subtitleColor: AppTheme.vermilion,
     svgSize: 64,
     svgRight: -2,
     svgBottom: -4,
-    keyword: 'thema',
+    keyword: Brand.isBijbelQuiz ? 'thema' : '-of-',
     svg:
         '<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 46L14 20 25 32 32 14 39 32 50 20 54 46z" fill="#E9B12E" stroke="#A87C14" stroke-width="2.5" stroke-linejoin="round"/><path d="M10 46h44v9H10z" fill="#D9A11F" stroke="#A87C14" stroke-width="2.5" stroke-linejoin="round"/><circle cx="14" cy="18" r="3.5" fill="#FFFFFF" stroke="#A87C14" stroke-width="2"/><circle cx="32" cy="12" r="3.5" fill="#FFFFFF" stroke="#A87C14" stroke-width="2"/><circle cx="50" cy="18" r="3.5" fill="#FFFFFF" stroke="#A87C14" stroke-width="2"/><circle cx="22" cy="50.5" r="2.6" fill="#D9734F"/><circle cx="32" cy="50.5" r="2.6" fill="#35548C"/><circle cx="42" cy="50.5" r="2.6" fill="#3F6B4F"/></svg>',
   ),

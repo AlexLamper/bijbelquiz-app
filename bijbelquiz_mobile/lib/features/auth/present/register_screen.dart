@@ -122,7 +122,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               ),
               const SizedBox(height: 16),
               AuthTextField(
-                label: 'E-mailadres',
+                label: tr.authEmail,
                 hint: tr.authEmailHint,
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,

@@ -147,7 +147,7 @@ class _PremiumIntroScreenState extends ConsumerState<PremiumIntroScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 22),
               child: BqButton(
-                label: _page < 2 ? tr.actionNext : 'Bekijk Premium',
+                label: _page < 2 ? tr.actionNext : tr.viewPremium,
                 height: 56,
                 fontSize: 17,
                 radius: 14,
@@ -235,7 +235,7 @@ class _GoalStep extends StatelessWidget {
           icon: BqIcons.users,
           tint: AppTheme.positiveTint,
           iconColor: AppTheme.positive,
-          label: 'Samen spelen',
+          label: tr.playTogether,
           description: tr.introGoalGroupBody,
           active: selected == _Goal.together,
           onTap: () => onSelect(_Goal.together),

@@ -1,4 +1,5 @@
 import '../../../core/avatar/avatar_catalog.dart';
+import '../../../l10n/tr.dart';
 
 class LeaderboardEntry {
   final String id;
@@ -25,7 +26,7 @@ class LeaderboardEntry {
 
     return LeaderboardEntry(
       id: id,
-      name: json['name'] as String? ?? 'Speler',
+      name: json['name'] as String? ?? tr.player,
       xp: (json['xp'] as num?)?.toInt() ?? 0,
       streak: (json['streak'] as num?)?.toInt() ?? 0,
       image: json['image'] as String?,

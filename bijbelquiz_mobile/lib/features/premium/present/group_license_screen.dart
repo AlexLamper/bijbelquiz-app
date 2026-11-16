@@ -110,7 +110,7 @@ class _GroupLicenseScreenState extends ConsumerState<GroupLicenseScreen> {
                 children: [
                   _CardHeading(
                     icon: BqIcons.enter,
-                    title: 'Meedoen met code',
+                    title: tr.joinWithCode,
                     subtitle: tr.premiumViaGroup,
                   ),
                   const SizedBox(height: 16),
@@ -121,7 +121,7 @@ class _GroupLicenseScreenState extends ConsumerState<GroupLicenseScreen> {
                   ),
                   const SizedBox(height: 12),
                   BqButton(
-                    label: 'Meedoen',
+                    label: tr.join,
                     style: BqButtonStyle.tint,
                     loading: _isJoining,
                     onPressed: _isJoining ? null : _join,

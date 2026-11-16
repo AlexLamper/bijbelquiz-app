@@ -437,7 +437,7 @@ class _DuelChip extends StatelessWidget {
         children: [
           SvgPicture.string(_swordsSvg, width: 16, height: 16),
           const SizedBox(width: 8),
-          const Text('Jij', style: label),
+          Text(tr.you, style: label),
           const SizedBox(width: 8),
           const Text(
             '3 - 2',
@@ -449,7 +449,7 @@ class _DuelChip extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          const Text('Lotte', style: label),
+          Text(tr.sampleName, style: label),
         ],
       ),
     );

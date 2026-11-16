@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../theme/app_theme.dart';
 import '../../l10n/tr.dart';
+import '../config/brand.dart';
 
 /// BijbelQuiz 2.0 building blocks.
 ///
@@ -123,7 +124,7 @@ class BqLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: 'BijbelQuiz',
+      label: Brand.isBijbelQuiz ? 'BijbelQuiz' : Brand.name,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [

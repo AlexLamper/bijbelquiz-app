@@ -460,7 +460,7 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
                   ),
                   const SizedBox(height: 14),
                   BqButton(
-                    label: 'Inloggen',
+                    label: tr.authSignIn,
                     onPressed: () => context.push('/login'),
                   ),
                 ],

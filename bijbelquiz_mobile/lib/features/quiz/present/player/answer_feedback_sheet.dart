@@ -84,10 +84,10 @@ class _AnswerFeedbackSheetState extends ConsumerState<AnswerFeedbackSheet> {
           children: [
             if (hasReference)
               PlayerChip(
-                label: _verseExpanded ? tr.hideText : 'Lees $reference',
+                label: _verseExpanded ? tr.hideText : tr.readReference(reference),
                 semanticLabel: _verseExpanded
                     ? tr.hideTextOf(reference)
-                    : 'Lees $reference',
+                    : tr.readReference(reference),
                 icon: PlayerIcons.book,
                 onTap: () => setState(() => _verseExpanded = !_verseExpanded),
               ),
@@ -117,8 +117,8 @@ class _AnswerFeedbackSheetState extends ConsumerState<AnswerFeedbackSheet> {
       container: true,
       liveRegion: true,
       label: switch (widget.outcome) {
-        AnswerOutcome.correct => 'Goed antwoord',
-        AnswerOutcome.wrong => 'Fout antwoord',
+        AnswerOutcome.correct => tr.rightAnswer,
+        AnswerOutcome.wrong => tr.wrongAnswer,
         AnswerOutcome.timedOut => tr.timeUp,
       },
       child: Container(
@@ -153,7 +153,7 @@ class _AnswerFeedbackSheetState extends ConsumerState<AnswerFeedbackSheet> {
               ),
             SizedBox(height: details.isEmpty ? 14 : 5),
             BqButton(
-              label: widget.isLastQuestion ? tr.finishQuiz : 'Volgende vraag',
+              label: widget.isLastQuestion ? tr.finishQuiz : tr.nextQuestion,
               onPressed: widget.onNext,
             ),
           ],
@@ -183,13 +183,13 @@ class _Verdict extends StatelessWidget {
       outcome
     ) {
       AnswerOutcome.correct => (
-        'Goed!',
+        tr.rightExclaim,
         PlayerIcons.check,
         AppTheme.positive,
         AppTheme.positiveText,
       ),
       AnswerOutcome.wrong => (
-        'Helaas',
+        tr.tooBad,
         PlayerIcons.cross,
         AppTheme.coral,
         AppTheme.vermilion,
@@ -289,8 +289,8 @@ class _VerseText extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    const failed = Text(
-      'De tekst kon niet worden opgehaald.',
+    final failed = Text(
+      tr.textFetchFailed,
       style: AppTheme.caption,
     );
 

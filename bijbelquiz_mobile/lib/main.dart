@@ -1,4 +1,5 @@
 import 'core/config/brand.dart';
+import 'core/config/language_storage.dart';
 import 'l10n/app_localizations.dart';
 import 'dart:async';
 
@@ -88,6 +89,8 @@ Future<void> _initRevenueCat() async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Bible Quizzes: the stored language decides which site the app talks to.
+  await LanguageStorage.load();
   // Paper-coloured system chrome, matching --paper on www.bijbelquiz.com.
   SystemChrome.setSystemUIOverlayStyle(AppTheme.overlayStyle);
 

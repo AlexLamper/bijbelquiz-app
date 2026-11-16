@@ -126,7 +126,7 @@ class _PageHeader extends StatelessWidget {
         Expanded(
           child: Semantics(
             header: true,
-            child: const Text('Profiel', style: AppTheme.displayLarge),
+            child: Text(tr.navProfile, style: AppTheme.displayLarge),
           ),
         ),
         _RoundIconButton(
@@ -697,7 +697,7 @@ class _GuestProfileContent extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 BqButton(
-                  label: 'Inloggen',
+                  label: tr.authSignIn,
                   style: BqButtonStyle.tint,
                   onPressed: () => context.push('/login'),
                 ),

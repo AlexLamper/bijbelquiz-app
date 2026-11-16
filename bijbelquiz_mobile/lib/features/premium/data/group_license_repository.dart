@@ -25,7 +25,7 @@ class GroupLicenseMember {
   factory GroupLicenseMember.fromJson(Map<String, dynamic> json) {
     return GroupLicenseMember(
       id: json['id'] as String? ?? '',
-      name: json['name'] as String? ?? 'Speler',
+      name: json['name'] as String? ?? tr.player,
       isOwner: json['isOwner'] as bool? ?? false,
     );
   }
@@ -60,7 +60,7 @@ class GroupLicenseSummary {
 
     return GroupLicenseSummary(
       id: json['id'] as String? ?? '',
-      name: json['name'] as String? ?? 'Groep',
+      name: json['name'] as String? ?? tr.groupSingular,
       joinCode: json['joinCode'] as String? ?? '',
       seats: (json['seats'] as num?)?.toInt() ?? 0,
       seatsUsed: (json['seatsUsed'] as num?)?.toInt() ?? 0,

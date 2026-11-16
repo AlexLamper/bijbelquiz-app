@@ -208,7 +208,7 @@ class _Header extends StatelessWidget {
       children: [
         Semantics(
           header: true,
-          child: const Text('Ranglijst', style: AppTheme.displayLarge),
+          child: Text(tr.navLeaderboard, style: AppTheme.displayLarge),
         ),
         const SizedBox(height: 2),
         Row(
@@ -964,8 +964,7 @@ class _EmptyBoard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final message = period == LeaderboardPeriod.month
-        ? 'Deze maand heeft nog niemand${inGroup ? ' in deze groep' : ''} XP '
-              'verdiend. Speel een quiz en sta bovenaan.'
+        ? (inGroup ? tr.leaderboardMonthEmptyGroup : tr.leaderboardMonthEmpty)
         : tr.leaderboardNoData;
 
     return BqCard(

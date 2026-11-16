@@ -13,6 +13,7 @@ import '../../data/purchase_service.dart';
 import '../../data/trial_reminder.dart';
 import '../../domain/plan_pricing.dart' show lifetimeHorizonYears;
 import '../../../../l10n/tr.dart';
+import '../../../quiz/present/widgets/bible_books.dart';
 
 /// Building blocks shared by the paywall screen, the upgrade sheet and the
 /// Premium intro: the explanatory "Quizzen" card, the benefit list with solid
@@ -188,7 +189,7 @@ class _QuizListCard extends StatelessWidget {
           Padding(
             padding: EdgeInsets.only(bottom: 2),
             child: Text(
-              'Quizzen',
+              tr.navQuizzes,
               style: TextStyle(
                 fontFamily: AppTheme.sansFontName,
                 fontSize: 12,
@@ -199,7 +200,7 @@ class _QuizListCard extends StatelessWidget {
           ),
           _BookRow(
             abbreviation: tr.abbrGenesis,
-            title: 'Genesis',
+            title: BibleBooks.nameFor(1)!,
             count: tr.quizzes12,
             tileColor: AppTheme.positiveTint,
             tileText: AppTheme.positive,
@@ -207,7 +208,7 @@ class _QuizListCard extends StatelessWidget {
           ),
           _BookRow(
             abbreviation: tr.abbrPsalms,
-            title: 'Psalmen',
+            title: BibleBooks.nameFor(19)!,
             count: tr.quizzes15,
             tileColor: AppTheme.lapisTint,
             tileText: AppTheme.lapis,
@@ -831,9 +832,9 @@ Future<void> openPaywallUrl(BuildContext context, String url) async {
   if (!didLaunch && context.mounted) {
     AppNotice.error(
       context,
-      const AppError(
-        title: 'Link niet geopend',
-        message: 'We konden deze pagina niet openen. Probeer het opnieuw.',
+      AppError(
+        title: tr.errLinkTitle,
+        message: tr.errLinkMessage,
       ),
     );
   }
@@ -849,7 +850,7 @@ class PaywallCloseButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return BqCircleButton(
       icon: BqIcons.close,
-      label: 'Sluiten',
+      label: tr.actionClose,
       iconColor: AppTheme.inkMuted,
       onTap: onTap,
     );

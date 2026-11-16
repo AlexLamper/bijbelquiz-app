@@ -339,7 +339,7 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
       title: error.title,
       description: error.message,
       action: MpSecondaryButton(
-        label: 'Opnieuw proberen',
+        label: tr.actionRetry,
         expand: false,
         height: 44,
         onPressed: () => _controller.refreshRoom(showLoading: true),
@@ -1041,7 +1041,7 @@ class _StandingRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name = player.name.isEmpty ? 'Speler' : player.name;
+    final name = player.name.isEmpty ? tr.player : player.name;
     final offline = !player.isConnected;
     final gained = player.scoreGained ?? 0;
     final strong = isMe ? AppTheme.lapisStrong : AppTheme.inkSoft;
@@ -1093,7 +1093,7 @@ class _StandingRow extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                isMe ? 'Jij' : name,
+                isMe ? tr.you : name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: AppTheme.bodyStrong.copyWith(
@@ -1579,7 +1579,7 @@ class _ReadingView extends ConsumerWidget {
               description:
                   tr.chapterFetchFailedHost,
               action: MpSecondaryButton(
-                label: 'Opnieuw proberen',
+                label: tr.actionRetry,
                 expand: false,
                 height: 44,
                 onPressed: () =>

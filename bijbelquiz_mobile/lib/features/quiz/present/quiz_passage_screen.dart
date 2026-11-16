@@ -56,11 +56,11 @@ class QuizPassageScreen extends ConsumerWidget {
       loading: () => const AppLoader(),
       error: (err, _) => AppEmptyState(
         icon: Icons.menu_book_outlined,
-        title: 'Hoofdstuk niet geladen',
+        title: tr.chapterNotLoaded,
         description:
             tr.chapterFetchFailed,
         action: BqButton(
-          label: 'Opnieuw proberen',
+          label: tr.actionRetry,
           style: BqButtonStyle.secondary,
           height: 44,
           expand: false,
@@ -91,7 +91,7 @@ class QuizPassageScreen extends ConsumerWidget {
                           child: Center(
                             child: BqCircleButton(
                               icon: BqIcons.chevronLeft,
-                              label: 'Terug',
+                              label: tr.actionBack,
                               onTap: () => _back(context),
                             ),
                           ),
@@ -152,7 +152,7 @@ class QuizPassageScreen extends ConsumerWidget {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
                 child: BqButton(
-                  label: 'Start de quiz',
+                  label: tr.startTheQuiz,
                   onPressed: () => _startQuiz(context),
                 ),
               ),
@@ -194,7 +194,7 @@ class _PassageText extends ConsumerWidget {
         if (verses.isEmpty) {
           return AppEmptyState(
             icon: Icons.menu_book_outlined,
-            title: 'Hoofdstuk niet geladen',
+            title: tr.chapterNotLoaded,
             description:
                 tr.chapterFetchFailed,
           );
@@ -224,11 +224,11 @@ class _PassageText extends ConsumerWidget {
       // A chapter that will not load must never block the quiz.
       error: (error, _) => AppEmptyState(
         icon: Icons.menu_book_outlined,
-        title: 'Hoofdstuk niet geladen',
+        title: tr.chapterNotLoaded,
         description:
             tr.chapterFetchFailed,
         action: BqButton(
-          label: 'Opnieuw proberen',
+          label: tr.actionRetry,
           style: BqButtonStyle.secondary,
           height: 44,
           expand: false,

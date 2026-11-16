@@ -227,7 +227,7 @@ class _ProfileIdentityScreenState extends ConsumerState<ProfileIdentityScreen> {
             children: [
               CustomTextField(
                 controller: _nameController,
-                label: 'Naam',
+                label: tr.authName,
                 hintText: tr.displayNameHint,
                 enabled: !nameLocked && !_isSaving,
               ),

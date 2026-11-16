@@ -29,7 +29,7 @@ BookTint _tintFor(Quiz quiz) => BibleBooks.tintForQuiz(
 
 /// "JOHANNES 6", or the category when the quiz spans several books.
 String _referenceLabel(Quiz quiz) =>
-    (quiz.passage?.label ?? quiz.category?.name ?? 'Algemeen').toUpperCase();
+    (quiz.passage?.label ?? quiz.category?.name ?? tr.catGeneral).toUpperCase();
 
 class LibraryScreen extends ConsumerStatefulWidget {
   const LibraryScreen({super.key});
@@ -239,9 +239,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const SizedBox(height: 20),
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.symmetric(horizontal: 20),
-                      child: Text('Quizzen', style: AppTheme.displayLarge),
+                      child: Text(tr.navQuizzes, style: AppTheme.displayLarge),
                     ),
                     const SizedBox(height: 12),
                     Padding(
@@ -330,7 +330,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: _SectionTitle(
             title: tr.popular,
-            actionLabel: 'Alles',
+            actionLabel: tr.homeAll,
             onAction: _showAllQuizzes,
           ),
         ),
@@ -434,7 +434,7 @@ class _CategoryChips extends StatelessWidget {
     return categoriesAsync.when(
       data: (categories) {
         final chipItems = <MapEntry<String, String>>[
-          const MapEntry('all', 'Alles'),
+          MapEntry('all', tr.homeAll),
           ...categories.map((category) => MapEntry(category.id, category.name)),
         ];
 
@@ -852,7 +852,7 @@ class _PlayedMeta extends StatelessWidget {
         const SizedBox(width: 4),
         Flexible(
           child: Text(
-            'Gespeeld',
+            tr.played,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
@@ -1118,7 +1118,7 @@ class _QuizRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final tint = _tintFor(quiz);
     final meta = [
-      '${quiz.questionCount} vragen',
+      tr.questionsCountQuiz(quiz.questionCount),
       '${_minutesFor(quiz.questionCount)} min',
       _difficultyLabel(quiz),
       if (quiz.xpReward > 0) '${quiz.xpReward} XP',

@@ -41,7 +41,7 @@ class PlayerHeader extends StatelessWidget {
         // shifting it keeps the circle on the 20px page margin.
         Transform.translate(
           offset: const Offset(-2, 0),
-          child: PlayerCloseButton(label: 'Quiz stoppen', onTap: onClose),
+          child: PlayerCloseButton(label: tr.stopQuiz, onTap: onClose),
         ),
         const SizedBox(width: 10),
         Expanded(

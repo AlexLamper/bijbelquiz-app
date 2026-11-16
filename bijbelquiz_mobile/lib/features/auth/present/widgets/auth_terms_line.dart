@@ -67,10 +67,10 @@ class _AuthTermsLineState extends State<AuthTermsLine> {
       TextSpan(
         children: [
           TextSpan(text: widget.prefix),
-          TextSpan(text: 'voorwaarden', style: link, recognizer: _terms),
+          TextSpan(text: tr.termsWord, style: link, recognizer: _terms),
           TextSpan(text: tr.authTermsAnd),
-          TextSpan(text: 'privacybeleid', style: link, recognizer: _privacy),
-          const TextSpan(text: '.'),
+          TextSpan(text: tr.privacyWord, style: link, recognizer: _privacy),
+          TextSpan(text: tr.termsEnd),
         ],
       ),
       textAlign: TextAlign.center,

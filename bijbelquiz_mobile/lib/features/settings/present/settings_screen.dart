@@ -20,6 +20,8 @@ import '../../profile/present/profile_provider.dart';
 import '../data/quiz_preferences_controller.dart';
 import '../domain/quiz_preferences.dart';
 import '../../../l10n/tr.dart';
+import '../../../core/config/brand.dart';
+import '../../../core/config/language_storage.dart';
 
 /// Instellingen - BijbelQuiz 2.0 (`R-Instellingen`).
 ///
@@ -40,7 +42,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   /// setting of its own.
   static const String _reminderTime = '19:00';
 
-  static const String _accountEmail = 'info@bijbelquiz.com';
+  static final String _accountEmail = tr.supportEmail;
 
   Future<void> _logout() async {
     if (_loggingOut) return;
@@ -89,7 +91,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       case 'lifetime':
         return tr.lifetime;
       case 'group':
-        return 'Groepslicentie';
+        return tr.groupLicense;
       default:
         return tr.active;
     }
@@ -139,7 +141,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Annuleren'),
+            child: Text(tr.actionCancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
@@ -197,6 +199,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  Future<void> _pickLanguage() async {
+    final current = await LanguageStorage.read();
+    if (!mounted) return;
+    // '' stands for "follow the phone".
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppTheme.paperRaised,
+      showDragHandle: true,
+      builder: (sheetContext) => _LanguageSheet(selected: current ?? ''),
+    );
+    if (choice == null || choice == (current ?? '')) return;
+    final code = choice.isEmpty ? null : choice;
+    await LanguageStorage.save(code);
+    // Accounts are per language: the session of this site means nothing on
+    // the other one.
+    await ref.read(authControllerProvider.notifier).logout();
+    if (!mounted) return;
+    AppNotice.success(
+      context,
+      lookupAppLocalizations(
+        Locale(code ?? Brand.deviceLanguage),
+      ).languageRestart,
+      title: tr.settingsLanguage,
+    );
+  }
+
   Future<void> _pickTimer(QuizPreferences preferences) async {
     final choice = await showModalBottomSheet<int>(
       context: context,
@@ -223,7 +251,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         next,
         onPremium: (_) => AppNotice.success(
           context,
-          'Je Premium staat weer aan op dit account.',
+          tr.premiumBackOn,
           title: tr.purchasesRestored,
         ),
       );
@@ -243,7 +271,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
           children: [
             BqTopBar(
-              title: 'Instellingen',
+              title: tr.settings,
               large: true,
               onBack: () =>
                   context.canPop() ? context.pop() : context.go('/profile'),
@@ -264,7 +292,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   icon: BqIcons.flame,
                   iconSize: 17,
                   tileColor: AppTheme.coralTint,
-                  title: 'Reeksherinnering',
+                  title: tr.streakReminderChannel,
                   value: reminderOn,
                   onChanged: (value) => _toggleReminder(value, profile),
                 ),
@@ -281,9 +309,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const SizedBox(height: 8),
             _SettingsGroup(
               children: [
+                if (Brand.isBibleQuizzes)
+                  _ValueRow(
+                    icon: BqIcons.book,
+                    title: tr.settingsLanguage,
+                    value: kLanguageNames[Brand.language] ?? Brand.language,
+                    onTap: _pickLanguage,
+                  ),
                 _ValueRow(
                   icon: BqIcons.clock,
-                  title: 'Tijd per vraag',
+                  title: tr.timePerQuestion,
                   value: _timerLabel(preferences.questionTimerSeconds),
                   onTap: () => _pickTimer(preferences),
                 ),
@@ -339,7 +374,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     value:
                         premiumState.isBusy &&
                             premiumState.action == PremiumAction.restore
-                        ? 'Bezig...'
+                        ? tr.busy
                         : null,
                     onTap: premiumState.isBusy ? null : _restorePurchases,
                   ),
@@ -353,7 +388,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 _ValueRow(
                   icon: _iconShieldPlain,
-                  title: 'Privacy',
+                  title: tr.privacy,
                   onTap: _openPrivacy,
                 ),
               ],
@@ -384,7 +419,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   static String _timerLabel(int seconds) =>
-      seconds <= 0 ? 'Uit' : '$seconds sec';
+      seconds <= 0 ? tr.off : '$seconds sec';
 }
 
 // Icons from the Instellingen design that are not in [BqIcons].
@@ -780,10 +815,10 @@ class _TimerSheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('Tijd per vraag', style: AppTheme.displayTitle),
+            Text(tr.timePerQuestion, style: AppTheme.displayTitle),
             const SizedBox(height: 4),
-            const Text(
-              'Standaard uit. Zet een klok aan als je jezelf wilt uitdagen.',
+            Text(
+              tr.timerExplain,
               style: AppTheme.bodyMuted,
             ),
             const SizedBox(height: 14),
@@ -793,7 +828,7 @@ class _TimerSheet extends StatelessWidget {
                   Semantics(
                     button: true,
                     selected: choice == selected,
-                    label: choice == 0 ? 'Uit' : tr.secondsN(choice),
+                    label: choice == 0 ? tr.off : tr.secondsN(choice),
                     excludeSemantics: true,
                     onTap: () => Navigator.of(context).pop(choice),
                     child: InkWell(
@@ -805,7 +840,7 @@ class _TimerSheet extends StatelessWidget {
                           children: [
                             Expanded(
                               child: Text(
-                                choice == 0 ? 'Uit' : tr.secondsN(choice),
+                                choice == 0 ? tr.off : tr.secondsN(choice),
                                 style: _rowTitle.copyWith(
                                   color: choice == selected
                                       ? AppTheme.lapis
@@ -819,6 +854,70 @@ class _TimerSheet extends StatelessWidget {
                                 size: 20,
                                 color: AppTheme.lapis,
                               ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LanguageSheet extends StatelessWidget {
+  const _LanguageSheet({required this.selected});
+
+  /// '' when the app follows the phone.
+  final String selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final options = <(String, String)>[
+      ('', tr.languageDevice),
+      for (final code in Brand.intlLanguages) (code, kLanguageNames[code]!),
+    ];
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(tr.settingsLanguage, style: AppTheme.displayTitle),
+            const SizedBox(height: 4),
+            Text(tr.languageExplain, style: AppTheme.bodyMuted),
+            const SizedBox(height: 14),
+            BqListCard(
+              children: [
+                for (final (code, label) in options)
+                  Semantics(
+                    button: true,
+                    selected: code == selected,
+                    label: label,
+                    excludeSemantics: true,
+                    onTap: () => Navigator.of(context).pop(code),
+                    child: InkWell(
+                      onTap: () => Navigator.of(context).pop(code),
+                      child: Container(
+                        height: 50,
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                label,
+                                style: _rowTitle.copyWith(
+                                  color: code == selected ? AppTheme.lapis : AppTheme.ink,
+                                ),
+                              ),
+                            ),
+                            if (code == selected)
+                              const BqIcon(BqIcons.check, size: 20, color: AppTheme.lapis),
                           ],
                         ),
                       ),

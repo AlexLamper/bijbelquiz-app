@@ -105,7 +105,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               AuthTextField(
-                label: 'E-mailadres',
+                label: tr.authEmail,
                 hint: tr.authEmailHint,
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,

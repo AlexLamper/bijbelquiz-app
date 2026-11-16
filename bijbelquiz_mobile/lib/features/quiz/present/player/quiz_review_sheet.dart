@@ -120,7 +120,7 @@ class _QuizReviewSheet extends ConsumerWidget {
               child: Text(tr.yourAnswers, style: AppTheme.displayLarge),
             ),
             PlayerCloseButton(
-              label: 'Sluiten',
+              label: tr.actionClose,
               onTap: () => Navigator.of(context).pop(),
             ),
           ],

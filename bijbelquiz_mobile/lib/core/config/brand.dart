@@ -46,6 +46,15 @@ class Brand {
 
   static Locale get locale => Locale(language);
 
+  /// The phone's language when we have it, else English (ignores the choice
+  /// made in the app).
+  static String get deviceLanguage {
+    for (final locale in PlatformDispatcher.instance.locales) {
+      if (intlLanguages.contains(locale.languageCode)) return locale.languageCode;
+    }
+    return 'en';
+  }
+
   /// Public site for the current language, without a trailing slash:
   /// https://www.bijbelquiz.com, https://biblequizzes.app, https://biblequizzes.app/de.
   static String get siteUrl {

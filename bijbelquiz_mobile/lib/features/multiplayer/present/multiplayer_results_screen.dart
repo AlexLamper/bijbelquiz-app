@@ -315,7 +315,7 @@ class _MultiplayerResultsScreenState
       title: error.title,
       description: error.message,
       action: MpSecondaryButton(
-        label: 'Opnieuw proberen',
+        label: tr.actionRetry,
         expand: false,
         height: 44,
         onPressed: () => _controller.refreshRoom(showLoading: true),
@@ -325,7 +325,7 @@ class _MultiplayerResultsScreenState
 }
 
 String _nameOf(MultiplayerLeaderboardEntry entry) =>
-    entry.playerName.isEmpty ? 'Speler' : entry.playerName;
+    entry.playerName.isEmpty ? tr.player : entry.playerName;
 
 // ---------------------------------------------------------------------------
 // Podium

@@ -83,7 +83,7 @@ class QuizResultView extends ConsumerWidget {
                     Transform.translate(
                       offset: const Offset(-2, 0),
                       child: PlayerCloseButton(
-                        label: 'Sluiten',
+                        label: tr.actionClose,
                         onTap: () => context.go('/home'),
                       ),
                     ),
@@ -156,7 +156,7 @@ class QuizResultView extends ConsumerWidget {
                     ),
                     const SizedBox(width: 20),
                     _TextLink(
-                      label: 'Ranglijst',
+                      label: tr.navLeaderboard,
                       onTap: () => context.go('/leaderboard'),
                     ),
                   ],
@@ -166,7 +166,7 @@ class QuizResultView extends ConsumerWidget {
                 // the player, so back does not return to a finished quiz.
                 BqButton(
                   key: const ValueKey('quiz-result-home'),
-                  label: 'Terug naar home',
+                  label: tr.backHome,
                   style: BqButtonStyle.secondary,
                   icon: const BqIcon(BqIcons.home, size: 18),
                   onPressed: () => context.go('/home'),
@@ -229,8 +229,8 @@ class _ScoreCard extends StatelessWidget {
                               fontFeatures: [FontFeature.tabularFigures()],
                             ),
                           ),
-                          const Text(
-                            'goed',
+                          Text(
+                            tr.correctLower,
                             style: TextStyle(
                               fontFamily: AppTheme.sansFontName,
                               fontSize: 13,
@@ -345,7 +345,7 @@ class _ProgressCard extends StatelessWidget {
                     ? tr.scoreNotSaved
                     : tr.scoreSaving,
                 subtitle: failed
-                    ? 'Controleer je verbinding en probeer het opnieuw.'
+                    ? tr.checkConnectionRetry
                     : null,
               ),
             ),
@@ -377,8 +377,8 @@ class _ProgressCard extends StatelessWidget {
       final atTop = profile.xpToNextLevel <= 0;
       levelFraction = atTop ? 1 : profile.levelFraction;
       levelLabel = atTop
-          ? 'Level ${profile.level}'
-          : 'Voortgang naar level ${profile.level + 1}';
+          ? tr.levelN(profile.level)
+          : tr.progressToLevel(profile.level + 1);
       subtitle ??= atTop
           ? 'Level ${profile.level} - ${profile.levelTitle}'
           : tr.xpToLevelResult(formatPlayerNumber(profile.xpToNextLevel), profile.level + 1);
@@ -485,14 +485,14 @@ class _SaveScoreCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           BqButton(
-            label: 'Gratis account aanmaken',
+            label: tr.createFreeAccount,
             style: BqButtonStyle.tint,
             height: 46,
             onPressed: () => context.push('/register'),
           ),
           Center(
             child: _TextLink(
-              label: 'Inloggen',
+              label: tr.authSignIn,
               onTap: () => context.push('/login'),
             ),
           ),

@@ -153,7 +153,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
               Navigator.of(dialogContext).pop();
               _leave();
             },
-            child: const Text('Sluiten'),
+            child: Text(tr.actionClose),
           ),
         ],
       ),
@@ -530,21 +530,17 @@ String _billingTerms({
   final store = _storeName();
 
   if (plan == PremiumPlan.lifetime) {
-    return 'Levenslang Premium is een eenmalige aankoop van $lifetimePrice via '
-        'je $store-account en verlengt niet automatisch.';
+    return tr.legalLifetime(lifetimePrice, store);
   }
 
   final details = plan == PremiumPlan.yearly
-      ? 'BijbelQuiz Premium Jaarlijks: $yearlyPrice per jaar.'
-      : 'BijbelQuiz Premium Maandelijks: $monthlyPrice per maand.';
+      ? tr.legalYearly(yearlyPrice)
+      : tr.legalMonthly(monthlyPrice);
   final trialLine = trial == null
       ? ''
-      : ' Na een gratis proefperiode van '
-            '${trial.label.replaceAll(' gratis', '')} gaat het abonnement in.';
+      : tr.legalTrial(trial.period);
 
-  return '$details$trialLine Het abonnement loopt via je $store-account en '
-      'verlengt automatisch, tenzij je minimaal 24 uur voor het einde van de '
-      'lopende periode opzegt.';
+  return '$details$trialLine${tr.legalRenews(store)}';
 }
 
 String _storeName() {

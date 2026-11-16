@@ -3993,6 +3993,216 @@ abstract class AppLocalizations {
   /// In nl, this message translates to:
   /// **'{i} seconden per vraag'**
   String secondsPerQuestionLong(Object i);
+
+  /// No description provided for @player.
+  ///
+  /// In nl, this message translates to:
+  /// **'Speler'**
+  String get player;
+
+  /// No description provided for @you.
+  ///
+  /// In nl, this message translates to:
+  /// **'Jij'**
+  String get you;
+
+  /// No description provided for @sampleName.
+  ///
+  /// In nl, this message translates to:
+  /// **'Lotte'**
+  String get sampleName;
+
+  /// No description provided for @streak7Days.
+  ///
+  /// In nl, this message translates to:
+  /// **'7 dagen reeks'**
+  String get streak7Days;
+
+  /// No description provided for @readReference.
+  ///
+  /// In nl, this message translates to:
+  /// **'Lees {reference}'**
+  String readReference(Object reference);
+
+  /// No description provided for @rightAnswer.
+  ///
+  /// In nl, this message translates to:
+  /// **'Goed antwoord'**
+  String get rightAnswer;
+
+  /// No description provided for @wrongAnswer.
+  ///
+  /// In nl, this message translates to:
+  /// **'Fout antwoord'**
+  String get wrongAnswer;
+
+  /// No description provided for @textFetchFailed.
+  ///
+  /// In nl, this message translates to:
+  /// **'De tekst kon niet worden opgehaald.'**
+  String get textFetchFailed;
+
+  /// No description provided for @leaderboardMonthEmpty.
+  ///
+  /// In nl, this message translates to:
+  /// **'Deze maand heeft nog niemand XP verdiend. Speel een quiz en sta bovenaan.'**
+  String get leaderboardMonthEmpty;
+
+  /// No description provided for @leaderboardMonthEmptyGroup.
+  ///
+  /// In nl, this message translates to:
+  /// **'Deze maand heeft nog niemand in deze groep XP verdiend. Speel een quiz en sta bovenaan.'**
+  String get leaderboardMonthEmptyGroup;
+
+  /// No description provided for @trialFree.
+  ///
+  /// In nl, this message translates to:
+  /// **'{period} gratis'**
+  String trialFree(Object period);
+
+  /// No description provided for @trialDays.
+  ///
+  /// In nl, this message translates to:
+  /// **'{count, plural, =1{1 dag} other{{count} dagen}}'**
+  String trialDays(int count);
+
+  /// No description provided for @trialWeeks.
+  ///
+  /// In nl, this message translates to:
+  /// **'{count, plural, =1{1 week} other{{count} weken}}'**
+  String trialWeeks(int count);
+
+  /// No description provided for @trialMonths.
+  ///
+  /// In nl, this message translates to:
+  /// **'{count, plural, =1{1 maand} other{{count} maanden}}'**
+  String trialMonths(int count);
+
+  /// No description provided for @trialYears.
+  ///
+  /// In nl, this message translates to:
+  /// **'{count} jaar'**
+  String trialYears(int count);
+
+  /// No description provided for @legalLifetime.
+  ///
+  /// In nl, this message translates to:
+  /// **'Levenslang Premium is een eenmalige aankoop van {price} via je {store}-account en verlengt niet automatisch.'**
+  String legalLifetime(Object price, Object store);
+
+  /// No description provided for @legalYearly.
+  ///
+  /// In nl, this message translates to:
+  /// **'BijbelQuiz Premium Jaarlijks: {price} per jaar.'**
+  String legalYearly(Object price);
+
+  /// No description provided for @legalMonthly.
+  ///
+  /// In nl, this message translates to:
+  /// **'BijbelQuiz Premium Maandelijks: {price} per maand.'**
+  String legalMonthly(Object price);
+
+  /// No description provided for @legalTrial.
+  ///
+  /// In nl, this message translates to:
+  /// **' Na een gratis proefperiode van {period} gaat het abonnement in.'**
+  String legalTrial(Object period);
+
+  /// No description provided for @legalRenews.
+  ///
+  /// In nl, this message translates to:
+  /// **' Het abonnement loopt via je {store}-account en verlengt automatisch, tenzij je minimaal 24 uur voor het einde van de lopende periode opzegt.'**
+  String legalRenews(Object store);
+
+  /// No description provided for @authEmail.
+  ///
+  /// In nl, this message translates to:
+  /// **'E-mailadres'**
+  String get authEmail;
+
+  /// No description provided for @termsWord.
+  ///
+  /// In nl, this message translates to:
+  /// **'voorwaarden'**
+  String get termsWord;
+
+  /// No description provided for @privacyWord.
+  ///
+  /// In nl, this message translates to:
+  /// **'privacybeleid'**
+  String get privacyWord;
+
+  /// No description provided for @oldTestament.
+  ///
+  /// In nl, this message translates to:
+  /// **'Oude Testament'**
+  String get oldTestament;
+
+  /// No description provided for @newTestament.
+  ///
+  /// In nl, this message translates to:
+  /// **'Nieuwe Testament'**
+  String get newTestament;
+
+  /// No description provided for @themes.
+  ///
+  /// In nl, this message translates to:
+  /// **'Thema\'s'**
+  String get themes;
+
+  /// No description provided for @correctLower.
+  ///
+  /// In nl, this message translates to:
+  /// **'goed'**
+  String get correctLower;
+
+  /// No description provided for @questionsLower.
+  ///
+  /// In nl, this message translates to:
+  /// **'vragen'**
+  String get questionsLower;
+
+  /// No description provided for @aboutLower.
+  ///
+  /// In nl, this message translates to:
+  /// **'ongeveer'**
+  String get aboutLower;
+
+  /// No description provided for @busy.
+  ///
+  /// In nl, this message translates to:
+  /// **'Bezig...'**
+  String get busy;
+
+  /// No description provided for @termsEnd.
+  ///
+  /// In nl, this message translates to:
+  /// **'.'**
+  String get termsEnd;
+
+  /// No description provided for @settingsLanguage.
+  ///
+  /// In nl, this message translates to:
+  /// **'Taal'**
+  String get settingsLanguage;
+
+  /// No description provided for @languageDevice.
+  ///
+  /// In nl, this message translates to:
+  /// **'Taal van je telefoon'**
+  String get languageDevice;
+
+  /// No description provided for @languageExplain.
+  ///
+  /// In nl, this message translates to:
+  /// **'Elke taal heeft zijn eigen quizzen en accounts. Na het wisselen log je opnieuw in.'**
+  String get languageExplain;
+
+  /// No description provided for @languageRestart.
+  ///
+  /// In nl, this message translates to:
+  /// **'Sluit de app en open hem opnieuw om de nieuwe taal te gebruiken.'**
+  String get languageRestart;
 }
 
 class _AppLocalizationsDelegate

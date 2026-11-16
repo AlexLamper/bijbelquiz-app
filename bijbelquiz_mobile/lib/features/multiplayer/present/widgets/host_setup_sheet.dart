@@ -277,7 +277,7 @@ class _HostSetupSheetState extends ConsumerState<_HostSetupSheet> {
           title: tr.cantLoadQuizzes,
           message: tr.checkConnectionRetry,
           action: MpSecondaryButton(
-            label: 'Opnieuw proberen',
+            label: tr.actionRetry,
             height: 44,
             expand: false,
             fontSize: 14,

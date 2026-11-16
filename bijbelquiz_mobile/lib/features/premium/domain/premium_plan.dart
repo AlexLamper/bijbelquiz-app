@@ -1,5 +1,6 @@
 import 'package:purchases_flutter/purchases_flutter.dart'
     show PackageType, PeriodUnit;
+import '../../../l10n/tr.dart';
 
 /// The three ways to buy Premium. Same plans, same product ids as the store
 /// and the server (`src/lib/revenuecat.ts`), which records the plan on each
@@ -92,17 +93,16 @@ class TrialOffer {
   final PeriodUnit periodUnit;
   final int periodCount;
 
-  /// Dutch label, e.g. "7 dagen gratis".
-  String get label {
-    final unit = switch (periodUnit) {
-      PeriodUnit.day => periodCount == 1 ? 'dag' : 'dagen',
-      PeriodUnit.week => periodCount == 1 ? 'week' : 'weken',
-      PeriodUnit.month => periodCount == 1 ? 'maand' : 'maanden',
-      PeriodUnit.year => 'jaar',
-      PeriodUnit.unknown => 'dagen',
-    };
-    return '$periodCount $unit gratis';
-  }
+  /// The trial length, e.g. "7 dagen" / "7 days".
+  String get period => switch (periodUnit) {
+        PeriodUnit.day || PeriodUnit.unknown => tr.trialDays(periodCount),
+        PeriodUnit.week => tr.trialWeeks(periodCount),
+        PeriodUnit.month => tr.trialMonths(periodCount),
+        PeriodUnit.year => tr.trialYears(periodCount),
+      };
+
+  /// Label in the app's language, e.g. "7 dagen gratis".
+  String get label => tr.trialFree(period);
 
   @override
   bool operator ==(Object other) =>
