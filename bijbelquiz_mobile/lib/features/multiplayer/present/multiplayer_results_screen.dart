@@ -13,6 +13,7 @@ import '../../profile/present/profile_provider.dart';
 import '../domain/multiplayer_models.dart';
 import 'multiplayer_session_controller.dart';
 import 'widgets/mp_ui.dart';
+import '../../../l10n/tr.dart';
 
 /// Eindstand of a group game: a podium for the top three in the style of the
 /// Ranglijst tab, the full ranking below it, the offer to keep the group, and
@@ -99,14 +100,14 @@ class _MultiplayerResultsScreenState
 
     final room = session.room;
     final currentUserId = ref.watch(profileProvider).asData?.value.id ?? '';
-    final quizTitle = room.quizTitle.isEmpty ? 'Quiz voltooid' : room.quizTitle;
+    final quizTitle = room.quizTitle.isEmpty ? tr.quizCompleted : room.quizTitle;
     final playerCount = sorted.isNotEmpty ? sorted.length : room.players.length;
     final winner = sorted.isEmpty ? null : sorted.first;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
       children: [
-        const Text('Eindstand', style: AppTheme.displayLarge),
+        Text(tr.finalStandings, style: AppTheme.displayLarge),
         const SizedBox(height: 2),
         Row(
           children: [
@@ -152,7 +153,7 @@ class _MultiplayerResultsScreenState
           Semantics(
             label: winner == null
                 ? null
-                : 'Winnaar: ${_nameOf(winner)} met ${winner.score} punten',
+                : tr.winnerWith(_nameOf(winner), winner.score),
             child: _Podium(top: sorted.take(3).toList()),
           ),
           // The podium blocks stand directly on the list card, as on the
@@ -170,7 +171,7 @@ class _MultiplayerResultsScreenState
         const SizedBox(height: 24),
         _buildSaveGroupPrompt(session),
         BqButton(
-          label: 'Terug naar home',
+          label: tr.backHome,
           loading: _leaving,
           onPressed: () async {
             setState(() => _leaving = true);
@@ -181,7 +182,7 @@ class _MultiplayerResultsScreenState
         ),
         const SizedBox(height: 12),
         MpSecondaryButton(
-          label: 'Nieuwe kamer starten',
+          label: tr.startNewRoom,
           height: 52,
           onPressed: () => context.go('/play-together'),
         ),
@@ -219,11 +220,11 @@ class _MultiplayerResultsScreenState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '"$_savedGroupName" is bewaard.',
+                      tr.groupSaved(_savedGroupName ?? ''),
                       style: AppTheme.bodyStrong,
                     ),
-                    const Text(
-                      'Je vindt de stand van deze groep op de ranglijst.',
+                    Text(
+                      tr.groupStandingsOnLeaderboard,
                       style: AppTheme.caption,
                     ),
                   ],
@@ -249,7 +250,7 @@ class _MultiplayerResultsScreenState
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Deze groep bewaren?',
+                    tr.saveGroupQuestion,
                     style: AppTheme.displayTitle.copyWith(
                       fontSize: 20,
                       height: 26 / 20,
@@ -260,14 +261,12 @@ class _MultiplayerResultsScreenState
             ),
             const SizedBox(height: 12),
             Text(
-              'Dan houd je een eigen ranglijst bij met deze '
-              '${session.room.players.length} spelers, en nodig je ze de '
-              'volgende keer met een tik weer uit.',
+              tr.saveGroupBody(session.room.players.length),
               style: AppTheme.bodyLead,
             ),
             const SizedBox(height: 14),
             BqButton(
-              label: 'Groep bewaren',
+              label: tr.saveGroup,
               style: BqButtonStyle.tint,
               height: 48,
               loading: _savingGroup,
@@ -431,7 +430,7 @@ class _PodiumPlace extends StatelessWidget {
     final letter = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
 
     return Semantics(
-      label: '$place. $name, ${entry.score} punten',
+      label: tr.placeNamePoints(place, name, entry.score),
       excludeSemantics: true,
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -503,7 +502,7 @@ class _PodiumPlace extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            '${entry.score} punten',
+            tr.pointsN(entry.score),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
@@ -599,8 +598,8 @@ class _RankingRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final name = _nameOf(entry);
     final correct = totalQuestions > 0
-        ? '${entry.correctAnswers} van $totalQuestions goed'
-        : '${entry.correctAnswers} goed';
+        ? tr.correctOfTotal(entry.correctAnswers, totalQuestions)
+        : tr.correctN(entry.correctAnswers);
     final strong = isMe ? AppTheme.lapisStrong : AppTheme.inkSoft;
 
     return Semantics(
@@ -656,7 +655,7 @@ class _RankingRow extends StatelessWidget {
             ),
             const SizedBox(width: 10),
             Text(
-              '${entry.score} punten',
+              tr.pointsN(entry.score),
               style: TextStyle(
                 fontFamily: AppTheme.sansFontName,
                 fontSize: 14,

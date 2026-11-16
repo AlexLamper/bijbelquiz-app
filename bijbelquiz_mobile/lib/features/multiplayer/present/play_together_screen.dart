@@ -17,6 +17,7 @@ import '../domain/multiplayer_models.dart';
 import 'multiplayer_action_controller.dart';
 import 'widgets/host_setup_sheet.dart';
 import 'widgets/mp_ui.dart';
+import '../../../l10n/tr.dart';
 
 /// Which button is waiting on the server, so only that one shows a spinner.
 enum _Pending { create, join, invite }
@@ -107,8 +108,8 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
       initialReadChapterFirst: _readChapterFirst,
       initialQuestionTimerSeconds: _questionTimerSeconds,
       capability: capability,
-      confirmLabel: group == null ? 'Kamer maken' : 'Maak kamer en nodig uit',
-      hint: group == null ? null : 'Daarna nodigen we ${group.name} uit.',
+      confirmLabel: group == null ? tr.createRoom : tr.createRoomInvite,
+      hint: group == null ? null : tr.thenInviteGroup(group.name),
     );
     if (setup == null || !mounted) return;
 
@@ -133,7 +134,7 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
 
   Future<void> _createRoom() async {
     if (_selectedQuizId == null || _selectedQuizId!.isEmpty) {
-      _showMessage('Selecteer eerst een quiz.');
+      _showMessage(tr.selectQuizFirst);
       return;
     }
 
@@ -181,12 +182,12 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
         .toUpperCase();
 
     if (roomCode.isEmpty) {
-      _showMessage('Voer een kamercode in.');
+      _showMessage(tr.enterRoomCode);
       return;
     }
 
     if (roomCode.length < 4) {
-      _showMessage('Kamercode lijkt te kort. Controleer de code.');
+      _showMessage(tr.roomCodeTooShort);
       return;
     }
 
@@ -232,7 +233,7 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
   Future<void> _reinviteGroup(PlayerGroup group) async {
     final quizId = _selectedQuizId;
     if (quizId == null || quizId.isEmpty) {
-      _showMessage('Kies eerst een quiz, dan nodigen we ${group.name} uit.');
+      _showMessage(tr.pickQuizThenInvite(group.name));
       return;
     }
 
@@ -273,7 +274,7 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
         await SharePlus.instance.share(
           ShareParams(
             text: AppConfig.roomInviteMessage(room.code, room.quizTitle),
-            subject: 'Doe mee met mijn BijbelQuiz',
+            subject: tr.joinMyQuizShareTitle,
           ),
         );
       } catch (_) {
@@ -370,7 +371,7 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           children: [
-            const BqPageTitle('Samen spelen'),
+            BqPageTitle(tr.playTogether),
             const SizedBox(height: 16),
             _Intro(maxPlayers: maxPlayersPremium),
             const SizedBox(height: 16),
@@ -402,11 +403,10 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
             // eight people back in a room.
             if (groups.isNotEmpty) ...[
               const SizedBox(height: 28),
-              const BqSectionHeader(title: 'Je groepen'),
+              BqSectionHeader(title: tr.yourGroupsShort),
               const SizedBox(height: 2),
-              const Text(
-                'Kies een quiz en stuur je groep in een tik een nieuwe '
-                'uitnodiging.',
+              Text(
+                tr.pickQuizInviteGroup,
                 style: AppTheme.caption,
               ),
               const SizedBox(height: 10),
@@ -441,7 +441,7 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
           children: [
-            const BqPageTitle('Samen spelen'),
+            BqPageTitle(tr.playTogether),
             const SizedBox(height: 16),
             const _Intro(maxPlayers: 20),
             const SizedBox(height: 16),
@@ -449,14 +449,13 @@ class _PlayTogetherScreenState extends ConsumerState<PlayTogetherScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const _CardHeading(
+                  _CardHeading(
                     icon: BqIcons.user,
-                    title: 'Log in om samen te spelen',
+                    title: tr.signInToPlayTogether,
                   ),
                   const SizedBox(height: 14),
-                  const Text(
-                    'Een kamer maken of meedoen kan met een gratis account, '
-                    'zodat je naam en score in de kamer kloppen.',
+                  Text(
+                    tr.playTogetherNeedsAccount,
                     style: AppTheme.bodyLead,
                   ),
                   const SizedBox(height: 14),
@@ -488,9 +487,8 @@ class _Intro extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Met je gezin, vrienden of de jeugdclub: iedereen speelt tegelijk '
-          'dezelfde quiz, ieder op een eigen telefoon.',
+        Text(
+          tr.playTogetherIntro,
           style: AppTheme.bodyLead,
         ),
         const SizedBox(height: 10),
@@ -499,7 +497,7 @@ class _Intro extends StatelessWidget {
             const BqIcon(BqIcons.users, size: 18, color: AppTheme.lapis),
             const SizedBox(width: 8),
             Text(
-              'Tot $maxPlayers spelers per kamer',
+              tr.upToPlayers(maxPlayers),
               style: AppTheme.caption.copyWith(fontWeight: FontWeight.w700),
             ),
           ],
@@ -573,27 +571,24 @@ class _CreateRoomCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const _CardHeading(
+          _CardHeading(
             icon: BqIcons.plus,
-            title: 'Kamer maken',
-            subtitle: 'Jij bent de host',
+            title: tr.createRoom,
+            subtitle: tr.youAreHost,
           ),
           const SizedBox(height: 14),
           if (hostingLocked) ...[
             MpNotice(
               tone: MpNoticeTone.info,
-              title: 'Je gratis spellen zijn op',
+              title: tr.freeGamesUsed,
               message:
-                  'Met Premium host je onbeperkt kamers, tot '
-                  '$maxPlayersPremium spelers tegelijk. Deelnemen met een '
-                  'kamercode blijft altijd gratis.',
+                  tr.premiumHostRooms(maxPlayersPremium),
             ),
             const SizedBox(height: 14),
-            BqButton(label: 'Bekijk Premium', onPressed: onUpgrade),
+            BqButton(label: tr.viewPremium, onPressed: onUpgrade),
           ] else ...[
-            const Text(
-              'Kies een quiz, deel de code met je groep en start als iedereen '
-              'er is.',
+            Text(
+              tr.hostSteps,
               style: AppTheme.bodyLead,
             ),
             // Two games out, the counter stops being a footnote and becomes a
@@ -609,7 +604,7 @@ class _CreateRoomCard extends StatelessWidget {
             ],
             const SizedBox(height: 14),
             BqButton(
-              label: 'Kies een quiz',
+              label: tr.pickQuiz,
               loading: loading,
               onPressed: busy ? null : onChooseQuiz,
             ),
@@ -645,26 +640,23 @@ class _FreeGamesWarning extends StatelessWidget {
     final isLast = remaining <= 1;
 
     final label = monthly
-        ? 'Je spel van deze maand'
+        ? tr.gameThisMonth
         : isLast
-        ? 'Laatste gratis spel'
-        : 'Nog $remaining gratis spellen';
+        ? tr.lastFreeGame
+        : tr.freeGamesLeftN(remaining);
 
     final body = monthly
-        ? 'Dit is je gratis spel voor deze maand. Volgende maand krijg je er '
-              'weer een. Met Premium host je meteen zoveel je wilt.'
+        ? tr.freeGameMonthly
         : isLast
-        ? 'Dit is je laatste gratis spel om te hosten. Daarna krijg je er elke '
-              'maand een terug. Meedoen met andermans spel blijft gratis.'
-        : 'Je hebt nog $remaining gratis spellen om te hosten. Een spel telt '
-              'pas mee zodra je hem echt start.';
+        ? tr.lastFreeGameBody
+        : tr.freeGamesLeftBody(remaining);
 
     return MpNotice(
       tone: MpNoticeTone.info,
       title: label,
       message: body,
       action: MpSecondaryButton(
-        label: 'Bekijk Premium',
+        label: tr.viewPremium,
         height: 44,
         expand: false,
         fontSize: 14,
@@ -695,10 +687,10 @@ class _JoinRoomCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const _CardHeading(
+          _CardHeading(
             icon: BqIcons.enter,
-            title: 'Meedoen met code',
-            subtitle: 'De host deelt een code van 6 tekens',
+            title: tr.joinWithCode,
+            subtitle: tr.hostShares6,
           ),
           const SizedBox(height: 14),
           _CodeBoxes(
@@ -709,7 +701,7 @@ class _JoinRoomCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           MpSecondaryButton(
-            label: 'Meedoen',
+            label: tr.join,
             loading: loading,
             onPressed: busy ? null : onJoin,
           ),
@@ -742,7 +734,7 @@ class _CodeBoxes extends StatelessWidget {
 
     return Semantics(
       container: true,
-      label: 'Kamercode, $length tekens',
+      label: tr.roomCodeA11y(length),
       child: SizedBox(
         height: 56,
         child: Stack(
@@ -877,17 +869,17 @@ class _ResumeRoomCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final label = switch (room.status) {
-      MultiplayerRoomStatus.lobby => 'Je wachtkamer staat nog open',
-      MultiplayerRoomStatus.finished => 'Je laatste spel is afgelopen',
-      _ => 'Je spel loopt nog',
+      MultiplayerRoomStatus.lobby => tr.lobbyStillOpen,
+      MultiplayerRoomStatus.finished => tr.lastGameOver,
+      _ => tr.gameStillRunning,
     };
     final quizTitle = room.quizTitle.isEmpty
-        ? 'Multiplayer quiz'
+        ? tr.multiplayerQuiz
         : room.quizTitle;
 
     return Semantics(
       button: true,
-      label: '$label. $quizTitle, kamer ${room.code}. Ga verder',
+      label: tr.resumeA11y(label, quizTitle, room.code),
       excludeSemantics: true,
       child: BqCard(
         onTap: onResume,
@@ -908,7 +900,7 @@ class _ResumeRoomCard extends StatelessWidget {
                   ),
                   Text(label, style: AppTheme.bodyStrong),
                   Text(
-                    '$quizTitle - kamer ${room.code}',
+                    tr.quizRoom(quizTitle, room.code),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppTheme.caption,
@@ -973,7 +965,7 @@ class _SavedGroupRow extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           MpSecondaryButton(
-            label: 'Uitnodigen',
+            label: tr.invite,
             icon: const BqIcon(BqIcons.share, size: 16, color: AppTheme.lapis),
             height: 44,
             expand: false,

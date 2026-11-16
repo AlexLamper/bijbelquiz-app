@@ -1040,5 +1040,453 @@
         "type": "Object"
       }
     }
+  },
+  "mpQuotaFailed": "Kon je speelruimte niet ophalen.",
+  "mpCreateFailed": "Kon geen kamer maken.",
+  "mpJoinFailed": "Kon niet deelnemen aan kamer {code}.",
+  "@mpJoinFailed": {
+    "placeholders": {
+      "code": {
+        "type": "Object"
+      }
+    }
+  },
+  "mpLoadFailed": "Kon kamer {code} niet laden.",
+  "@mpLoadFailed": {
+    "placeholders": {
+      "code": {
+        "type": "Object"
+      }
+    }
+  },
+  "mpStartFailed": "Kon de quiz niet starten.",
+  "mpNextFailed": "Kon niet doorgaan naar de volgende vraag.",
+  "mpAnswerFailed": "Kon antwoord niet insturen.",
+  "mpResultsFailed": "Kon resultaten niet laden.",
+  "unexpectedServerResponse": "Onverwacht antwoord van de server.",
+  "roomNotFoundDot": "Kamer niet gevonden.",
+  "playTogether": "Samen spelen",
+  "backToPlayTogether": "Terug naar Samen spelen",
+  "stopQuiz": "Quiz stoppen",
+  "leaveGame": "Spel verlaten",
+  "multiplayerQuiz": "Multiplayer quiz",
+  "roomCodeLabel": "Kamer {code}",
+  "@roomCodeLabel": {
+    "placeholders": {
+      "code": {
+        "type": "Object"
+      }
+    }
+  },
+  "waitingNextQuestion": "Wachten op de volgende vraag…",
+  "nextIn": "Volgende in ",
+  "correctOfPlayers": "{correctCount} van {playersCount} had het goed",
+  "@correctOfPlayers": {
+    "placeholders": {
+      "correctCount": {
+        "type": "Object"
+      },
+      "playersCount": {
+        "type": "Object"
+      }
+    }
+  },
+  "standings": "Stand",
+  "stopQuizQuestion": "Quiz stoppen?",
+  "stopQuizBody": "Wil je deze multiplayer-quiz stoppen voor alle spelers?",
+  "actionCancel": "Annuleren",
+  "stopQuizAction": "Stop quiz",
+  "leaveGameQuestion": "Spel verlaten?",
+  "leaveGameBody": "Je score blijft bewaard als je terugkomt via Samen spelen.",
+  "stay": "Blijf",
+  "leaveGameAction": "Verlaat spel",
+  "questionNumberOf": "Vraag {number} van {total}",
+  "@questionNumberOf": {
+    "placeholders": {
+      "number": {
+        "type": "Object"
+      },
+      "total": {
+        "type": "Object"
+      }
+    }
+  },
+  "secondsRemaining": "Nog {seconds} seconden",
+  "@secondsRemaining": {
+    "placeholders": {
+      "seconds": {
+        "type": "Object"
+      }
+    }
+  },
+  "nextQuestionIn": "Volgende vraag in {seconds} seconden",
+  "@nextQuestionIn": {
+    "placeholders": {
+      "seconds": {
+        "type": "Object"
+      }
+    }
+  },
+  "a11yYourAnswer": ", jouw antwoord",
+  "a11yRightAnswer": ", goed antwoord",
+  "a11yWrongShort": ", fout",
+  "a11yChosenTimes": ", {count} keer gekozen",
+  "@a11yChosenTimes": {
+    "placeholders": {
+      "count": {
+        "type": "Object"
+      }
+    }
+  },
+  "noAnswerLower": "geen antwoord",
+  "stillThinking": "denkt nog na",
+  "noAnswer": "Geen antwoord",
+  "rightExclaim": "Goed!",
+  "tooBad": "Helaas",
+  "correctMarkedGreen": "Het juiste antwoord is groen gemarkeerd.",
+  "yourAnswerCorrect": "Je antwoord is correct.",
+  "yourChoiceMarked": "Jouw keuze staat gemarkeerd naast het juiste antwoord.",
+  "pointsGained": "+{gained} punten",
+  "@pointsGained": {
+    "placeholders": {
+      "gained": {
+        "type": "Object"
+      }
+    }
+  },
+  "nextQuestion": "Volgende vraag",
+  "hostMovingOn": "De host gaat zo door naar de volgende vraag.",
+  "submitted": "Ingestuurd",
+  "waitingOtherPlayers": "Wachten op de andere spelers…",
+  "hostSetsPace": "Jij bepaalt het tempo. Toon de antwoorden zodra iedereen klaar is.",
+  "showAnswers": "Toon antwoorden",
+  "startQuestions": "Start de vragen",
+  "waitHostQuestions": "Wacht tot de host de vragen start.",
+  "waitingHostQuestions": "Wachten tot de host de vragen start…",
+  "readBeforeQuizMp": "Lees voor de quiz {quizTitle}",
+  "@readBeforeQuizMp": {
+    "placeholders": {
+      "quizTitle": {
+        "type": "Object"
+      }
+    }
+  },
+  "readChapterCalmly": "Neem dit hoofdstuk rustig door. De vragen hierna gaan hierover, dus lezen helpt echt.",
+  "chapterNotLoaded": "Hoofdstuk niet geladen",
+  "chapterFetchFailedHost": "Dit hoofdstuk kon nu niet opgehaald worden. De host kan gewoon met de vragen beginnen.",
+  "lobby": "Wachtkamer",
+  "closeRoom": "Kamer sluiten",
+  "leaveRoom": "Kamer verlaten",
+  "closeRoomQuestion": "Kamer sluiten?",
+  "leaveRoomQuestion": "Kamer verlaten?",
+  "closeRoomBody": "Ben je de enige, dan sluit de kamer. Zijn er al spelers, dan wordt iemand anders host.",
+  "rejoinLater": "Je kunt later opnieuw meedoen met dezelfde code.",
+  "closeRoomAction": "Sluit kamer",
+  "leaveRoomAction": "Verlaat kamer",
+  "freeGamesUsed": "Je gratis spellen zijn op",
+  "premiumHostUnlimited": "Met Premium host je onbeperkt spellen, met tot 20 spelers tegelijk. Je groep blijft gewoon in de kamer wachten.",
+  "newRoomCode": "Je krijgt een nieuwe kamercode.",
+  "startWhenEveryone": "Start de quiz zodra iedereen er is.",
+  "hostStartsWhenEveryone": "De host start de quiz zodra iedereen er is.",
+  "roomCodeCopied": "Kamercode gekopieerd.",
+  "change": "Wijzig",
+  "players": "Spelers",
+  "playersOfMax": "{playersCount} van {maxPlayers}",
+  "@playersOfMax": {
+    "placeholders": {
+      "playersCount": {
+        "type": "Object"
+      },
+      "maxPlayers": {
+        "type": "Object"
+      }
+    }
+  },
+  "startTheQuiz": "Start de quiz",
+  "oneQuestion": "1 vraag",
+  "totalQuestionsN": "{totalQuestions} vragen",
+  "@totalQuestionsN": {
+    "placeholders": {
+      "totalQuestions": {
+        "type": "Object"
+      }
+    }
+  },
+  "secondsPerQuestion": "{questionTimerSeconds}s per vraag",
+  "@secondsPerQuestion": {
+    "placeholders": {
+      "questionTimerSeconds": {
+        "type": "Object"
+      }
+    }
+  },
+  "hostSetsPaceShort": "Host bepaalt het tempo",
+  "readFirstShort": "Eerst lezen",
+  "joinMyQuizShareTitle": "Doe mee met mijn BijbelQuiz",
+  "playersEnterCode": "Spelers vullen deze code in bij Samen spelen",
+  "shareCode": "Deel code",
+  "copyCode": "Code kopiëren",
+  "newPlayersAppear": "Nieuwe spelers verschijnen hier vanzelf.",
+  "waitHostQuiz": "Wacht tot de host de quiz start.",
+  "quizCompleted": "Quiz voltooid",
+  "finalStandings": "Eindstand",
+  "winnerWith": "Winnaar: {winner} met {score} punten",
+  "@winnerWith": {
+    "placeholders": {
+      "winner": {
+        "type": "Object"
+      },
+      "score": {
+        "type": "Object"
+      }
+    }
+  },
+  "backHome": "Terug naar home",
+  "startNewRoom": "Nieuwe kamer starten",
+  "groupSaved": "\"{savedGroupName}\" is bewaard.",
+  "@groupSaved": {
+    "placeholders": {
+      "savedGroupName": {
+        "type": "Object"
+      }
+    }
+  },
+  "groupStandingsOnLeaderboard": "Je vindt de stand van deze groep op de ranglijst.",
+  "saveGroupQuestion": "Deze groep bewaren?",
+  "saveGroupBody": "Dan houd je een eigen ranglijst bij met deze {playersCount} spelers, en nodig je ze de volgende keer met een tik weer uit.",
+  "@saveGroupBody": {
+    "placeholders": {
+      "playersCount": {
+        "type": "Object"
+      }
+    }
+  },
+  "saveGroup": "Groep bewaren",
+  "placeNamePoints": "{place}. {name}, {score} punten",
+  "@placeNamePoints": {
+    "placeholders": {
+      "place": {
+        "type": "Object"
+      },
+      "name": {
+        "type": "Object"
+      },
+      "score": {
+        "type": "Object"
+      }
+    }
+  },
+  "pointsN": "{score} punten",
+  "@pointsN": {
+    "placeholders": {
+      "score": {
+        "type": "Object"
+      }
+    }
+  },
+  "correctOfTotal": "{correctAnswers} van {totalQuestions} goed",
+  "@correctOfTotal": {
+    "placeholders": {
+      "correctAnswers": {
+        "type": "Object"
+      },
+      "totalQuestions": {
+        "type": "Object"
+      }
+    }
+  },
+  "correctN": "{correctAnswers} goed",
+  "@correctN": {
+    "placeholders": {
+      "correctAnswers": {
+        "type": "Object"
+      }
+    }
+  },
+  "roomReconnecting": "Kamer even niet bereikbaar. Opnieuw verbinden...",
+  "roomClosedFinal": "De kamer is gesloten. Dit is de eindstand.",
+  "roomGone": "Deze kamer bestaat niet meer. Ga terug en start een nieuwe kamer.",
+  "createRoom": "Kamer maken",
+  "createRoomInvite": "Maak kamer en nodig uit",
+  "thenInviteGroup": "Daarna nodigen we {name} uit.",
+  "@thenInviteGroup": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "selectQuizFirst": "Selecteer eerst een quiz.",
+  "enterRoomCode": "Voer een kamercode in.",
+  "roomCodeTooShort": "Kamercode lijkt te kort. Controleer de code.",
+  "pickQuizThenInvite": "Kies eerst een quiz, dan nodigen we {name} uit.",
+  "@pickQuizThenInvite": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "yourGroupsShort": "Je groepen",
+  "pickQuizInviteGroup": "Kies een quiz en stuur je groep in een tik een nieuwe uitnodiging.",
+  "signInToPlayTogether": "Log in om samen te spelen",
+  "playTogetherNeedsAccount": "Een kamer maken of meedoen kan met een gratis account, zodat je naam en score in de kamer kloppen.",
+  "playTogetherIntro": "Met je gezin, vrienden of de jeugdclub: iedereen speelt tegelijk dezelfde quiz, ieder op een eigen telefoon.",
+  "upToPlayers": "Tot {maxPlayers} spelers per kamer",
+  "@upToPlayers": {
+    "placeholders": {
+      "maxPlayers": {
+        "type": "Object"
+      }
+    }
+  },
+  "youAreHost": "Jij bent de host",
+  "premiumHostRooms": "Met Premium host je onbeperkt kamers, tot {maxPlayersPremium} spelers tegelijk. Deelnemen met een kamercode blijft altijd gratis.",
+  "@premiumHostRooms": {
+    "placeholders": {
+      "maxPlayersPremium": {
+        "type": "Object"
+      }
+    }
+  },
+  "viewPremium": "Bekijk Premium",
+  "hostSteps": "Kies een quiz, deel de code met je groep en start als iedereen er is.",
+  "pickQuiz": "Kies een quiz",
+  "gameThisMonth": "Je spel van deze maand",
+  "lastFreeGame": "Laatste gratis spel",
+  "freeGamesLeftN": "Nog {remaining} gratis spellen",
+  "@freeGamesLeftN": {
+    "placeholders": {
+      "remaining": {
+        "type": "Object"
+      }
+    }
+  },
+  "freeGameMonthly": "Dit is je gratis spel voor deze maand. Volgende maand krijg je er weer een. Met Premium host je meteen zoveel je wilt.",
+  "lastFreeGameBody": "Dit is je laatste gratis spel om te hosten. Daarna krijg je er elke maand een terug. Meedoen met andermans spel blijft gratis.",
+  "freeGamesLeftBody": "Je hebt nog {remaining} gratis spellen om te hosten. Een spel telt pas mee zodra je hem echt start.",
+  "@freeGamesLeftBody": {
+    "placeholders": {
+      "remaining": {
+        "type": "Object"
+      }
+    }
+  },
+  "joinWithCode": "Meedoen met code",
+  "hostShares6": "De host deelt een code van 6 tekens",
+  "join": "Meedoen",
+  "roomCodeA11y": "Kamercode, {length} tekens",
+  "@roomCodeA11y": {
+    "placeholders": {
+      "length": {
+        "type": "Object"
+      }
+    }
+  },
+  "lobbyStillOpen": "Je wachtkamer staat nog open",
+  "lastGameOver": "Je laatste spel is afgelopen",
+  "gameStillRunning": "Je spel loopt nog",
+  "resumeA11y": "{label}. {quizTitle}, kamer {code}. Ga verder",
+  "@resumeA11y": {
+    "placeholders": {
+      "label": {
+        "type": "Object"
+      },
+      "quizTitle": {
+        "type": "Object"
+      },
+      "code": {
+        "type": "Object"
+      }
+    }
+  },
+  "quizRoom": "{quizTitle} - kamer {code}",
+  "@quizRoom": {
+    "placeholders": {
+      "quizTitle": {
+        "type": "Object"
+      },
+      "code": {
+        "type": "Object"
+      }
+    }
+  },
+  "invite": "Uitnodigen",
+  "pickOtherQuiz": "Andere quiz kiezen",
+  "setUpRoom": "Kamer instellen",
+  "noQuizzesForRoom": "Geen quizzen gevonden om een kamer te starten.",
+  "cantLoadQuizzes": "Kan quizzen niet laden",
+  "numberOfPlayers": "Aantal spelers",
+  "maxN": "Max. {maxPlayers}",
+  "@maxN": {
+    "placeholders": {
+      "maxPlayers": {
+        "type": "Object"
+      }
+    }
+  },
+  "countPlayersPremium": "{count} spelers, Premium",
+  "@countPlayersPremium": {
+    "placeholders": {
+      "count": {
+        "type": "Object"
+      }
+    }
+  },
+  "hostCanInvite": "Jij bent de host en kunt tot {maxPlayersPremium} spelers uitnodigen.",
+  "@hostCanInvite": {
+    "placeholders": {
+      "maxPlayersPremium": {
+        "type": "Object"
+      }
+    }
+  },
+  "freeUpToPlayers": "Gratis tot {maxPlayersFree} spelers. Een gratis spel telt pas mee als je het spel echt start.",
+  "@freeUpToPlayers": {
+    "placeholders": {
+      "maxPlayersFree": {
+        "type": "Object"
+      }
+    }
+  },
+  "maxPlayersNeedsPremium": "{maxPlayers} spelers vraagt om Premium. Gratis speel je tot {maxPlayersFree} spelers.",
+  "@maxPlayersNeedsPremium": {
+    "placeholders": {
+      "maxPlayers": {
+        "type": "Object"
+      },
+      "maxPlayersFree": {
+        "type": "Object"
+      }
+    }
+  },
+  "freeGamesLeftHost": "Je hebt nog {freeGamesLeft} gratis spellen om te hosten.",
+  "@freeGamesLeftHost": {
+    "placeholders": {
+      "freeGamesLeft": {
+        "type": "Object"
+      }
+    }
+  },
+  "readChapterFirst": "Lees eerst het hoofdstuk",
+  "onlySingleChapter": "Werkt alleen bij quizzen over 1 hoofdstuk.",
+  "pacePerQuestion": "Tempo per vraag",
+  "youAdvance": "Jij gaat zelf door naar de antwoorden en de volgende vraag.",
+  "everyoneGetsSeconds": "Iedereen krijgt {tempo} seconden per vraag.",
+  "@everyoneGetsSeconds": {
+    "placeholders": {
+      "tempo": {
+        "type": "Object"
+      }
+    }
+  },
+  "hostDecides": "Host bepaalt",
+  "secondsPerQuestionLong": "{i} seconden per vraag",
+  "@secondsPerQuestionLong": {
+    "placeholders": {
+      "i": {
+        "type": "Object"
+      }
+    }
   }
 }

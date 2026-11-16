@@ -6,6 +6,7 @@ import '../../../core/config/app_config.dart';
 import '../../auth/present/auth_controller.dart';
 import '../domain/multiplayer_models.dart';
 import 'multiplayer_api_exception.dart';
+import '../../../l10n/tr.dart';
 
 final multiplayerRepositoryProvider = Provider<MultiplayerRepository>((ref) {
   final apiClient = ref.watch(apiClientProvider);
@@ -45,7 +46,7 @@ class MultiplayerRepository {
   /// What this user may do, so the paywall can appear before they pick a quiz.
   Future<MultiplayerCapability> getCapability() async {
     return _guard(
-      fallbackMessage: 'Kon je speelruimte niet ophalen.',
+      fallbackMessage: tr.mpQuotaFailed,
       request: () async {
         final response = await _apiClient.dio.get('/multiplayer/rooms');
         final data = _toMap(response.data);
@@ -62,7 +63,7 @@ class MultiplayerRepository {
     int questionTimerSeconds = 0,
   }) {
     return _guard(
-      fallbackMessage: 'Kon geen kamer maken.',
+      fallbackMessage: tr.mpCreateFailed,
       request: () async {
         final response = await _apiClient.dio.post(
           '/multiplayer/rooms',
@@ -106,7 +107,7 @@ class MultiplayerRepository {
         ? '?${AppConfig.inviteSourceParam}=${AppConfig.inviteSourceValue}'
         : '';
     return _guard(
-      fallbackMessage: 'Kon niet deelnemen aan kamer $code.',
+      fallbackMessage: tr.mpJoinFailed(code),
       request: () async {
         final response = await _apiClient.dio.post(
           '/multiplayer/rooms/$code/join$query',
@@ -121,7 +122,7 @@ class MultiplayerRepository {
   Future<MultiplayerRoom> getRoomSnapshot(String roomCode) {
     final code = roomCode.toUpperCase();
     return _guard(
-      fallbackMessage: 'Kon kamer $code niet laden.',
+      fallbackMessage: tr.mpLoadFailed(code),
       request: () async {
         final response = await _apiClient.dio.get('/multiplayer/rooms/$code');
         return _extractRoom(response.data);
@@ -132,7 +133,7 @@ class MultiplayerRepository {
   Future<MultiplayerRoom> startMatch(String roomCode) {
     final code = roomCode.toUpperCase();
     return _guard(
-      fallbackMessage: 'Kon de quiz niet starten.',
+      fallbackMessage: tr.mpStartFailed,
       request: () async {
         final response = await _apiClient.dio.post(
           '/multiplayer/rooms/$code/start',
@@ -148,7 +149,7 @@ class MultiplayerRepository {
   Future<MultiplayerRoom> advance(String roomCode) {
     final code = roomCode.toUpperCase();
     return _guard(
-      fallbackMessage: 'Kon niet doorgaan naar de volgende vraag.',
+      fallbackMessage: tr.mpNextFailed,
       request: () async {
         final response = await _apiClient.dio.post(
           '/multiplayer/rooms/$code/advance',
@@ -167,7 +168,7 @@ class MultiplayerRepository {
   }) {
     final code = roomCode.toUpperCase();
     return _guard(
-      fallbackMessage: 'Kon antwoord niet insturen.',
+      fallbackMessage: tr.mpAnswerFailed,
       request: () async {
         final response = await _apiClient.dio.post(
           '/multiplayer/rooms/$code/answer',
@@ -181,7 +182,7 @@ class MultiplayerRepository {
   Future<List<MultiplayerLeaderboardEntry>> getResults(String roomCode) {
     final code = roomCode.toUpperCase();
     return _guard(
-      fallbackMessage: 'Kon resultaten niet laden.',
+      fallbackMessage: tr.mpResultsFailed,
       request: () async {
         final response = await _apiClient.dio.get(
           '/multiplayer/rooms/$code/results',
@@ -211,9 +212,9 @@ class MultiplayerRepository {
   MultiplayerRoom _extractRoom(dynamic data) {
     final map = _toMap(data);
     if (map == null) {
-      throw const MultiplayerApiException(
+      throw MultiplayerApiException(
         code: 'INVALID_RESPONSE',
-        message: 'Onverwacht antwoord van de server.',
+        message: tr.unexpectedServerResponse,
       );
     }
 

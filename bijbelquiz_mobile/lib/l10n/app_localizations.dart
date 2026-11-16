@@ -3057,6 +3057,942 @@ abstract class AppLocalizations {
   /// In nl, this message translates to:
   /// **'op {date}'**
   String onDate(Object date);
+
+  /// No description provided for @mpQuotaFailed.
+  ///
+  /// In nl, this message translates to:
+  /// **'Kon je speelruimte niet ophalen.'**
+  String get mpQuotaFailed;
+
+  /// No description provided for @mpCreateFailed.
+  ///
+  /// In nl, this message translates to:
+  /// **'Kon geen kamer maken.'**
+  String get mpCreateFailed;
+
+  /// No description provided for @mpJoinFailed.
+  ///
+  /// In nl, this message translates to:
+  /// **'Kon niet deelnemen aan kamer {code}.'**
+  String mpJoinFailed(Object code);
+
+  /// No description provided for @mpLoadFailed.
+  ///
+  /// In nl, this message translates to:
+  /// **'Kon kamer {code} niet laden.'**
+  String mpLoadFailed(Object code);
+
+  /// No description provided for @mpStartFailed.
+  ///
+  /// In nl, this message translates to:
+  /// **'Kon de quiz niet starten.'**
+  String get mpStartFailed;
+
+  /// No description provided for @mpNextFailed.
+  ///
+  /// In nl, this message translates to:
+  /// **'Kon niet doorgaan naar de volgende vraag.'**
+  String get mpNextFailed;
+
+  /// No description provided for @mpAnswerFailed.
+  ///
+  /// In nl, this message translates to:
+  /// **'Kon antwoord niet insturen.'**
+  String get mpAnswerFailed;
+
+  /// No description provided for @mpResultsFailed.
+  ///
+  /// In nl, this message translates to:
+  /// **'Kon resultaten niet laden.'**
+  String get mpResultsFailed;
+
+  /// No description provided for @unexpectedServerResponse.
+  ///
+  /// In nl, this message translates to:
+  /// **'Onverwacht antwoord van de server.'**
+  String get unexpectedServerResponse;
+
+  /// No description provided for @roomNotFoundDot.
+  ///
+  /// In nl, this message translates to:
+  /// **'Kamer niet gevonden.'**
+  String get roomNotFoundDot;
+
+  /// No description provided for @playTogether.
+  ///
+  /// In nl, this message translates to:
+  /// **'Samen spelen'**
+  String get playTogether;
+
+  /// No description provided for @backToPlayTogether.
+  ///
+  /// In nl, this message translates to:
+  /// **'Terug naar Samen spelen'**
+  String get backToPlayTogether;
+
+  /// No description provided for @stopQuiz.
+  ///
+  /// In nl, this message translates to:
+  /// **'Quiz stoppen'**
+  String get stopQuiz;
+
+  /// No description provided for @leaveGame.
+  ///
+  /// In nl, this message translates to:
+  /// **'Spel verlaten'**
+  String get leaveGame;
+
+  /// No description provided for @multiplayerQuiz.
+  ///
+  /// In nl, this message translates to:
+  /// **'Multiplayer quiz'**
+  String get multiplayerQuiz;
+
+  /// No description provided for @roomCodeLabel.
+  ///
+  /// In nl, this message translates to:
+  /// **'Kamer {code}'**
+  String roomCodeLabel(Object code);
+
+  /// No description provided for @waitingNextQuestion.
+  ///
+  /// In nl, this message translates to:
+  /// **'Wachten op de volgende vraag…'**
+  String get waitingNextQuestion;
+
+  /// No description provided for @nextIn.
+  ///
+  /// In nl, this message translates to:
+  /// **'Volgende in '**
+  String get nextIn;
+
+  /// No description provided for @correctOfPlayers.
+  ///
+  /// In nl, this message translates to:
+  /// **'{correctCount} van {playersCount} had het goed'**
+  String correctOfPlayers(Object correctCount, Object playersCount);
+
+  /// No description provided for @standings.
+  ///
+  /// In nl, this message translates to:
+  /// **'Stand'**
+  String get standings;
+
+  /// No description provided for @stopQuizQuestion.
+  ///
+  /// In nl, this message translates to:
+  /// **'Quiz stoppen?'**
+  String get stopQuizQuestion;
+
+  /// No description provided for @stopQuizBody.
+  ///
+  /// In nl, this message translates to:
+  /// **'Wil je deze multiplayer-quiz stoppen voor alle spelers?'**
+  String get stopQuizBody;
+
+  /// No description provided for @actionCancel.
+  ///
+  /// In nl, this message translates to:
+  /// **'Annuleren'**
+  String get actionCancel;
+
+  /// No description provided for @stopQuizAction.
+  ///
+  /// In nl, this message translates to:
+  /// **'Stop quiz'**
+  String get stopQuizAction;
+
+  /// No description provided for @leaveGameQuestion.
+  ///
+  /// In nl, this message translates to:
+  /// **'Spel verlaten?'**
+  String get leaveGameQuestion;
+
+  /// No description provided for @leaveGameBody.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je score blijft bewaard als je terugkomt via Samen spelen.'**
+  String get leaveGameBody;
+
+  /// No description provided for @stay.
+  ///
+  /// In nl, this message translates to:
+  /// **'Blijf'**
+  String get stay;
+
+  /// No description provided for @leaveGameAction.
+  ///
+  /// In nl, this message translates to:
+  /// **'Verlaat spel'**
+  String get leaveGameAction;
+
+  /// No description provided for @questionNumberOf.
+  ///
+  /// In nl, this message translates to:
+  /// **'Vraag {number} van {total}'**
+  String questionNumberOf(Object number, Object total);
+
+  /// No description provided for @secondsRemaining.
+  ///
+  /// In nl, this message translates to:
+  /// **'Nog {seconds} seconden'**
+  String secondsRemaining(Object seconds);
+
+  /// No description provided for @nextQuestionIn.
+  ///
+  /// In nl, this message translates to:
+  /// **'Volgende vraag in {seconds} seconden'**
+  String nextQuestionIn(Object seconds);
+
+  /// No description provided for @a11yYourAnswer.
+  ///
+  /// In nl, this message translates to:
+  /// **', jouw antwoord'**
+  String get a11yYourAnswer;
+
+  /// No description provided for @a11yRightAnswer.
+  ///
+  /// In nl, this message translates to:
+  /// **', goed antwoord'**
+  String get a11yRightAnswer;
+
+  /// No description provided for @a11yWrongShort.
+  ///
+  /// In nl, this message translates to:
+  /// **', fout'**
+  String get a11yWrongShort;
+
+  /// No description provided for @a11yChosenTimes.
+  ///
+  /// In nl, this message translates to:
+  /// **', {count} keer gekozen'**
+  String a11yChosenTimes(Object count);
+
+  /// No description provided for @noAnswerLower.
+  ///
+  /// In nl, this message translates to:
+  /// **'geen antwoord'**
+  String get noAnswerLower;
+
+  /// No description provided for @stillThinking.
+  ///
+  /// In nl, this message translates to:
+  /// **'denkt nog na'**
+  String get stillThinking;
+
+  /// No description provided for @noAnswer.
+  ///
+  /// In nl, this message translates to:
+  /// **'Geen antwoord'**
+  String get noAnswer;
+
+  /// No description provided for @rightExclaim.
+  ///
+  /// In nl, this message translates to:
+  /// **'Goed!'**
+  String get rightExclaim;
+
+  /// No description provided for @tooBad.
+  ///
+  /// In nl, this message translates to:
+  /// **'Helaas'**
+  String get tooBad;
+
+  /// No description provided for @correctMarkedGreen.
+  ///
+  /// In nl, this message translates to:
+  /// **'Het juiste antwoord is groen gemarkeerd.'**
+  String get correctMarkedGreen;
+
+  /// No description provided for @yourAnswerCorrect.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je antwoord is correct.'**
+  String get yourAnswerCorrect;
+
+  /// No description provided for @yourChoiceMarked.
+  ///
+  /// In nl, this message translates to:
+  /// **'Jouw keuze staat gemarkeerd naast het juiste antwoord.'**
+  String get yourChoiceMarked;
+
+  /// No description provided for @pointsGained.
+  ///
+  /// In nl, this message translates to:
+  /// **'+{gained} punten'**
+  String pointsGained(Object gained);
+
+  /// No description provided for @nextQuestion.
+  ///
+  /// In nl, this message translates to:
+  /// **'Volgende vraag'**
+  String get nextQuestion;
+
+  /// No description provided for @hostMovingOn.
+  ///
+  /// In nl, this message translates to:
+  /// **'De host gaat zo door naar de volgende vraag.'**
+  String get hostMovingOn;
+
+  /// No description provided for @submitted.
+  ///
+  /// In nl, this message translates to:
+  /// **'Ingestuurd'**
+  String get submitted;
+
+  /// No description provided for @waitingOtherPlayers.
+  ///
+  /// In nl, this message translates to:
+  /// **'Wachten op de andere spelers…'**
+  String get waitingOtherPlayers;
+
+  /// No description provided for @hostSetsPace.
+  ///
+  /// In nl, this message translates to:
+  /// **'Jij bepaalt het tempo. Toon de antwoorden zodra iedereen klaar is.'**
+  String get hostSetsPace;
+
+  /// No description provided for @showAnswers.
+  ///
+  /// In nl, this message translates to:
+  /// **'Toon antwoorden'**
+  String get showAnswers;
+
+  /// No description provided for @startQuestions.
+  ///
+  /// In nl, this message translates to:
+  /// **'Start de vragen'**
+  String get startQuestions;
+
+  /// No description provided for @waitHostQuestions.
+  ///
+  /// In nl, this message translates to:
+  /// **'Wacht tot de host de vragen start.'**
+  String get waitHostQuestions;
+
+  /// No description provided for @waitingHostQuestions.
+  ///
+  /// In nl, this message translates to:
+  /// **'Wachten tot de host de vragen start…'**
+  String get waitingHostQuestions;
+
+  /// No description provided for @readBeforeQuizMp.
+  ///
+  /// In nl, this message translates to:
+  /// **'Lees voor de quiz {quizTitle}'**
+  String readBeforeQuizMp(Object quizTitle);
+
+  /// No description provided for @readChapterCalmly.
+  ///
+  /// In nl, this message translates to:
+  /// **'Neem dit hoofdstuk rustig door. De vragen hierna gaan hierover, dus lezen helpt echt.'**
+  String get readChapterCalmly;
+
+  /// No description provided for @chapterNotLoaded.
+  ///
+  /// In nl, this message translates to:
+  /// **'Hoofdstuk niet geladen'**
+  String get chapterNotLoaded;
+
+  /// No description provided for @chapterFetchFailedHost.
+  ///
+  /// In nl, this message translates to:
+  /// **'Dit hoofdstuk kon nu niet opgehaald worden. De host kan gewoon met de vragen beginnen.'**
+  String get chapterFetchFailedHost;
+
+  /// No description provided for @lobby.
+  ///
+  /// In nl, this message translates to:
+  /// **'Wachtkamer'**
+  String get lobby;
+
+  /// No description provided for @closeRoom.
+  ///
+  /// In nl, this message translates to:
+  /// **'Kamer sluiten'**
+  String get closeRoom;
+
+  /// No description provided for @leaveRoom.
+  ///
+  /// In nl, this message translates to:
+  /// **'Kamer verlaten'**
+  String get leaveRoom;
+
+  /// No description provided for @closeRoomQuestion.
+  ///
+  /// In nl, this message translates to:
+  /// **'Kamer sluiten?'**
+  String get closeRoomQuestion;
+
+  /// No description provided for @leaveRoomQuestion.
+  ///
+  /// In nl, this message translates to:
+  /// **'Kamer verlaten?'**
+  String get leaveRoomQuestion;
+
+  /// No description provided for @closeRoomBody.
+  ///
+  /// In nl, this message translates to:
+  /// **'Ben je de enige, dan sluit de kamer. Zijn er al spelers, dan wordt iemand anders host.'**
+  String get closeRoomBody;
+
+  /// No description provided for @rejoinLater.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je kunt later opnieuw meedoen met dezelfde code.'**
+  String get rejoinLater;
+
+  /// No description provided for @closeRoomAction.
+  ///
+  /// In nl, this message translates to:
+  /// **'Sluit kamer'**
+  String get closeRoomAction;
+
+  /// No description provided for @leaveRoomAction.
+  ///
+  /// In nl, this message translates to:
+  /// **'Verlaat kamer'**
+  String get leaveRoomAction;
+
+  /// No description provided for @freeGamesUsed.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je gratis spellen zijn op'**
+  String get freeGamesUsed;
+
+  /// No description provided for @premiumHostUnlimited.
+  ///
+  /// In nl, this message translates to:
+  /// **'Met Premium host je onbeperkt spellen, met tot 20 spelers tegelijk. Je groep blijft gewoon in de kamer wachten.'**
+  String get premiumHostUnlimited;
+
+  /// No description provided for @newRoomCode.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je krijgt een nieuwe kamercode.'**
+  String get newRoomCode;
+
+  /// No description provided for @startWhenEveryone.
+  ///
+  /// In nl, this message translates to:
+  /// **'Start de quiz zodra iedereen er is.'**
+  String get startWhenEveryone;
+
+  /// No description provided for @hostStartsWhenEveryone.
+  ///
+  /// In nl, this message translates to:
+  /// **'De host start de quiz zodra iedereen er is.'**
+  String get hostStartsWhenEveryone;
+
+  /// No description provided for @roomCodeCopied.
+  ///
+  /// In nl, this message translates to:
+  /// **'Kamercode gekopieerd.'**
+  String get roomCodeCopied;
+
+  /// No description provided for @change.
+  ///
+  /// In nl, this message translates to:
+  /// **'Wijzig'**
+  String get change;
+
+  /// No description provided for @players.
+  ///
+  /// In nl, this message translates to:
+  /// **'Spelers'**
+  String get players;
+
+  /// No description provided for @playersOfMax.
+  ///
+  /// In nl, this message translates to:
+  /// **'{playersCount} van {maxPlayers}'**
+  String playersOfMax(Object playersCount, Object maxPlayers);
+
+  /// No description provided for @startTheQuiz.
+  ///
+  /// In nl, this message translates to:
+  /// **'Start de quiz'**
+  String get startTheQuiz;
+
+  /// No description provided for @oneQuestion.
+  ///
+  /// In nl, this message translates to:
+  /// **'1 vraag'**
+  String get oneQuestion;
+
+  /// No description provided for @totalQuestionsN.
+  ///
+  /// In nl, this message translates to:
+  /// **'{totalQuestions} vragen'**
+  String totalQuestionsN(Object totalQuestions);
+
+  /// No description provided for @secondsPerQuestion.
+  ///
+  /// In nl, this message translates to:
+  /// **'{questionTimerSeconds}s per vraag'**
+  String secondsPerQuestion(Object questionTimerSeconds);
+
+  /// No description provided for @hostSetsPaceShort.
+  ///
+  /// In nl, this message translates to:
+  /// **'Host bepaalt het tempo'**
+  String get hostSetsPaceShort;
+
+  /// No description provided for @readFirstShort.
+  ///
+  /// In nl, this message translates to:
+  /// **'Eerst lezen'**
+  String get readFirstShort;
+
+  /// No description provided for @joinMyQuizShareTitle.
+  ///
+  /// In nl, this message translates to:
+  /// **'Doe mee met mijn BijbelQuiz'**
+  String get joinMyQuizShareTitle;
+
+  /// No description provided for @playersEnterCode.
+  ///
+  /// In nl, this message translates to:
+  /// **'Spelers vullen deze code in bij Samen spelen'**
+  String get playersEnterCode;
+
+  /// No description provided for @shareCode.
+  ///
+  /// In nl, this message translates to:
+  /// **'Deel code'**
+  String get shareCode;
+
+  /// No description provided for @copyCode.
+  ///
+  /// In nl, this message translates to:
+  /// **'Code kopiëren'**
+  String get copyCode;
+
+  /// No description provided for @newPlayersAppear.
+  ///
+  /// In nl, this message translates to:
+  /// **'Nieuwe spelers verschijnen hier vanzelf.'**
+  String get newPlayersAppear;
+
+  /// No description provided for @waitHostQuiz.
+  ///
+  /// In nl, this message translates to:
+  /// **'Wacht tot de host de quiz start.'**
+  String get waitHostQuiz;
+
+  /// No description provided for @quizCompleted.
+  ///
+  /// In nl, this message translates to:
+  /// **'Quiz voltooid'**
+  String get quizCompleted;
+
+  /// No description provided for @finalStandings.
+  ///
+  /// In nl, this message translates to:
+  /// **'Eindstand'**
+  String get finalStandings;
+
+  /// No description provided for @winnerWith.
+  ///
+  /// In nl, this message translates to:
+  /// **'Winnaar: {winner} met {score} punten'**
+  String winnerWith(Object winner, Object score);
+
+  /// No description provided for @backHome.
+  ///
+  /// In nl, this message translates to:
+  /// **'Terug naar home'**
+  String get backHome;
+
+  /// No description provided for @startNewRoom.
+  ///
+  /// In nl, this message translates to:
+  /// **'Nieuwe kamer starten'**
+  String get startNewRoom;
+
+  /// No description provided for @groupSaved.
+  ///
+  /// In nl, this message translates to:
+  /// **'\"{savedGroupName}\" is bewaard.'**
+  String groupSaved(Object savedGroupName);
+
+  /// No description provided for @groupStandingsOnLeaderboard.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je vindt de stand van deze groep op de ranglijst.'**
+  String get groupStandingsOnLeaderboard;
+
+  /// No description provided for @saveGroupQuestion.
+  ///
+  /// In nl, this message translates to:
+  /// **'Deze groep bewaren?'**
+  String get saveGroupQuestion;
+
+  /// No description provided for @saveGroupBody.
+  ///
+  /// In nl, this message translates to:
+  /// **'Dan houd je een eigen ranglijst bij met deze {playersCount} spelers, en nodig je ze de volgende keer met een tik weer uit.'**
+  String saveGroupBody(Object playersCount);
+
+  /// No description provided for @saveGroup.
+  ///
+  /// In nl, this message translates to:
+  /// **'Groep bewaren'**
+  String get saveGroup;
+
+  /// No description provided for @placeNamePoints.
+  ///
+  /// In nl, this message translates to:
+  /// **'{place}. {name}, {score} punten'**
+  String placeNamePoints(Object place, Object name, Object score);
+
+  /// No description provided for @pointsN.
+  ///
+  /// In nl, this message translates to:
+  /// **'{score} punten'**
+  String pointsN(Object score);
+
+  /// No description provided for @correctOfTotal.
+  ///
+  /// In nl, this message translates to:
+  /// **'{correctAnswers} van {totalQuestions} goed'**
+  String correctOfTotal(Object correctAnswers, Object totalQuestions);
+
+  /// No description provided for @correctN.
+  ///
+  /// In nl, this message translates to:
+  /// **'{correctAnswers} goed'**
+  String correctN(Object correctAnswers);
+
+  /// No description provided for @roomReconnecting.
+  ///
+  /// In nl, this message translates to:
+  /// **'Kamer even niet bereikbaar. Opnieuw verbinden...'**
+  String get roomReconnecting;
+
+  /// No description provided for @roomClosedFinal.
+  ///
+  /// In nl, this message translates to:
+  /// **'De kamer is gesloten. Dit is de eindstand.'**
+  String get roomClosedFinal;
+
+  /// No description provided for @roomGone.
+  ///
+  /// In nl, this message translates to:
+  /// **'Deze kamer bestaat niet meer. Ga terug en start een nieuwe kamer.'**
+  String get roomGone;
+
+  /// No description provided for @createRoom.
+  ///
+  /// In nl, this message translates to:
+  /// **'Kamer maken'**
+  String get createRoom;
+
+  /// No description provided for @createRoomInvite.
+  ///
+  /// In nl, this message translates to:
+  /// **'Maak kamer en nodig uit'**
+  String get createRoomInvite;
+
+  /// No description provided for @thenInviteGroup.
+  ///
+  /// In nl, this message translates to:
+  /// **'Daarna nodigen we {name} uit.'**
+  String thenInviteGroup(Object name);
+
+  /// No description provided for @selectQuizFirst.
+  ///
+  /// In nl, this message translates to:
+  /// **'Selecteer eerst een quiz.'**
+  String get selectQuizFirst;
+
+  /// No description provided for @enterRoomCode.
+  ///
+  /// In nl, this message translates to:
+  /// **'Voer een kamercode in.'**
+  String get enterRoomCode;
+
+  /// No description provided for @roomCodeTooShort.
+  ///
+  /// In nl, this message translates to:
+  /// **'Kamercode lijkt te kort. Controleer de code.'**
+  String get roomCodeTooShort;
+
+  /// No description provided for @pickQuizThenInvite.
+  ///
+  /// In nl, this message translates to:
+  /// **'Kies eerst een quiz, dan nodigen we {name} uit.'**
+  String pickQuizThenInvite(Object name);
+
+  /// No description provided for @yourGroupsShort.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je groepen'**
+  String get yourGroupsShort;
+
+  /// No description provided for @pickQuizInviteGroup.
+  ///
+  /// In nl, this message translates to:
+  /// **'Kies een quiz en stuur je groep in een tik een nieuwe uitnodiging.'**
+  String get pickQuizInviteGroup;
+
+  /// No description provided for @signInToPlayTogether.
+  ///
+  /// In nl, this message translates to:
+  /// **'Log in om samen te spelen'**
+  String get signInToPlayTogether;
+
+  /// No description provided for @playTogetherNeedsAccount.
+  ///
+  /// In nl, this message translates to:
+  /// **'Een kamer maken of meedoen kan met een gratis account, zodat je naam en score in de kamer kloppen.'**
+  String get playTogetherNeedsAccount;
+
+  /// No description provided for @playTogetherIntro.
+  ///
+  /// In nl, this message translates to:
+  /// **'Met je gezin, vrienden of de jeugdclub: iedereen speelt tegelijk dezelfde quiz, ieder op een eigen telefoon.'**
+  String get playTogetherIntro;
+
+  /// No description provided for @upToPlayers.
+  ///
+  /// In nl, this message translates to:
+  /// **'Tot {maxPlayers} spelers per kamer'**
+  String upToPlayers(Object maxPlayers);
+
+  /// No description provided for @youAreHost.
+  ///
+  /// In nl, this message translates to:
+  /// **'Jij bent de host'**
+  String get youAreHost;
+
+  /// No description provided for @premiumHostRooms.
+  ///
+  /// In nl, this message translates to:
+  /// **'Met Premium host je onbeperkt kamers, tot {maxPlayersPremium} spelers tegelijk. Deelnemen met een kamercode blijft altijd gratis.'**
+  String premiumHostRooms(Object maxPlayersPremium);
+
+  /// No description provided for @viewPremium.
+  ///
+  /// In nl, this message translates to:
+  /// **'Bekijk Premium'**
+  String get viewPremium;
+
+  /// No description provided for @hostSteps.
+  ///
+  /// In nl, this message translates to:
+  /// **'Kies een quiz, deel de code met je groep en start als iedereen er is.'**
+  String get hostSteps;
+
+  /// No description provided for @pickQuiz.
+  ///
+  /// In nl, this message translates to:
+  /// **'Kies een quiz'**
+  String get pickQuiz;
+
+  /// No description provided for @gameThisMonth.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je spel van deze maand'**
+  String get gameThisMonth;
+
+  /// No description provided for @lastFreeGame.
+  ///
+  /// In nl, this message translates to:
+  /// **'Laatste gratis spel'**
+  String get lastFreeGame;
+
+  /// No description provided for @freeGamesLeftN.
+  ///
+  /// In nl, this message translates to:
+  /// **'Nog {remaining} gratis spellen'**
+  String freeGamesLeftN(Object remaining);
+
+  /// No description provided for @freeGameMonthly.
+  ///
+  /// In nl, this message translates to:
+  /// **'Dit is je gratis spel voor deze maand. Volgende maand krijg je er weer een. Met Premium host je meteen zoveel je wilt.'**
+  String get freeGameMonthly;
+
+  /// No description provided for @lastFreeGameBody.
+  ///
+  /// In nl, this message translates to:
+  /// **'Dit is je laatste gratis spel om te hosten. Daarna krijg je er elke maand een terug. Meedoen met andermans spel blijft gratis.'**
+  String get lastFreeGameBody;
+
+  /// No description provided for @freeGamesLeftBody.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je hebt nog {remaining} gratis spellen om te hosten. Een spel telt pas mee zodra je hem echt start.'**
+  String freeGamesLeftBody(Object remaining);
+
+  /// No description provided for @joinWithCode.
+  ///
+  /// In nl, this message translates to:
+  /// **'Meedoen met code'**
+  String get joinWithCode;
+
+  /// No description provided for @hostShares6.
+  ///
+  /// In nl, this message translates to:
+  /// **'De host deelt een code van 6 tekens'**
+  String get hostShares6;
+
+  /// No description provided for @join.
+  ///
+  /// In nl, this message translates to:
+  /// **'Meedoen'**
+  String get join;
+
+  /// No description provided for @roomCodeA11y.
+  ///
+  /// In nl, this message translates to:
+  /// **'Kamercode, {length} tekens'**
+  String roomCodeA11y(Object length);
+
+  /// No description provided for @lobbyStillOpen.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je wachtkamer staat nog open'**
+  String get lobbyStillOpen;
+
+  /// No description provided for @lastGameOver.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je laatste spel is afgelopen'**
+  String get lastGameOver;
+
+  /// No description provided for @gameStillRunning.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je spel loopt nog'**
+  String get gameStillRunning;
+
+  /// No description provided for @resumeA11y.
+  ///
+  /// In nl, this message translates to:
+  /// **'{label}. {quizTitle}, kamer {code}. Ga verder'**
+  String resumeA11y(Object label, Object quizTitle, Object code);
+
+  /// No description provided for @quizRoom.
+  ///
+  /// In nl, this message translates to:
+  /// **'{quizTitle} - kamer {code}'**
+  String quizRoom(Object quizTitle, Object code);
+
+  /// No description provided for @invite.
+  ///
+  /// In nl, this message translates to:
+  /// **'Uitnodigen'**
+  String get invite;
+
+  /// No description provided for @pickOtherQuiz.
+  ///
+  /// In nl, this message translates to:
+  /// **'Andere quiz kiezen'**
+  String get pickOtherQuiz;
+
+  /// No description provided for @setUpRoom.
+  ///
+  /// In nl, this message translates to:
+  /// **'Kamer instellen'**
+  String get setUpRoom;
+
+  /// No description provided for @noQuizzesForRoom.
+  ///
+  /// In nl, this message translates to:
+  /// **'Geen quizzen gevonden om een kamer te starten.'**
+  String get noQuizzesForRoom;
+
+  /// No description provided for @cantLoadQuizzes.
+  ///
+  /// In nl, this message translates to:
+  /// **'Kan quizzen niet laden'**
+  String get cantLoadQuizzes;
+
+  /// No description provided for @numberOfPlayers.
+  ///
+  /// In nl, this message translates to:
+  /// **'Aantal spelers'**
+  String get numberOfPlayers;
+
+  /// No description provided for @maxN.
+  ///
+  /// In nl, this message translates to:
+  /// **'Max. {maxPlayers}'**
+  String maxN(Object maxPlayers);
+
+  /// No description provided for @countPlayersPremium.
+  ///
+  /// In nl, this message translates to:
+  /// **'{count} spelers, Premium'**
+  String countPlayersPremium(Object count);
+
+  /// No description provided for @hostCanInvite.
+  ///
+  /// In nl, this message translates to:
+  /// **'Jij bent de host en kunt tot {maxPlayersPremium} spelers uitnodigen.'**
+  String hostCanInvite(Object maxPlayersPremium);
+
+  /// No description provided for @freeUpToPlayers.
+  ///
+  /// In nl, this message translates to:
+  /// **'Gratis tot {maxPlayersFree} spelers. Een gratis spel telt pas mee als je het spel echt start.'**
+  String freeUpToPlayers(Object maxPlayersFree);
+
+  /// No description provided for @maxPlayersNeedsPremium.
+  ///
+  /// In nl, this message translates to:
+  /// **'{maxPlayers} spelers vraagt om Premium. Gratis speel je tot {maxPlayersFree} spelers.'**
+  String maxPlayersNeedsPremium(Object maxPlayers, Object maxPlayersFree);
+
+  /// No description provided for @freeGamesLeftHost.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je hebt nog {freeGamesLeft} gratis spellen om te hosten.'**
+  String freeGamesLeftHost(Object freeGamesLeft);
+
+  /// No description provided for @readChapterFirst.
+  ///
+  /// In nl, this message translates to:
+  /// **'Lees eerst het hoofdstuk'**
+  String get readChapterFirst;
+
+  /// No description provided for @onlySingleChapter.
+  ///
+  /// In nl, this message translates to:
+  /// **'Werkt alleen bij quizzen over 1 hoofdstuk.'**
+  String get onlySingleChapter;
+
+  /// No description provided for @pacePerQuestion.
+  ///
+  /// In nl, this message translates to:
+  /// **'Tempo per vraag'**
+  String get pacePerQuestion;
+
+  /// No description provided for @youAdvance.
+  ///
+  /// In nl, this message translates to:
+  /// **'Jij gaat zelf door naar de antwoorden en de volgende vraag.'**
+  String get youAdvance;
+
+  /// No description provided for @everyoneGetsSeconds.
+  ///
+  /// In nl, this message translates to:
+  /// **'Iedereen krijgt {tempo} seconden per vraag.'**
+  String everyoneGetsSeconds(Object tempo);
+
+  /// No description provided for @hostDecides.
+  ///
+  /// In nl, this message translates to:
+  /// **'Host bepaalt'**
+  String get hostDecides;
+
+  /// No description provided for @secondsPerQuestionLong.
+  ///
+  /// In nl, this message translates to:
+  /// **'{i} seconden per vraag'**
+  String secondsPerQuestionLong(Object i);
 }
 
 class _AppLocalizationsDelegate

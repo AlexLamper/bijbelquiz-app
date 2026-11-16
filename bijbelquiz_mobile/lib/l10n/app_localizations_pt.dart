@@ -1698,4 +1698,569 @@ class AppLocalizationsPt extends AppLocalizations {
   String onDate(Object date) {
     return 'em $date';
   }
+
+  @override
+  String get mpQuotaFailed => 'Não foi possível carregar sua cota de partidas.';
+
+  @override
+  String get mpCreateFailed => 'Não foi possível criar uma sala.';
+
+  @override
+  String mpJoinFailed(Object code) {
+    return 'Não foi possível entrar na sala $code.';
+  }
+
+  @override
+  String mpLoadFailed(Object code) {
+    return 'Não foi possível carregar a sala $code.';
+  }
+
+  @override
+  String get mpStartFailed => 'Não foi possível começar o quiz.';
+
+  @override
+  String get mpNextFailed => 'Não foi possível ir para a próxima pergunta.';
+
+  @override
+  String get mpAnswerFailed => 'Não foi possível enviar sua resposta.';
+
+  @override
+  String get mpResultsFailed => 'Não foi possível carregar os resultados.';
+
+  @override
+  String get unexpectedServerResponse => 'Resposta inesperada do servidor.';
+
+  @override
+  String get roomNotFoundDot => 'Sala não encontrada.';
+
+  @override
+  String get playTogether => 'Jogar juntos';
+
+  @override
+  String get backToPlayTogether => 'Voltar para Jogar juntos';
+
+  @override
+  String get stopQuiz => 'Parar quiz';
+
+  @override
+  String get leaveGame => 'Sair do jogo';
+
+  @override
+  String get multiplayerQuiz => 'Quiz multijogador';
+
+  @override
+  String roomCodeLabel(Object code) {
+    return 'Sala $code';
+  }
+
+  @override
+  String get waitingNextQuestion => 'Aguardando a próxima pergunta…';
+
+  @override
+  String get nextIn => 'Próxima em ';
+
+  @override
+  String correctOfPlayers(Object correctCount, Object playersCount) {
+    return '$correctCount de $playersCount acertaram';
+  }
+
+  @override
+  String get standings => 'Classificação';
+
+  @override
+  String get stopQuizQuestion => 'Parar o quiz?';
+
+  @override
+  String get stopQuizBody =>
+      'Quer parar este quiz multijogador para todos os jogadores?';
+
+  @override
+  String get actionCancel => 'Cancelar';
+
+  @override
+  String get stopQuizAction => 'Parar';
+
+  @override
+  String get leaveGameQuestion => 'Sair do jogo?';
+
+  @override
+  String get leaveGameBody =>
+      'Sua pontuação fica salva se você voltar por Jogar juntos.';
+
+  @override
+  String get stay => 'Ficar';
+
+  @override
+  String get leaveGameAction => 'Sair';
+
+  @override
+  String questionNumberOf(Object number, Object total) {
+    return 'Pergunta $number de $total';
+  }
+
+  @override
+  String secondsRemaining(Object seconds) {
+    return 'Faltam $seconds segundos';
+  }
+
+  @override
+  String nextQuestionIn(Object seconds) {
+    return 'Próxima pergunta em $seconds segundos';
+  }
+
+  @override
+  String get a11yYourAnswer => ', sua resposta';
+
+  @override
+  String get a11yRightAnswer => ', resposta certa';
+
+  @override
+  String get a11yWrongShort => ', errada';
+
+  @override
+  String a11yChosenTimes(Object count) {
+    return ', escolhida $count vezes';
+  }
+
+  @override
+  String get noAnswerLower => 'sem resposta';
+
+  @override
+  String get stillThinking => 'pensando';
+
+  @override
+  String get noAnswer => 'Sem resposta';
+
+  @override
+  String get rightExclaim => 'Certo!';
+
+  @override
+  String get tooBad => 'Que pena';
+
+  @override
+  String get correctMarkedGreen => 'A resposta certa está marcada em verde.';
+
+  @override
+  String get yourAnswerCorrect => 'Sua resposta está certa.';
+
+  @override
+  String get yourChoiceMarked =>
+      'Sua escolha está marcada ao lado da resposta certa.';
+
+  @override
+  String pointsGained(Object gained) {
+    return '+$gained pontos';
+  }
+
+  @override
+  String get nextQuestion => 'Próxima pergunta';
+
+  @override
+  String get hostMovingOn =>
+      'O anfitrião vai para a próxima pergunta em breve.';
+
+  @override
+  String get submitted => 'Enviado';
+
+  @override
+  String get waitingOtherPlayers => 'Aguardando os outros jogadores…';
+
+  @override
+  String get hostSetsPace =>
+      'Você define o ritmo. Mostre as respostas quando todos terminarem.';
+
+  @override
+  String get showAnswers => 'Mostrar respostas';
+
+  @override
+  String get startQuestions => 'Começar as perguntas';
+
+  @override
+  String get waitHostQuestions => 'Espere o anfitrião começar as perguntas.';
+
+  @override
+  String get waitingHostQuestions =>
+      'Aguardando o anfitrião começar as perguntas…';
+
+  @override
+  String readBeforeQuizMp(Object quizTitle) {
+    return 'Leia antes do quiz $quizTitle';
+  }
+
+  @override
+  String get readChapterCalmly =>
+      'Leia este capítulo com calma. As perguntas são sobre ele, então ler ajuda de verdade.';
+
+  @override
+  String get chapterNotLoaded => 'O capítulo não carregou';
+
+  @override
+  String get chapterFetchFailedHost =>
+      'Não foi possível carregar este capítulo agora. O anfitrião pode começar as perguntas direto.';
+
+  @override
+  String get lobby => 'Sala de espera';
+
+  @override
+  String get closeRoom => 'Fechar sala';
+
+  @override
+  String get leaveRoom => 'Sair da sala';
+
+  @override
+  String get closeRoomQuestion => 'Fechar a sala?';
+
+  @override
+  String get leaveRoomQuestion => 'Sair da sala?';
+
+  @override
+  String get closeRoomBody =>
+      'Se você for o único, a sala fecha. Se já houver jogadores, outra pessoa vira anfitrião.';
+
+  @override
+  String get rejoinLater => 'Você pode voltar depois com o mesmo código.';
+
+  @override
+  String get closeRoomAction => 'Fechar sala';
+
+  @override
+  String get leaveRoomAction => 'Sair';
+
+  @override
+  String get freeGamesUsed => 'Suas partidas grátis acabaram';
+
+  @override
+  String get premiumHostUnlimited =>
+      'Com Premium você cria partidas ilimitadas, com até 20 jogadores ao mesmo tempo. Seu grupo continua esperando na sala.';
+
+  @override
+  String get newRoomCode => 'Você vai receber um novo código de sala.';
+
+  @override
+  String get startWhenEveryone => 'Comece o quiz quando todos chegarem.';
+
+  @override
+  String get hostStartsWhenEveryone =>
+      'O anfitrião começa o quiz quando todos chegarem.';
+
+  @override
+  String get roomCodeCopied => 'Código da sala copiado.';
+
+  @override
+  String get change => 'Mudar';
+
+  @override
+  String get players => 'Jogadores';
+
+  @override
+  String playersOfMax(Object playersCount, Object maxPlayers) {
+    return '$playersCount de $maxPlayers';
+  }
+
+  @override
+  String get startTheQuiz => 'Começar o quiz';
+
+  @override
+  String get oneQuestion => '1 pergunta';
+
+  @override
+  String totalQuestionsN(Object totalQuestions) {
+    return '$totalQuestions perguntas';
+  }
+
+  @override
+  String secondsPerQuestion(Object questionTimerSeconds) {
+    return '${questionTimerSeconds}s por pergunta';
+  }
+
+  @override
+  String get hostSetsPaceShort => 'O anfitrião define o ritmo';
+
+  @override
+  String get readFirstShort => 'Ler primeiro';
+
+  @override
+  String get joinMyQuizShareTitle => 'Entre no meu jogo do Bible Quizzes';
+
+  @override
+  String get playersEnterCode =>
+      'Os jogadores digitam este código em Jogar juntos';
+
+  @override
+  String get shareCode => 'Compartilhar código';
+
+  @override
+  String get copyCode => 'Copiar código';
+
+  @override
+  String get newPlayersAppear => 'Novos jogadores aparecem aqui sozinhos.';
+
+  @override
+  String get waitHostQuiz => 'Espere o anfitrião começar o quiz.';
+
+  @override
+  String get quizCompleted => 'Quiz concluído';
+
+  @override
+  String get finalStandings => 'Classificação final';
+
+  @override
+  String winnerWith(Object winner, Object score) {
+    return 'Vencedor: $winner com $score pontos';
+  }
+
+  @override
+  String get backHome => 'Voltar ao início';
+
+  @override
+  String get startNewRoom => 'Criar uma nova sala';
+
+  @override
+  String groupSaved(Object savedGroupName) {
+    return '\"$savedGroupName\" foi salvo.';
+  }
+
+  @override
+  String get groupStandingsOnLeaderboard =>
+      'Você encontra a classificação deste grupo no ranking.';
+
+  @override
+  String get saveGroupQuestion => 'Salvar este grupo?';
+
+  @override
+  String saveGroupBody(Object playersCount) {
+    return 'Assim você mantém seu próprio ranking com estes $playersCount jogadores e os convida de novo com um toque.';
+  }
+
+  @override
+  String get saveGroup => 'Salvar grupo';
+
+  @override
+  String placeNamePoints(Object place, Object name, Object score) {
+    return '$place. $name, $score pontos';
+  }
+
+  @override
+  String pointsN(Object score) {
+    return '$score pontos';
+  }
+
+  @override
+  String correctOfTotal(Object correctAnswers, Object totalQuestions) {
+    return '$correctAnswers de $totalQuestions certas';
+  }
+
+  @override
+  String correctN(Object correctAnswers) {
+    return '$correctAnswers certas';
+  }
+
+  @override
+  String get roomReconnecting =>
+      'Sala indisponível no momento. Reconectando...';
+
+  @override
+  String get roomClosedFinal =>
+      'A sala foi fechada. Esta é a classificação final.';
+
+  @override
+  String get roomGone =>
+      'Esta sala não existe mais. Volte e crie uma nova sala.';
+
+  @override
+  String get createRoom => 'Criar sala';
+
+  @override
+  String get createRoomInvite => 'Criar sala e convidar';
+
+  @override
+  String thenInviteGroup(Object name) {
+    return 'Depois convidamos $name.';
+  }
+
+  @override
+  String get selectQuizFirst => 'Primeiro escolha um quiz.';
+
+  @override
+  String get enterRoomCode => 'Digite um código de sala.';
+
+  @override
+  String get roomCodeTooShort => 'O código parece curto demais. Confira.';
+
+  @override
+  String pickQuizThenInvite(Object name) {
+    return 'Escolha um quiz primeiro e depois convidamos $name.';
+  }
+
+  @override
+  String get yourGroupsShort => 'Seus grupos';
+
+  @override
+  String get pickQuizInviteGroup =>
+      'Escolha um quiz e envie ao seu grupo um novo convite com um toque.';
+
+  @override
+  String get signInToPlayTogether => 'Entre para jogar juntos';
+
+  @override
+  String get playTogetherNeedsAccount =>
+      'Criar ou entrar em uma sala funciona com uma conta grátis, para seu nome e pontuação ficarem certos.';
+
+  @override
+  String get playTogetherIntro =>
+      'Com a família, os amigos ou o grupo de jovens: todos jogam o mesmo quiz ao mesmo tempo, cada um no seu celular.';
+
+  @override
+  String upToPlayers(Object maxPlayers) {
+    return 'Até $maxPlayers jogadores por sala';
+  }
+
+  @override
+  String get youAreHost => 'Você é o anfitrião';
+
+  @override
+  String premiumHostRooms(Object maxPlayersPremium) {
+    return 'Com Premium você cria salas ilimitadas, até $maxPlayersPremium jogadores ao mesmo tempo. Entrar com um código é sempre grátis.';
+  }
+
+  @override
+  String get viewPremium => 'Ver Premium';
+
+  @override
+  String get hostSteps =>
+      'Escolha um quiz, compartilhe o código com seu grupo e comece quando todos chegarem.';
+
+  @override
+  String get pickQuiz => 'Escolha um quiz';
+
+  @override
+  String get gameThisMonth => 'Sua partida deste mês';
+
+  @override
+  String get lastFreeGame => 'Última partida grátis';
+
+  @override
+  String freeGamesLeftN(Object remaining) {
+    return 'Restam $remaining partidas grátis';
+  }
+
+  @override
+  String get freeGameMonthly =>
+      'Esta é sua partida grátis do mês. No mês que vem você ganha outra. Com Premium você cria quantas quiser.';
+
+  @override
+  String get lastFreeGameBody =>
+      'Esta é sua última partida grátis como anfitrião. Depois você ganha uma por mês. Entrar no jogo de outra pessoa continua grátis.';
+
+  @override
+  String freeGamesLeftBody(Object remaining) {
+    return 'Você tem $remaining partidas grátis para criar. Uma partida só conta quando você realmente começa.';
+  }
+
+  @override
+  String get joinWithCode => 'Entrar com código';
+
+  @override
+  String get hostShares6 => 'O anfitrião compartilha um código de 6 caracteres';
+
+  @override
+  String get join => 'Entrar';
+
+  @override
+  String roomCodeA11y(Object length) {
+    return 'Código da sala, $length caracteres';
+  }
+
+  @override
+  String get lobbyStillOpen => 'Sua sala de espera ainda está aberta';
+
+  @override
+  String get lastGameOver => 'Sua última partida terminou';
+
+  @override
+  String get gameStillRunning => 'Sua partida ainda está rolando';
+
+  @override
+  String resumeA11y(Object label, Object quizTitle, Object code) {
+    return '$label. $quizTitle, sala $code. Continuar';
+  }
+
+  @override
+  String quizRoom(Object quizTitle, Object code) {
+    return '$quizTitle - sala $code';
+  }
+
+  @override
+  String get invite => 'Convidar';
+
+  @override
+  String get pickOtherQuiz => 'Escolher outro quiz';
+
+  @override
+  String get setUpRoom => 'Configurar sala';
+
+  @override
+  String get noQuizzesForRoom => 'Nenhum quiz encontrado para criar uma sala.';
+
+  @override
+  String get cantLoadQuizzes => 'Não é possível carregar os quizzes';
+
+  @override
+  String get numberOfPlayers => 'Número de jogadores';
+
+  @override
+  String maxN(Object maxPlayers) {
+    return 'Máx. $maxPlayers';
+  }
+
+  @override
+  String countPlayersPremium(Object count) {
+    return '$count jogadores, Premium';
+  }
+
+  @override
+  String hostCanInvite(Object maxPlayersPremium) {
+    return 'Você é o anfitrião e pode convidar até $maxPlayersPremium jogadores.';
+  }
+
+  @override
+  String freeUpToPlayers(Object maxPlayersFree) {
+    return 'Grátis até $maxPlayersFree jogadores. Uma partida grátis só conta quando você começa.';
+  }
+
+  @override
+  String maxPlayersNeedsPremium(Object maxPlayers, Object maxPlayersFree) {
+    return '$maxPlayers jogadores exige Premium. De graça você joga com até $maxPlayersFree.';
+  }
+
+  @override
+  String freeGamesLeftHost(Object freeGamesLeft) {
+    return 'Você tem $freeGamesLeft partidas grátis para criar.';
+  }
+
+  @override
+  String get readChapterFirst => 'Ler o capítulo primeiro';
+
+  @override
+  String get onlySingleChapter => 'Só funciona com quizzes de 1 capítulo.';
+
+  @override
+  String get pacePerQuestion => 'Ritmo por pergunta';
+
+  @override
+  String get youAdvance =>
+      'Você mesmo avança para as respostas e a próxima pergunta.';
+
+  @override
+  String everyoneGetsSeconds(Object tempo) {
+    return 'Todos têm $tempo segundos por pergunta.';
+  }
+
+  @override
+  String get hostDecides => 'O anfitrião decide';
+
+  @override
+  String secondsPerQuestionLong(Object i) {
+    return '$i segundos por pergunta';
+  }
 }

@@ -8,6 +8,7 @@ import '../../../core/errors/app_error.dart';
 import '../data/multiplayer_api_exception.dart';
 import '../data/multiplayer_repository.dart';
 import '../domain/multiplayer_models.dart';
+import '../../../l10n/tr.dart';
 
 final multiplayerSessionControllerProvider = AsyncNotifierProvider.autoDispose
     .family<MultiplayerSessionController, MultiplayerSessionState, String>(
@@ -322,7 +323,7 @@ class MultiplayerSessionController
       if (previous != null) {
         state = AsyncValue.data(
           previous.copyWith(
-            lastError: 'Kamer even niet bereikbaar. Opnieuw verbinden...',
+            lastError: tr.roomReconnecting,
           ),
         );
       }
@@ -342,7 +343,7 @@ class MultiplayerSessionController
             room: previous.room.asFinished(),
             leaderboard: leaderboard,
             clearPendingAnswer: true,
-            lastError: 'De kamer is gesloten. Dit is de eindstand.',
+            lastError: tr.roomClosedFinal,
           ),
         );
         return;
@@ -350,8 +351,8 @@ class MultiplayerSessionController
     }
 
     _stopPolling();
-    const message =
-        'Deze kamer bestaat niet meer. Ga terug en start een nieuwe kamer.';
+    final message =
+        tr.roomGone;
 
     if (previous != null) {
       state = AsyncValue.data(
@@ -361,7 +362,7 @@ class MultiplayerSessionController
     }
 
     state = AsyncValue.error(
-      const MultiplayerApiException(
+      MultiplayerApiException(
         code: 'ROOM_NOT_FOUND',
         message: message,
       ),

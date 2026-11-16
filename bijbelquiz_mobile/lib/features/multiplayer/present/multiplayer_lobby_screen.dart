@@ -19,6 +19,7 @@ import 'multiplayer_action_controller.dart';
 import 'multiplayer_session_controller.dart';
 import 'widgets/host_setup_sheet.dart';
 import 'widgets/mp_ui.dart';
+import '../../../l10n/tr.dart';
 
 /// Wachtkamer: the room code to share, the chosen quiz, who is in, and the
 /// host's "Start de quiz". Polls through [multiplayerSessionControllerProvider]
@@ -102,9 +103,9 @@ class _MultiplayerLobbyScreenState
 
   Widget _header({required bool isHost, required bool leaveOnClose}) {
     return MpHeader(
-      title: 'Wachtkamer',
+      title: tr.lobby,
       close: true,
-      buttonLabel: isHost ? 'Kamer sluiten' : 'Kamer verlaten',
+      buttonLabel: isHost ? tr.closeRoom : tr.leaveRoom,
       onButton: leaveOnClose
           ? () => _confirmLeave(isHost: isHost)
           : () => context.go('/play-together'),
@@ -117,22 +118,21 @@ class _MultiplayerLobbyScreenState
     final leave = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(isHost ? 'Kamer sluiten?' : 'Kamer verlaten?'),
+        title: Text(isHost ? tr.closeRoomQuestion : tr.leaveRoomQuestion),
         content: Text(
           isHost
-              ? 'Ben je de enige, dan sluit de kamer. Zijn er al spelers, dan '
-                    'wordt iemand anders host.'
-              : 'Je kunt later opnieuw meedoen met dezelfde code.',
+              ? tr.closeRoomBody
+              : tr.rejoinLater,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Blijf'),
+            child: Text(tr.stay),
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
             style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
-            child: Text(isHost ? 'Sluit kamer' : 'Verlaat kamer'),
+            child: Text(isHost ? tr.closeRoomAction : tr.leaveRoomAction),
           ),
         ],
       ),
@@ -159,10 +159,9 @@ class _MultiplayerLobbyScreenState
       final upgraded = await showPremiumUpgradeSheet(
         context,
         trigger: PaywallTrigger.hostQuotaExhausted,
-        title: 'Je gratis spellen zijn op',
+        title: tr.freeGamesUsed,
         message:
-            'Met Premium host je onbeperkt spellen, met tot 20 spelers '
-            'tegelijk. Je groep blijft gewoon in de kamer wachten.',
+            tr.premiumHostUnlimited,
       );
 
       if (!upgraded || !mounted) return;
@@ -187,7 +186,7 @@ class _MultiplayerLobbyScreenState
       initialQuestionTimerSeconds: room.questionTimerSeconds,
       capability: ref.read(multiplayerCapabilityProvider).asData?.value,
       showOptions: false,
-      hint: 'Je krijgt een nieuwe kamercode.',
+      hint: tr.newRoomCode,
     );
     if (setup == null || !mounted || setup.quiz.id == room.quizId) return;
 
@@ -244,8 +243,8 @@ class _MultiplayerLobbyScreenState
                 const SizedBox(height: 8),
                 Text(
                   isHost
-                      ? 'Start de quiz zodra iedereen er is.'
-                      : 'De host start de quiz zodra iedereen er is.',
+                      ? tr.startWhenEveryone
+                      : tr.hostStartsWhenEveryone,
                   style: AppTheme.bodyLead,
                 ),
                 const SizedBox(height: 16),
@@ -255,7 +254,7 @@ class _MultiplayerLobbyScreenState
                   onCopy: () async {
                     await Clipboard.setData(ClipboardData(text: room.code));
                     if (!context.mounted) return;
-                    AppNotice.success(context, 'Kamercode gekopieerd.');
+                    AppNotice.success(context, tr.roomCodeCopied);
                   },
                 ),
                 // A 44px "Wijzig" link makes the label row taller, so the
@@ -265,7 +264,7 @@ class _MultiplayerLobbyScreenState
                   'Quiz',
                   trailing: canChangeQuiz
                       ? MpTextLink(
-                          label: 'Wijzig',
+                          label: tr.change,
                           onTap: _changingQuiz ? null : () => _changeQuiz(room),
                         )
                       : null,
@@ -273,7 +272,7 @@ class _MultiplayerLobbyScreenState
                 SizedBox(height: canChangeQuiz ? 0 : 8),
                 MpQuizRow(
                   title: room.quizTitle.isEmpty
-                      ? 'Multiplayer quiz'
+                      ? tr.multiplayerQuiz
                       : room.quizTitle,
                   subtitle: _roomSubtitle(room),
                   trailing: _changingQuiz
@@ -286,9 +285,9 @@ class _MultiplayerLobbyScreenState
                 ),
                 const SizedBox(height: 16),
                 MpSectionLabel(
-                  'Spelers',
+                  tr.players,
                   trailing: Text(
-                    '${room.players.length} van ${room.maxPlayers}',
+                    tr.playersOfMax(room.players.length, room.maxPlayers),
                     style: AppTheme.caption.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
@@ -309,7 +308,7 @@ class _MultiplayerLobbyScreenState
           child: isHost
               ? BqButton(
                   label: canStart
-                      ? 'Start de quiz'
+                      ? tr.startTheQuiz
                       : 'Minimaal $minPlayers spelers nodig',
                   loading: _starting,
                   onPressed: canStart && !_changingQuiz ? _startMatch : null,
@@ -325,11 +324,11 @@ class _MultiplayerLobbyScreenState
     // per question, not the quiz's solo reward - so none is shown here.
     final parts = <String>[
       if (room.totalQuestions > 0)
-        room.totalQuestions == 1 ? '1 vraag' : '${room.totalQuestions} vragen',
+        room.totalQuestions == 1 ? tr.oneQuestion : tr.totalQuestionsN(room.totalQuestions),
       room.questionTimerSeconds > 0
-          ? '${room.questionTimerSeconds}s per vraag'
-          : 'Host bepaalt het tempo',
-      if (room.readChapterFirst) 'Eerst lezen',
+          ? tr.secondsPerQuestion(room.questionTimerSeconds)
+          : tr.hostSetsPaceShort,
+      if (room.readChapterFirst) tr.readFirstShort,
     ];
     return parts.join(' · ');
   }
@@ -346,7 +345,7 @@ class _MultiplayerLobbyScreenState
       await SharePlus.instance.share(
         ShareParams(
           text: AppConfig.roomInviteMessage(room.code, room.quizTitle),
-          subject: 'Doe mee met mijn BijbelQuiz',
+          subject: tr.joinMyQuizShareTitle,
         ),
       );
     } catch (_) {
@@ -425,8 +424,8 @@ class _RoomCodeCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Spelers vullen deze code in bij Samen spelen',
+          Text(
+            tr.playersEnterCode,
             textAlign: TextAlign.center,
             style: AppTheme.caption,
           ),
@@ -438,7 +437,7 @@ class _RoomCodeCard extends StatelessWidget {
             children: [
               Expanded(
                 child: MpSecondaryButton(
-                  label: 'Deel code',
+                  label: tr.shareCode,
                   icon: const BqIcon(
                     BqIcons.share,
                     size: 18,
@@ -450,7 +449,7 @@ class _RoomCodeCard extends StatelessWidget {
               const SizedBox(width: 8),
               MpSquareIconButton(
                 icon: BqIcons.copy,
-                label: 'Code kopiëren',
+                label: tr.copyCode,
                 onPressed: onCopy,
               ),
             ],
@@ -505,8 +504,8 @@ class _PlayersCard extends StatelessWidget {
           const SizedBox(height: 14),
           const Divider(height: 1, thickness: 1, color: AppTheme.ruleSoft),
           const SizedBox(height: 12),
-          const Text(
-            'Nieuwe spelers verschijnen hier vanzelf.',
+          Text(
+            tr.newPlayersAppear,
             textAlign: TextAlign.center,
             style: AppTheme.caption,
           ),
@@ -577,7 +576,7 @@ class _WaitingForHost extends StatelessWidget {
         border: Border.all(color: AppTheme.rule),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: const Row(
+      child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           SizedBox(
@@ -591,7 +590,7 @@ class _WaitingForHost extends StatelessWidget {
           SizedBox(width: 10),
           Flexible(
             child: Text(
-              'Wacht tot de host de quiz start.',
+              tr.waitHostQuiz,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: AppTheme.bodyStrong,

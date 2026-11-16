@@ -1698,4 +1698,566 @@ class AppLocalizationsNl extends AppLocalizations {
   String onDate(Object date) {
     return 'op $date';
   }
+
+  @override
+  String get mpQuotaFailed => 'Kon je speelruimte niet ophalen.';
+
+  @override
+  String get mpCreateFailed => 'Kon geen kamer maken.';
+
+  @override
+  String mpJoinFailed(Object code) {
+    return 'Kon niet deelnemen aan kamer $code.';
+  }
+
+  @override
+  String mpLoadFailed(Object code) {
+    return 'Kon kamer $code niet laden.';
+  }
+
+  @override
+  String get mpStartFailed => 'Kon de quiz niet starten.';
+
+  @override
+  String get mpNextFailed => 'Kon niet doorgaan naar de volgende vraag.';
+
+  @override
+  String get mpAnswerFailed => 'Kon antwoord niet insturen.';
+
+  @override
+  String get mpResultsFailed => 'Kon resultaten niet laden.';
+
+  @override
+  String get unexpectedServerResponse => 'Onverwacht antwoord van de server.';
+
+  @override
+  String get roomNotFoundDot => 'Kamer niet gevonden.';
+
+  @override
+  String get playTogether => 'Samen spelen';
+
+  @override
+  String get backToPlayTogether => 'Terug naar Samen spelen';
+
+  @override
+  String get stopQuiz => 'Quiz stoppen';
+
+  @override
+  String get leaveGame => 'Spel verlaten';
+
+  @override
+  String get multiplayerQuiz => 'Multiplayer quiz';
+
+  @override
+  String roomCodeLabel(Object code) {
+    return 'Kamer $code';
+  }
+
+  @override
+  String get waitingNextQuestion => 'Wachten op de volgende vraag…';
+
+  @override
+  String get nextIn => 'Volgende in ';
+
+  @override
+  String correctOfPlayers(Object correctCount, Object playersCount) {
+    return '$correctCount van $playersCount had het goed';
+  }
+
+  @override
+  String get standings => 'Stand';
+
+  @override
+  String get stopQuizQuestion => 'Quiz stoppen?';
+
+  @override
+  String get stopQuizBody =>
+      'Wil je deze multiplayer-quiz stoppen voor alle spelers?';
+
+  @override
+  String get actionCancel => 'Annuleren';
+
+  @override
+  String get stopQuizAction => 'Stop quiz';
+
+  @override
+  String get leaveGameQuestion => 'Spel verlaten?';
+
+  @override
+  String get leaveGameBody =>
+      'Je score blijft bewaard als je terugkomt via Samen spelen.';
+
+  @override
+  String get stay => 'Blijf';
+
+  @override
+  String get leaveGameAction => 'Verlaat spel';
+
+  @override
+  String questionNumberOf(Object number, Object total) {
+    return 'Vraag $number van $total';
+  }
+
+  @override
+  String secondsRemaining(Object seconds) {
+    return 'Nog $seconds seconden';
+  }
+
+  @override
+  String nextQuestionIn(Object seconds) {
+    return 'Volgende vraag in $seconds seconden';
+  }
+
+  @override
+  String get a11yYourAnswer => ', jouw antwoord';
+
+  @override
+  String get a11yRightAnswer => ', goed antwoord';
+
+  @override
+  String get a11yWrongShort => ', fout';
+
+  @override
+  String a11yChosenTimes(Object count) {
+    return ', $count keer gekozen';
+  }
+
+  @override
+  String get noAnswerLower => 'geen antwoord';
+
+  @override
+  String get stillThinking => 'denkt nog na';
+
+  @override
+  String get noAnswer => 'Geen antwoord';
+
+  @override
+  String get rightExclaim => 'Goed!';
+
+  @override
+  String get tooBad => 'Helaas';
+
+  @override
+  String get correctMarkedGreen => 'Het juiste antwoord is groen gemarkeerd.';
+
+  @override
+  String get yourAnswerCorrect => 'Je antwoord is correct.';
+
+  @override
+  String get yourChoiceMarked =>
+      'Jouw keuze staat gemarkeerd naast het juiste antwoord.';
+
+  @override
+  String pointsGained(Object gained) {
+    return '+$gained punten';
+  }
+
+  @override
+  String get nextQuestion => 'Volgende vraag';
+
+  @override
+  String get hostMovingOn => 'De host gaat zo door naar de volgende vraag.';
+
+  @override
+  String get submitted => 'Ingestuurd';
+
+  @override
+  String get waitingOtherPlayers => 'Wachten op de andere spelers…';
+
+  @override
+  String get hostSetsPace =>
+      'Jij bepaalt het tempo. Toon de antwoorden zodra iedereen klaar is.';
+
+  @override
+  String get showAnswers => 'Toon antwoorden';
+
+  @override
+  String get startQuestions => 'Start de vragen';
+
+  @override
+  String get waitHostQuestions => 'Wacht tot de host de vragen start.';
+
+  @override
+  String get waitingHostQuestions => 'Wachten tot de host de vragen start…';
+
+  @override
+  String readBeforeQuizMp(Object quizTitle) {
+    return 'Lees voor de quiz $quizTitle';
+  }
+
+  @override
+  String get readChapterCalmly =>
+      'Neem dit hoofdstuk rustig door. De vragen hierna gaan hierover, dus lezen helpt echt.';
+
+  @override
+  String get chapterNotLoaded => 'Hoofdstuk niet geladen';
+
+  @override
+  String get chapterFetchFailedHost =>
+      'Dit hoofdstuk kon nu niet opgehaald worden. De host kan gewoon met de vragen beginnen.';
+
+  @override
+  String get lobby => 'Wachtkamer';
+
+  @override
+  String get closeRoom => 'Kamer sluiten';
+
+  @override
+  String get leaveRoom => 'Kamer verlaten';
+
+  @override
+  String get closeRoomQuestion => 'Kamer sluiten?';
+
+  @override
+  String get leaveRoomQuestion => 'Kamer verlaten?';
+
+  @override
+  String get closeRoomBody =>
+      'Ben je de enige, dan sluit de kamer. Zijn er al spelers, dan wordt iemand anders host.';
+
+  @override
+  String get rejoinLater => 'Je kunt later opnieuw meedoen met dezelfde code.';
+
+  @override
+  String get closeRoomAction => 'Sluit kamer';
+
+  @override
+  String get leaveRoomAction => 'Verlaat kamer';
+
+  @override
+  String get freeGamesUsed => 'Je gratis spellen zijn op';
+
+  @override
+  String get premiumHostUnlimited =>
+      'Met Premium host je onbeperkt spellen, met tot 20 spelers tegelijk. Je groep blijft gewoon in de kamer wachten.';
+
+  @override
+  String get newRoomCode => 'Je krijgt een nieuwe kamercode.';
+
+  @override
+  String get startWhenEveryone => 'Start de quiz zodra iedereen er is.';
+
+  @override
+  String get hostStartsWhenEveryone =>
+      'De host start de quiz zodra iedereen er is.';
+
+  @override
+  String get roomCodeCopied => 'Kamercode gekopieerd.';
+
+  @override
+  String get change => 'Wijzig';
+
+  @override
+  String get players => 'Spelers';
+
+  @override
+  String playersOfMax(Object playersCount, Object maxPlayers) {
+    return '$playersCount van $maxPlayers';
+  }
+
+  @override
+  String get startTheQuiz => 'Start de quiz';
+
+  @override
+  String get oneQuestion => '1 vraag';
+
+  @override
+  String totalQuestionsN(Object totalQuestions) {
+    return '$totalQuestions vragen';
+  }
+
+  @override
+  String secondsPerQuestion(Object questionTimerSeconds) {
+    return '${questionTimerSeconds}s per vraag';
+  }
+
+  @override
+  String get hostSetsPaceShort => 'Host bepaalt het tempo';
+
+  @override
+  String get readFirstShort => 'Eerst lezen';
+
+  @override
+  String get joinMyQuizShareTitle => 'Doe mee met mijn BijbelQuiz';
+
+  @override
+  String get playersEnterCode => 'Spelers vullen deze code in bij Samen spelen';
+
+  @override
+  String get shareCode => 'Deel code';
+
+  @override
+  String get copyCode => 'Code kopiëren';
+
+  @override
+  String get newPlayersAppear => 'Nieuwe spelers verschijnen hier vanzelf.';
+
+  @override
+  String get waitHostQuiz => 'Wacht tot de host de quiz start.';
+
+  @override
+  String get quizCompleted => 'Quiz voltooid';
+
+  @override
+  String get finalStandings => 'Eindstand';
+
+  @override
+  String winnerWith(Object winner, Object score) {
+    return 'Winnaar: $winner met $score punten';
+  }
+
+  @override
+  String get backHome => 'Terug naar home';
+
+  @override
+  String get startNewRoom => 'Nieuwe kamer starten';
+
+  @override
+  String groupSaved(Object savedGroupName) {
+    return '\"$savedGroupName\" is bewaard.';
+  }
+
+  @override
+  String get groupStandingsOnLeaderboard =>
+      'Je vindt de stand van deze groep op de ranglijst.';
+
+  @override
+  String get saveGroupQuestion => 'Deze groep bewaren?';
+
+  @override
+  String saveGroupBody(Object playersCount) {
+    return 'Dan houd je een eigen ranglijst bij met deze $playersCount spelers, en nodig je ze de volgende keer met een tik weer uit.';
+  }
+
+  @override
+  String get saveGroup => 'Groep bewaren';
+
+  @override
+  String placeNamePoints(Object place, Object name, Object score) {
+    return '$place. $name, $score punten';
+  }
+
+  @override
+  String pointsN(Object score) {
+    return '$score punten';
+  }
+
+  @override
+  String correctOfTotal(Object correctAnswers, Object totalQuestions) {
+    return '$correctAnswers van $totalQuestions goed';
+  }
+
+  @override
+  String correctN(Object correctAnswers) {
+    return '$correctAnswers goed';
+  }
+
+  @override
+  String get roomReconnecting =>
+      'Kamer even niet bereikbaar. Opnieuw verbinden...';
+
+  @override
+  String get roomClosedFinal => 'De kamer is gesloten. Dit is de eindstand.';
+
+  @override
+  String get roomGone =>
+      'Deze kamer bestaat niet meer. Ga terug en start een nieuwe kamer.';
+
+  @override
+  String get createRoom => 'Kamer maken';
+
+  @override
+  String get createRoomInvite => 'Maak kamer en nodig uit';
+
+  @override
+  String thenInviteGroup(Object name) {
+    return 'Daarna nodigen we $name uit.';
+  }
+
+  @override
+  String get selectQuizFirst => 'Selecteer eerst een quiz.';
+
+  @override
+  String get enterRoomCode => 'Voer een kamercode in.';
+
+  @override
+  String get roomCodeTooShort => 'Kamercode lijkt te kort. Controleer de code.';
+
+  @override
+  String pickQuizThenInvite(Object name) {
+    return 'Kies eerst een quiz, dan nodigen we $name uit.';
+  }
+
+  @override
+  String get yourGroupsShort => 'Je groepen';
+
+  @override
+  String get pickQuizInviteGroup =>
+      'Kies een quiz en stuur je groep in een tik een nieuwe uitnodiging.';
+
+  @override
+  String get signInToPlayTogether => 'Log in om samen te spelen';
+
+  @override
+  String get playTogetherNeedsAccount =>
+      'Een kamer maken of meedoen kan met een gratis account, zodat je naam en score in de kamer kloppen.';
+
+  @override
+  String get playTogetherIntro =>
+      'Met je gezin, vrienden of de jeugdclub: iedereen speelt tegelijk dezelfde quiz, ieder op een eigen telefoon.';
+
+  @override
+  String upToPlayers(Object maxPlayers) {
+    return 'Tot $maxPlayers spelers per kamer';
+  }
+
+  @override
+  String get youAreHost => 'Jij bent de host';
+
+  @override
+  String premiumHostRooms(Object maxPlayersPremium) {
+    return 'Met Premium host je onbeperkt kamers, tot $maxPlayersPremium spelers tegelijk. Deelnemen met een kamercode blijft altijd gratis.';
+  }
+
+  @override
+  String get viewPremium => 'Bekijk Premium';
+
+  @override
+  String get hostSteps =>
+      'Kies een quiz, deel de code met je groep en start als iedereen er is.';
+
+  @override
+  String get pickQuiz => 'Kies een quiz';
+
+  @override
+  String get gameThisMonth => 'Je spel van deze maand';
+
+  @override
+  String get lastFreeGame => 'Laatste gratis spel';
+
+  @override
+  String freeGamesLeftN(Object remaining) {
+    return 'Nog $remaining gratis spellen';
+  }
+
+  @override
+  String get freeGameMonthly =>
+      'Dit is je gratis spel voor deze maand. Volgende maand krijg je er weer een. Met Premium host je meteen zoveel je wilt.';
+
+  @override
+  String get lastFreeGameBody =>
+      'Dit is je laatste gratis spel om te hosten. Daarna krijg je er elke maand een terug. Meedoen met andermans spel blijft gratis.';
+
+  @override
+  String freeGamesLeftBody(Object remaining) {
+    return 'Je hebt nog $remaining gratis spellen om te hosten. Een spel telt pas mee zodra je hem echt start.';
+  }
+
+  @override
+  String get joinWithCode => 'Meedoen met code';
+
+  @override
+  String get hostShares6 => 'De host deelt een code van 6 tekens';
+
+  @override
+  String get join => 'Meedoen';
+
+  @override
+  String roomCodeA11y(Object length) {
+    return 'Kamercode, $length tekens';
+  }
+
+  @override
+  String get lobbyStillOpen => 'Je wachtkamer staat nog open';
+
+  @override
+  String get lastGameOver => 'Je laatste spel is afgelopen';
+
+  @override
+  String get gameStillRunning => 'Je spel loopt nog';
+
+  @override
+  String resumeA11y(Object label, Object quizTitle, Object code) {
+    return '$label. $quizTitle, kamer $code. Ga verder';
+  }
+
+  @override
+  String quizRoom(Object quizTitle, Object code) {
+    return '$quizTitle - kamer $code';
+  }
+
+  @override
+  String get invite => 'Uitnodigen';
+
+  @override
+  String get pickOtherQuiz => 'Andere quiz kiezen';
+
+  @override
+  String get setUpRoom => 'Kamer instellen';
+
+  @override
+  String get noQuizzesForRoom =>
+      'Geen quizzen gevonden om een kamer te starten.';
+
+  @override
+  String get cantLoadQuizzes => 'Kan quizzen niet laden';
+
+  @override
+  String get numberOfPlayers => 'Aantal spelers';
+
+  @override
+  String maxN(Object maxPlayers) {
+    return 'Max. $maxPlayers';
+  }
+
+  @override
+  String countPlayersPremium(Object count) {
+    return '$count spelers, Premium';
+  }
+
+  @override
+  String hostCanInvite(Object maxPlayersPremium) {
+    return 'Jij bent de host en kunt tot $maxPlayersPremium spelers uitnodigen.';
+  }
+
+  @override
+  String freeUpToPlayers(Object maxPlayersFree) {
+    return 'Gratis tot $maxPlayersFree spelers. Een gratis spel telt pas mee als je het spel echt start.';
+  }
+
+  @override
+  String maxPlayersNeedsPremium(Object maxPlayers, Object maxPlayersFree) {
+    return '$maxPlayers spelers vraagt om Premium. Gratis speel je tot $maxPlayersFree spelers.';
+  }
+
+  @override
+  String freeGamesLeftHost(Object freeGamesLeft) {
+    return 'Je hebt nog $freeGamesLeft gratis spellen om te hosten.';
+  }
+
+  @override
+  String get readChapterFirst => 'Lees eerst het hoofdstuk';
+
+  @override
+  String get onlySingleChapter => 'Werkt alleen bij quizzen over 1 hoofdstuk.';
+
+  @override
+  String get pacePerQuestion => 'Tempo per vraag';
+
+  @override
+  String get youAdvance =>
+      'Jij gaat zelf door naar de antwoorden en de volgende vraag.';
+
+  @override
+  String everyoneGetsSeconds(Object tempo) {
+    return 'Iedereen krijgt $tempo seconden per vraag.';
+  }
+
+  @override
+  String get hostDecides => 'Host bepaalt';
+
+  @override
+  String secondsPerQuestionLong(Object i) {
+    return '$i seconden per vraag';
+  }
 }

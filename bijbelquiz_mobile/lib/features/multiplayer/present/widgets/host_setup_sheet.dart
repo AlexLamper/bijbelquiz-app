@@ -9,6 +9,7 @@ import '../../../quiz/domain/quiz.dart';
 import '../../../quiz/present/quiz_order.dart';
 import '../../domain/multiplayer_models.dart';
 import 'mp_ui.dart';
+import '../../../../l10n/tr.dart';
 
 /// Premium quizzes are excluded from the multiplayer picker: a host must not
 /// be able to route a whole room past the premium-quiz gate.
@@ -63,7 +64,7 @@ Future<HostSetup?> showHostSetupSheet(
   int initialQuestionTimerSeconds = 0,
   MultiplayerCapability? capability,
   bool showOptions = true,
-  String confirmLabel = 'Kamer maken',
+  String? confirmLabel,
   String? hint,
 }) {
   return showModalBottomSheet<HostSetup>(
@@ -78,7 +79,7 @@ Future<HostSetup?> showHostSetupSheet(
       initialQuestionTimerSeconds: initialQuestionTimerSeconds,
       capability: capability,
       showOptions: showOptions,
-      confirmLabel: confirmLabel,
+      confirmLabel: confirmLabel ?? tr.createRoom,
       hint: hint,
     ),
   );
@@ -179,7 +180,7 @@ class _HostSetupSheetState extends ConsumerState<_HostSetupSheet> {
                 if (_onOptions) ...[
                   BqCircleButton(
                     icon: BqIcons.chevronLeft,
-                    label: 'Andere quiz kiezen',
+                    label: tr.pickOtherQuiz,
                     onTap: () => setState(() => _onOptions = false),
                   ),
                   const SizedBox(width: 12),
@@ -190,7 +191,7 @@ class _HostSetupSheetState extends ConsumerState<_HostSetupSheet> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        _onOptions ? 'Kamer instellen' : 'Kies een quiz',
+                        _onOptions ? tr.setUpRoom : tr.pickQuiz,
                         style: AppTheme.displayTitle.copyWith(fontSize: 20),
                       ),
                       if (!_onOptions && widget.hint != null)
@@ -200,7 +201,7 @@ class _HostSetupSheetState extends ConsumerState<_HostSetupSheet> {
                 ),
                 BqCircleButton(
                   icon: BqIcons.close,
-                  label: 'Sluiten',
+                  label: tr.actionClose,
                   onTap: () => Navigator.of(context).maybePop(),
                 ),
               ],
@@ -241,10 +242,10 @@ class _HostSetupSheetState extends ConsumerState<_HostSetupSheet> {
         // Bible order, chapters as numbers, like the library.
         final quizzes = sortedInBibleOrder(catalogue);
         if (quizzes.isEmpty) {
-          return const Padding(
+          return Padding(
             padding: EdgeInsets.fromLTRB(20, 8, 20, 32),
             child: Text(
-              'Geen quizzen gevonden om een kamer te starten.',
+              tr.noQuizzesForRoom,
               style: AppTheme.bodyMuted,
             ),
           );
@@ -273,8 +274,8 @@ class _HostSetupSheetState extends ConsumerState<_HostSetupSheet> {
       error: (error, _) => Padding(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
         child: MpNotice(
-          title: 'Kan quizzen niet laden',
-          message: 'Controleer je verbinding en probeer het opnieuw.',
+          title: tr.cantLoadQuizzes,
+          message: tr.checkConnectionRetry,
           action: MpSecondaryButton(
             label: 'Opnieuw proberen',
             height: 44,
@@ -325,15 +326,15 @@ class _HostSetupSheetState extends ConsumerState<_HostSetupSheet> {
             title: quiz.title,
             subtitle: _quizSubtitle(quiz),
             trailing: MpTextLink(
-              label: 'Wijzig',
+              label: tr.change,
               onTap: () => setState(() => _onOptions = false),
             ),
           ),
           const SizedBox(height: 20),
           MpSectionLabel(
-            'Aantal spelers',
+            tr.numberOfPlayers,
             trailing: Text(
-              'Max. $_maxPlayers',
+              tr.maxN(_maxPlayers),
               style: AppTheme.caption.copyWith(fontWeight: FontWeight.w700),
             ),
           ),
@@ -353,7 +354,7 @@ class _HostSetupSheetState extends ConsumerState<_HostSetupSheet> {
                         label: '$count',
                         semanticsLabel:
                             !isPremiumHost && count > maxPlayersFree
-                            ? '$count spelers, Premium'
+                            ? tr.countPlayersPremium(count)
                             : '$count spelers',
                         selected: _maxPlayers == count,
                         locked: !isPremiumHost && count > maxPlayersFree,
@@ -367,10 +368,8 @@ class _HostSetupSheetState extends ConsumerState<_HostSetupSheet> {
           const SizedBox(height: 8),
           Text(
             isPremiumHost
-                ? 'Jij bent de host en kunt tot $maxPlayersPremium spelers '
-                      'uitnodigen.'
-                : 'Gratis tot $maxPlayersFree spelers. Een gratis spel telt '
-                      'pas mee als je het spel echt start.',
+                ? tr.hostCanInvite(maxPlayersPremium)
+                : tr.freeUpToPlayers(maxPlayersFree),
             style: AppTheme.caption,
           ),
           // One line, not a second paywall block: the host only needs to know
@@ -386,8 +385,7 @@ class _HostSetupSheetState extends ConsumerState<_HostSetupSheet> {
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      '$_maxPlayers spelers vraagt om Premium. Gratis speel je '
-                      'tot $maxPlayersFree spelers.',
+                      tr.maxPlayersNeedsPremium(_maxPlayers, maxPlayersFree),
                       style: AppTheme.caption.copyWith(
                         color: AppTheme.lapis,
                         fontWeight: FontWeight.w700,
@@ -403,7 +401,7 @@ class _HostSetupSheetState extends ConsumerState<_HostSetupSheet> {
           if (freeGamesLeft != null && freeGamesLeft > 2) ...[
             const SizedBox(height: 4),
             Text(
-              'Je hebt nog $freeGamesLeft gratis spellen om te hosten.',
+              tr.freeGamesLeftHost(freeGamesLeft),
               style: AppTheme.caption,
             ),
           ],
@@ -416,15 +414,15 @@ class _HostSetupSheetState extends ConsumerState<_HostSetupSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Lees eerst het hoofdstuk',
+                    Text(
+                      tr.readChapterFirst,
                       style: AppTheme.bodyStrong,
                     ),
                     const SizedBox(height: 2),
                     Text(
                       passage != null
                           ? 'Iedereen leest eerst ${passage.label}.'
-                          : 'Werkt alleen bij quizzen over 1 hoofdstuk.',
+                          : tr.onlySingleChapter,
                       style: AppTheme.caption,
                     ),
                   ],
@@ -440,7 +438,7 @@ class _HostSetupSheetState extends ConsumerState<_HostSetupSheet> {
           const SizedBox(height: 14),
           const Divider(height: 1, thickness: 1, color: AppTheme.ruleSoft),
           const SizedBox(height: 16),
-          const MpSectionLabel('Tempo per vraag'),
+          MpSectionLabel(tr.pacePerQuestion),
           const SizedBox(height: 8),
           _TempoToggle(
             value: _tempo,
@@ -449,8 +447,8 @@ class _HostSetupSheetState extends ConsumerState<_HostSetupSheet> {
           const SizedBox(height: 8),
           Text(
             _tempo == 0
-                ? 'Jij gaat zelf door naar de antwoorden en de volgende vraag.'
-                : 'Iedereen krijgt $_tempo seconden per vraag.',
+                ? tr.youAdvance
+                : tr.everyoneGetsSeconds(_tempo),
             style: AppTheme.caption,
           ),
         ],
@@ -464,7 +462,7 @@ String _quizSubtitle(Quiz quiz) {
   final difficulty = quiz.difficultyLabelNl.trim();
   final parts = <String>[
     if (quiz.questionCount > 0)
-      quiz.questionCount == 1 ? '1 vraag' : '${quiz.questionCount} vragen',
+      quiz.questionCount == 1 ? tr.oneQuestion : tr.questionsCountQuiz(quiz.questionCount),
     if (difficulty.isNotEmpty)
       '${difficulty[0].toUpperCase()}${difficulty.substring(1).toLowerCase()}',
   ];
@@ -625,11 +623,11 @@ class _TempoToggle extends StatelessWidget {
               flex: _tempoOptions[i] == 0 ? 5 : 3,
               child: _TempoSegment(
                 label: _tempoOptions[i] == 0
-                    ? 'Host bepaalt'
+                    ? tr.hostDecides
                     : '${_tempoOptions[i]}s',
                 semanticsLabel: _tempoOptions[i] == 0
-                    ? 'Host bepaalt het tempo'
-                    : '${_tempoOptions[i]} seconden per vraag',
+                    ? tr.hostSetsPaceShort
+                    : tr.secondsPerQuestionLong(_tempoOptions[i]),
                 selected: value == _tempoOptions[i],
                 onTap: () => onChanged(_tempoOptions[i]),
               ),

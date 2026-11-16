@@ -35,6 +35,7 @@ import '../../features/duels/present/new_duel_screen.dart';
 import '../../features/duels/present/duel_play_screen.dart';
 import '../../features/settings/present/settings_screen.dart';
 import '../../l10n/tr.dart';
+import '../config/brand.dart';
 
 /// The tab shell: Home, Quizzen, Samen spelen, Ranglijst, Profiel.
 /// A page inside the tab shell: switching tabs swaps the screen with a short
@@ -213,7 +214,30 @@ class _NavItem extends StatelessWidget {
 /// funnel; dropping it here would make every deep-linked join look like a
 /// typed code.
 String? _redirectWebInviteLinks(BuildContext context, GoRouterState state) {
-  final segments = state.uri.pathSegments;
+  var segments = state.uri.pathSegments;
+
+  if (Brand.isBibleQuizzes) {
+    // Duels exist on BijbelQuiz only; nothing on biblequizzes.app leads there.
+    if (segments.isNotEmpty && (segments.first == 'duels' || segments.first == 'duel')) {
+      return '/play-together';
+    }
+    // biblequizzes.app links carry the language prefix (/de/play-together/...).
+    if (segments.isNotEmpty && Brand.intlLanguages.contains(segments.first)) {
+      segments = segments.sublist(1);
+    }
+    // The website's room links: /play-together/<code>[/lobby|/game|/results].
+    if (segments.length >= 2 && segments.first == 'play-together' && segments[1] != 'room') {
+      final code = segments[1].toUpperCase();
+      final base = '/play-together/room/$code';
+      final phase = segments.length > 2 ? segments[2] : 'lobby';
+      return switch (phase) {
+        'game' => '$base/play',
+        'results' => '$base/results',
+        _ => base,
+      };
+    }
+    return null;
+  }
 
   // The Duels tab is gone; anything still pointing at its list (an old
   // notification, the end of a duel that was already running) lands on the

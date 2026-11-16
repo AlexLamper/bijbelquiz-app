@@ -16,6 +16,7 @@ import '../data/multiplayer_api_exception.dart';
 import '../domain/multiplayer_models.dart';
 import 'multiplayer_session_controller.dart';
 import 'widgets/mp_ui.dart';
+import '../../../l10n/tr.dart';
 
 /// The live group question screen, in the visual language of the solo quiz:
 /// segments on top, a white question card, 2x2 answer tiles and a white
@@ -62,9 +63,9 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
         _handledRoomMissing = true;
         AppNotice.error(
           context,
-          const MultiplayerApiException(
+          MultiplayerApiException(
             code: 'ROOM_NOT_FOUND',
-            message: 'Kamer niet gevonden.',
+            message: tr.roomNotFoundDot,
           ),
         );
         return;
@@ -86,8 +87,8 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
           loading: () => Column(
             children: [
               _TitleHeader(
-                title: 'Samen spelen',
-                closeLabel: 'Terug naar Samen spelen',
+                title: tr.playTogether,
+                closeLabel: tr.backToPlayTogether,
                 onClose: () => context.go('/play-together'),
               ),
               const Expanded(child: AppLoader()),
@@ -96,8 +97,8 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
           error: (error, _) => Column(
             children: [
               _TitleHeader(
-                title: 'Samen spelen',
-                closeLabel: 'Terug naar Samen spelen',
+                title: tr.playTogether,
+                closeLabel: tr.backToPlayTogether,
                 onClose: () => context.go('/play-together'),
               ),
               Expanded(child: _buildError(context, AppError.from(error))),
@@ -119,7 +120,7 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
   }
 
   String _closeLabel(MultiplayerRoom room) =>
-      _isHost(room) ? 'Quiz stoppen' : 'Spel verlaten';
+      _isHost(room) ? tr.stopQuiz : tr.leaveGame;
 
   Widget _buildContent(
     BuildContext context,
@@ -130,7 +131,7 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
     final question = room.currentQuestion;
     final roomMissing = _isRoomMissingError(session.lastError);
     final quizTitle = room.quizTitle.trim().isEmpty
-        ? 'Multiplayer quiz'
+        ? tr.multiplayerQuiz
         : room.quizTitle;
 
     // The reading phase sits between the lobby and question 1: every device
@@ -151,7 +152,7 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
         children: [
           _TitleHeader(
             title: quizTitle,
-            subtitle: 'Kamer ${room.code}',
+            subtitle: tr.roomCodeLabel(room.code),
             closeLabel: _closeLabel(room),
             onClose: _closeAction(room, roomMissing),
           ),
@@ -166,8 +167,8 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
                     children: [
                       const AppLoader(size: 22),
                       const SizedBox(height: 16),
-                      const Text(
-                        'Wachten op de volgende vraag…',
+                      Text(
+                        tr.waitingNextQuestion,
                         textAlign: TextAlign.center,
                         style: AppTheme.bodyLead,
                       ),
@@ -178,7 +179,7 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
                       if (roomMissing) ...[
                         const SizedBox(height: 12),
                         BqButton(
-                          label: 'Terug naar Samen spelen',
+                          label: tr.backToPlayTogether,
                           onPressed: () => context.go('/play-together'),
                         ),
                       ],
@@ -275,7 +276,7 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
                       ? _CountdownPill(
                           remainingMs: () => session.resultPhaseRemainingMs,
                           fallbackSeconds: 0,
-                          prefix: 'Volgende in ',
+                          prefix: tr.nextIn,
                         )
                       : null,
                 ),
@@ -296,7 +297,7 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
                 const SizedBox(height: 14),
                 _AnsweredLine(
                   text: revealed
-                      ? '$correctCount van ${players.length} had het goed'
+                      ? tr.correctOfPlayers(correctCount, players.length)
                       : '$answeredCount van ${players.length} '
                             '${players.length == 1 ? 'speler heeft' : 'spelers hebben'} '
                             'geantwoord',
@@ -308,12 +309,12 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
                 if (roomMissing) ...[
                   const SizedBox(height: 12),
                   BqButton(
-                    label: 'Terug naar Samen spelen',
+                    label: tr.backToPlayTogether,
                     onPressed: () => context.go('/play-together'),
                   ),
                 ],
                 const SizedBox(height: 24),
-                const MpSectionLabel('Stand'),
+                MpSectionLabel(tr.standings),
                 const SizedBox(height: 8),
                 _LiveStandings(
                   players: players,
@@ -358,14 +359,14 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Quiz stoppen?'),
-          content: const Text(
-            'Wil je deze multiplayer-quiz stoppen voor alle spelers?',
+          title: Text(tr.stopQuizQuestion),
+          content: Text(
+            tr.stopQuizBody,
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Annuleren'),
+              child: Text(tr.actionCancel),
             ),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
@@ -374,7 +375,7 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
                 foregroundColor: AppTheme.inkInverted,
                 minimumSize: const Size(0, 44),
               ),
-              child: const Text('Stop quiz'),
+              child: Text(tr.stopQuizAction),
             ),
           ],
         );
@@ -395,19 +396,19 @@ class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Spel verlaten?'),
-          content: const Text(
-            'Je score blijft bewaard als je terugkomt via Samen spelen.',
+          title: Text(tr.leaveGameQuestion),
+          content: Text(
+            tr.leaveGameBody,
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Blijf'),
+              child: Text(tr.stay),
             ),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
               style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
-              child: const Text('Verlaat spel'),
+              child: Text(tr.leaveGameAction),
             ),
           ],
         );
@@ -452,7 +453,7 @@ class _ProgressHeader extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(
           child: Semantics(
-            label: 'Vraag $number van $total',
+            label: tr.questionNumberOf(number, total),
             excludeSemantics: true,
             // Past twenty questions the segments get too thin to read.
             child: total > 0 && total <= 20
@@ -672,8 +673,8 @@ class _CountdownPillState extends State<_CountdownPill> {
 
     return Semantics(
       label: widget.urgent
-          ? 'Nog $seconds seconden'
-          : 'Volgende vraag in $seconds seconden',
+          ? tr.secondsRemaining(seconds)
+          : tr.nextQuestionIn(seconds),
       excludeSemantics: true,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -847,11 +848,11 @@ class _AnswerTile extends StatelessWidget {
 
     final semantics = StringBuffer(text);
     if (state == _TileState.picked || state == _TileState.wrong) {
-      semantics.write(', jouw antwoord');
+      semantics.write(tr.a11yYourAnswer);
     }
-    if (state == _TileState.correct) semantics.write(', goed antwoord');
-    if (state == _TileState.wrong) semantics.write(', fout');
-    if (count != null) semantics.write(', $count keer gekozen');
+    if (state == _TileState.correct) semantics.write(tr.a11yRightAnswer);
+    if (state == _TileState.wrong) semantics.write(tr.a11yWrongShort);
+    if (count != null) semantics.write(tr.a11yChosenTimes(count!));
 
     final radius = BorderRadius.circular(14);
 
@@ -1051,11 +1052,11 @@ class _StandingRow extends StatelessWidget {
         ? switch (player.answeredCorrectly) {
             true => 'goed',
             false => 'fout',
-            null => 'geen antwoord',
+            null => tr.noAnswerLower,
           }
         : player.hasAnswered
         ? 'heeft geantwoord'
-        : 'denkt nog na';
+        : tr.stillThinking;
 
     return Semantics(
       label:
@@ -1251,36 +1252,36 @@ class _RevealPanel extends StatelessWidget {
     final isCorrect = !noAnswer && selectedAnswerId == correctAnswerId;
 
     final title = noAnswer
-        ? const _PanelTitle(
+        ? _PanelTitle(
             icon: BqIcons.clock,
             circle: AppTheme.ruleSoft,
             iconColor: AppTheme.inkSoft,
-            title: 'Geen antwoord',
+            title: tr.noAnswer,
             titleColor: AppTheme.inkSoft,
           )
         : isCorrect
-        ? const _PanelTitle(
+        ? _PanelTitle(
             icon: BqIcons.check,
             circle: AppTheme.positive,
             iconColor: AppTheme.inkInverted,
-            title: 'Goed!',
+            title: tr.rightExclaim,
             titleColor: AppTheme.positiveText,
           )
-        : const _PanelTitle(
+        : _PanelTitle(
             icon: BqIcons.close,
             circle: AppTheme.coralDeep,
             iconColor: AppTheme.inkInverted,
-            title: 'Helaas',
+            title: tr.tooBad,
             titleColor: AppTheme.vermilion,
           );
 
     final body =
         question.explanation ??
         (noAnswer
-            ? 'Het juiste antwoord is groen gemarkeerd.'
+            ? tr.correctMarkedGreen
             : isCorrect
-            ? 'Je antwoord is correct.'
-            : 'Jouw keuze staat gemarkeerd naast het juiste antwoord.');
+            ? tr.yourAnswerCorrect
+            : tr.yourChoiceMarked);
 
     final reference = question.bibleReference.trim();
 
@@ -1312,7 +1313,7 @@ class _RevealPanel extends StatelessWidget {
                         const BqIcon(BqIcons.bolt, size: 14),
                         const SizedBox(width: 4),
                         Text(
-                          '+$gained punten',
+                          tr.pointsGained(gained),
                           style: const TextStyle(
                             fontFamily: AppTheme.sansFontName,
                             fontSize: 13,
@@ -1366,11 +1367,11 @@ class _RevealPanel extends StatelessWidget {
             ],
             if (onNext != null) ...[
               const SizedBox(height: 12),
-              BqButton(label: 'Volgende vraag', onPressed: onNext),
+              BqButton(label: tr.nextQuestion, onPressed: onNext),
             ] else if (hostTempo) ...[
               const SizedBox(height: 12),
-              const Text(
-                'De host gaat zo door naar de volgende vraag.',
+              Text(
+                tr.hostMovingOn,
                 style: AppTheme.caption,
               ),
             ],
@@ -1395,27 +1396,26 @@ class _WaitingPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (answered) ...[
-            const _PanelTitle(
+            _PanelTitle(
               icon: BqIcons.check,
               circle: AppTheme.lapisTint,
               iconColor: AppTheme.lapis,
-              title: 'Ingestuurd',
+              title: tr.submitted,
               titleColor: AppTheme.lapisStrong,
             ),
             const SizedBox(height: 12),
-            const Text(
-              'Wachten op de andere spelers…',
+            Text(
+              tr.waitingOtherPlayers,
               style: AppTheme.bodyLead,
             ),
           ] else
-            const Text(
-              'Jij bepaalt het tempo. Toon de antwoorden zodra iedereen klaar '
-              'is.',
+            Text(
+              tr.hostSetsPace,
               style: AppTheme.bodyLead,
             ),
           if (onReveal != null) ...[
             const SizedBox(height: 12),
-            BqButton(label: 'Toon antwoorden', onPressed: onReveal),
+            BqButton(label: tr.showAnswers, onPressed: onReveal),
           ],
         ],
       ),
@@ -1450,7 +1450,7 @@ class _ReadingView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final passage = room.passage;
     final quizTitle = room.quizTitle.trim().isEmpty
-        ? 'Multiplayer quiz'
+        ? tr.multiplayerQuiz
         : room.quizTitle;
 
     final footer = MpBottomPanel(
@@ -1463,9 +1463,9 @@ class _ReadingView extends ConsumerWidget {
             const SizedBox(height: 12),
           ],
           if (isHost)
-            BqButton(label: 'Start de vragen', onPressed: onStart)
+            BqButton(label: tr.startQuestions, onPressed: onStart)
           else
-            const _WaitingRow(text: 'Wacht tot de host de vragen start.'),
+            _WaitingRow(text: tr.waitHostQuestions),
         ],
       ),
     );
@@ -1475,18 +1475,18 @@ class _ReadingView extends ConsumerWidget {
         children: [
           _TitleHeader(
             title: quizTitle,
-            subtitle: 'Kamer ${room.code}',
+            subtitle: tr.roomCodeLabel(room.code),
             closeLabel: closeLabel,
             onClose: onClose,
           ),
-          const Expanded(
+          Expanded(
             child: Center(
               child: Padding(
                 padding: EdgeInsets.all(20),
                 child: BqCard(
                   padding: EdgeInsets.all(20),
                   child: Text(
-                    'Wachten tot de host de vragen start…',
+                    tr.waitingHostQuestions,
                     textAlign: TextAlign.center,
                     style: AppTheme.bodyLead,
                   ),
@@ -1511,7 +1511,7 @@ class _ReadingView extends ConsumerWidget {
       children: [
         _TitleHeader(
           title: passage.label,
-          subtitle: 'Lees voor de quiz $quizTitle',
+          subtitle: tr.readBeforeQuizMp(quizTitle),
           closeLabel: closeLabel,
           onClose: onClose,
         ),
@@ -1523,9 +1523,8 @@ class _ReadingView extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Neem dit hoofdstuk rustig door. De vragen hierna gaan '
-                    'hierover, dus lezen helpt echt.',
+                  Text(
+                    tr.readChapterCalmly,
                     style: AppTheme.bodyMuted,
                   ),
                   const SizedBox(height: 14),
@@ -1576,10 +1575,9 @@ class _ReadingView extends ConsumerWidget {
             // A chapter that will not load must never block the game.
             error: (error, _) => AppEmptyState(
               icon: Icons.menu_book_outlined,
-              title: 'Hoofdstuk niet geladen',
+              title: tr.chapterNotLoaded,
               description:
-                  'Dit hoofdstuk kon nu niet opgehaald worden. De host kan '
-                  'gewoon met de vragen beginnen.',
+                  tr.chapterFetchFailedHost,
               action: MpSecondaryButton(
                 label: 'Opnieuw proberen',
                 expand: false,
