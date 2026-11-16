@@ -13,6 +13,7 @@ import '../../../core/ui/bq.dart';
 import '../../leaderboard/data/leaderboard_repository.dart';
 import '../data/profile_repository.dart';
 import 'profile_provider.dart';
+import '../../../l10n/tr.dart';
 
 /// Name and mascot, the two things a player owns.
 ///
@@ -106,7 +107,7 @@ class _ProfileIdentityScreenState extends ConsumerState<ProfileIdentityScreen> {
         _draft = result.avatar;
       });
 
-      AppNotice.success(context, 'Profiel bijgewerkt.');
+      AppNotice.success(context, tr.profileUpdated);
       Navigator.of(context).pop();
     } on IdentityUpdateException catch (error) {
       if (!mounted) return;
@@ -130,7 +131,7 @@ class _ProfileIdentityScreenState extends ConsumerState<ProfileIdentityScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
               child: BqTopBar(
-                title: 'Profiel bewerken',
+                title: tr.editProfile,
                 large: true,
                 onBack: () => Navigator.of(context).maybePop(),
               ),
@@ -142,7 +143,7 @@ class _ProfileIdentityScreenState extends ConsumerState<ProfileIdentityScreen> {
                   padding: const EdgeInsets.all(24),
                   child: AppEmptyState(
                     icon: Icons.error_outline,
-                    title: 'Profiel kon niet laden',
+                    title: tr.profileLoadFailed,
                     description: '$error',
                   ),
                 ),
@@ -165,7 +166,7 @@ class _ProfileIdentityScreenState extends ConsumerState<ProfileIdentityScreen> {
                 ),
                 padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
                 child: BqButton(
-                  label: 'Opslaan',
+                  label: tr.actionSave,
                   loading: _isSaving,
                   onPressed: _save,
                 ),
@@ -205,7 +206,7 @@ class _ProfileIdentityScreenState extends ConsumerState<ProfileIdentityScreen> {
               // stretching across the card.
               UnconstrainedBox(
                 child: BqButton(
-                  label: 'Verras me',
+                  label: tr.surpriseMe,
                   style: BqButtonStyle.tint,
                   icon: const BqIcon(BqIcons.shuffle, size: 18),
                   height: 44,
@@ -218,7 +219,7 @@ class _ProfileIdentityScreenState extends ConsumerState<ProfileIdentityScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        const _SectionTitle('Weergavenaam'),
+        _SectionTitle(tr.displayName),
         const SizedBox(height: 8),
         BqCard(
           child: Column(
@@ -227,7 +228,7 @@ class _ProfileIdentityScreenState extends ConsumerState<ProfileIdentityScreen> {
               CustomTextField(
                 controller: _nameController,
                 label: 'Naam',
-                hintText: 'Hoe je op de ranglijst verschijnt',
+                hintText: tr.displayNameHint,
                 enabled: !nameLocked && !_isSaving,
               ),
               const SizedBox(height: 8),
@@ -235,22 +236,21 @@ class _ProfileIdentityScreenState extends ConsumerState<ProfileIdentityScreen> {
                 nameLocked
                     ? 'Je kunt je naam over $_cooldownDays '
                           '${_cooldownDays == 1 ? 'dag' : 'dagen'} weer wijzigen.'
-                    : 'Zichtbaar op de ranglijst en in multiplayer. '
-                          'Eens per 30 dagen te wijzigen.',
+                    : tr.displayNameHelp,
                 style: AppTheme.caption,
               ),
             ],
           ),
         ),
         const SizedBox(height: 16),
-        const _SectionTitle('Stel je mascotte samen'),
+        _SectionTitle(tr.buildMascot),
         const SizedBox(height: 8),
         BqCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _PartPicker(
-                label: 'Figuur',
+                label: tr.figure,
                 options: avatarCharacters
                     .map(
                       (option) => _PartChoice(
@@ -265,7 +265,7 @@ class _ProfileIdentityScreenState extends ConsumerState<ProfileIdentityScreen> {
               ),
               const SizedBox(height: 20),
               _PartPicker(
-                label: 'Kleur',
+                label: tr.color,
                 options: avatarColors
                     .map(
                       (option) => _PartChoice(
@@ -280,7 +280,7 @@ class _ProfileIdentityScreenState extends ConsumerState<ProfileIdentityScreen> {
               ),
               const SizedBox(height: 20),
               _PartPicker(
-                label: 'Achtergrond',
+                label: tr.background,
                 options: avatarBackgrounds
                     .map(
                       (option) => _PartChoice(
@@ -295,7 +295,7 @@ class _ProfileIdentityScreenState extends ConsumerState<ProfileIdentityScreen> {
               ),
               const SizedBox(height: 20),
               _PartPicker(
-                label: 'Accessoire',
+                label: tr.accessory,
                 options: avatarAccessories
                     .map(
                       (option) => _PartChoice(

@@ -12,15 +12,16 @@ import '../../../quiz/data/free_quiz_limit.dart';
 import '../../data/purchase_service.dart';
 import '../../data/trial_reminder.dart';
 import '../../domain/plan_pricing.dart' show lifetimeHorizonYears;
+import '../../../../l10n/tr.dart';
 
 /// Building blocks shared by the paywall screen, the upgrade sheet and the
 /// Premium intro: the explanatory "Quizzen" card, the benefit list with solid
 /// green checks, the plan cards and the small print links.
 
-const List<String> kPaywallBenefits = [
-  'Alle quizzen, zo vaak je wilt',
-  'Uitleg bij elk antwoord',
-  'Je antwoorden terugkijken na elke quiz',
+final List<String> kPaywallBenefits = [
+  tr.introPerkAll,
+  tr.explainEveryAnswer,
+  tr.introPerkLookBack,
 ];
 
 const BoxShadow _floatShadow = BoxShadow(
@@ -59,8 +60,7 @@ class PaywallPreview extends StatelessWidget {
     return Semantics(
       image: true,
       label:
-          'Gratis speel je $kFreeQuizLimit quizzen. Met Premium gaan alle '
-          'bijbelboeken open, ook Psalmen en Openbaring.',
+          tr.paywallFreeLimit(kFreeQuizLimit),
       child: ExcludeSemantics(
         child: SizedBox(
           height: 200,
@@ -147,8 +147,8 @@ class _PreviewStack extends StatelessWidget {
                   children: [
                     SvgPicture.string(_crownOnLapisSvg, width: 16, height: 16),
                     const SizedBox(width: 6),
-                    const Text(
-                      'Met Premium alles open',
+                    Text(
+                      tr.premiumEverythingOpen,
                       style: TextStyle(
                         fontFamily: AppTheme.sansFontName,
                         fontSize: 14,
@@ -181,7 +181,7 @@ class _QuizListCard extends StatelessWidget {
         border: Border.all(color: AppTheme.rule),
         boxShadow: const [_floatShadow],
       ),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -198,24 +198,24 @@ class _QuizListCard extends StatelessWidget {
             ),
           ),
           _BookRow(
-            abbreviation: 'Gen',
+            abbreviation: tr.abbrGenesis,
             title: 'Genesis',
-            count: '12 quizzen',
+            count: tr.quizzes12,
             tileColor: AppTheme.positiveTint,
             tileText: AppTheme.positive,
             free: true,
           ),
           _BookRow(
-            abbreviation: 'Ps',
+            abbreviation: tr.abbrPsalms,
             title: 'Psalmen',
-            count: '15 quizzen',
+            count: tr.quizzes15,
             tileColor: AppTheme.lapisTint,
             tileText: AppTheme.lapis,
           ),
           _BookRow(
-            abbreviation: 'Opb',
-            title: 'Openbaring',
-            count: '9 quizzen',
+            abbreviation: tr.abbrRevelation,
+            title: tr.bookRevelation,
+            count: tr.quizzes9,
             tileColor: AppTheme.coralTint,
             tileText: AppTheme.vermilion,
             last: true,
@@ -316,7 +316,7 @@ class _BookRow extends StatelessWidget {
                   const SizedBox(width: 4),
                 ],
                 Text(
-                  free ? 'Gratis' : 'Premium',
+                  free ? tr.free : 'Premium',
                   style: TextStyle(
                     fontFamily: AppTheme.sansFontName,
                     fontSize: 11,
@@ -364,9 +364,10 @@ class PaywallCheck extends StatelessWidget {
 
 /// A centred block of benefits, each behind a solid green check.
 class PaywallBenefits extends StatelessWidget {
-  const PaywallBenefits({super.key, this.items = kPaywallBenefits});
+  const PaywallBenefits({super.key, List<String>? items}) : _items = items;
 
-  final List<String> items;
+  final List<String>? _items;
+  List<String> get items => _items ?? kPaywallBenefits;
 
   @override
   Widget build(BuildContext context) {
@@ -632,7 +633,7 @@ class PaywallLifetimeOption extends StatelessWidget {
     if (!selected) {
       return Center(
         child: PaywallLink(
-          label: 'Of eenmalig: levenslang Premium',
+          label: tr.orLifetime,
           onTap: onTap,
         ),
       );
@@ -645,9 +646,9 @@ class PaywallLifetimeOption extends StatelessWidget {
         selected: true,
         inMutuallyExclusiveGroup: true,
         label: [
-          'Levenslang Premium, $price eenmalig',
+          tr.lifetimeOnce(price),
           if (weekly != null)
-            '$weekly per week over $lifetimeHorizonYears jaar',
+            tr.lifetimePerWeek(weekly!, lifetimeHorizonYears),
         ].join(', '),
         excludeSemantics: true,
         child: Container(
@@ -665,8 +666,8 @@ class PaywallLifetimeOption extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
-                      'Levenslang Premium',
+                    Text(
+                      tr.lifetimePremium,
                       style: TextStyle(
                         fontFamily: AppTheme.sansFontName,
                         fontSize: 14,
@@ -685,7 +686,7 @@ class PaywallLifetimeOption extends StatelessWidget {
                     ),
                     if (weekly != null)
                       Text(
-                        '$weekly per week over $lifetimeHorizonYears jaar',
+                        tr.lifetimePerWeek(weekly!, lifetimeHorizonYears),
                         style: const TextStyle(
                           fontFamily: AppTheme.sansFontName,
                           fontSize: 12,
@@ -808,18 +809,18 @@ String paywallReassuranceText({
   if (trial != null) {
     final day = trialReminderDay(trialLengthInDays(trial));
     return day == null
-        ? 'Vandaag betaal je niets.'
-        : 'Vandaag betaal je niets. Herinnering op dag $day.';
+        ? tr.payNothingToday
+        : tr.payNothingTodayReminder(day);
   }
   return isSubscription
-      ? 'Zeg op wanneer je wilt.'
-      : 'Eenmalig betalen, geen abonnement.';
+      ? tr.cancelAnytime
+      : tr.payOnceNoSub;
 }
 
 /// Call-to-action label: a trial is offered by name, anything else starts
 /// Premium straight away.
 String paywallCtaLabel(TrialOffer? trial) =>
-    trial == null ? 'Start Premium' : 'Probeer ${trial.label}';
+    trial == null ? tr.startPremium : tr.tryTrial(trial.label);
 
 /// Opens a legal page in the browser, with a notice when that fails.
 Future<void> openPaywallUrl(BuildContext context, String url) async {

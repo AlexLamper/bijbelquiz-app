@@ -9,8 +9,9 @@ import '../../../core/ui/bq.dart';
 import '../../profile/present/profile_provider.dart';
 import '../data/group_license_repository.dart';
 import 'widgets/paywall_parts.dart';
+import '../../../l10n/tr.dart';
 
-const String _supportEmail = 'info@bijbelquiz.com';
+final String _supportEmail = tr.supportEmail;
 
 /// Redeem a group code, and see the group you are in.
 ///
@@ -37,7 +38,7 @@ class _GroupLicenseScreenState extends ConsumerState<GroupLicenseScreen> {
   Future<void> _join() async {
     final code = _codeController.text.trim().toUpperCase();
     if (code.length < 4) {
-      AppNotice.info(context, 'Vul de volledige groepscode in.');
+      AppNotice.info(context, tr.groupCodeIncomplete);
       return;
     }
 
@@ -53,7 +54,7 @@ class _GroupLicenseScreenState extends ConsumerState<GroupLicenseScreen> {
 
       if (!mounted) return;
       _codeController.clear();
-      AppNotice.success(context, 'Je hoort nu bij ${license.name}.');
+      AppNotice.success(context, tr.groupJoined(license.name));
     } on GroupLicenseException catch (error) {
       if (!mounted) return;
       AppNotice.error(context, error.message);
@@ -68,7 +69,7 @@ class _GroupLicenseScreenState extends ConsumerState<GroupLicenseScreen> {
     if (!launched && mounted) {
       AppNotice.info(
         context,
-        'Ga naar bijbelquiz.com/groepslicentie in je browser.',
+        tr.groupLicenseGoToSite,
       );
     }
   }
@@ -77,11 +78,11 @@ class _GroupLicenseScreenState extends ConsumerState<GroupLicenseScreen> {
     final uri = Uri(
       scheme: 'mailto',
       path: _supportEmail,
-      queryParameters: const {'subject': 'Groepslicentie'},
+      queryParameters: {'subject': tr.groupLicense},
     );
     final launched = await launchUrl(uri);
     if (!launched && mounted) {
-      AppNotice.info(context, 'Mail ons op $_supportEmail.');
+      AppNotice.info(context, tr.mailUsAt(_supportEmail));
     }
   }
 
@@ -95,11 +96,10 @@ class _GroupLicenseScreenState extends ConsumerState<GroupLicenseScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
           children: [
-            const BqTopBar(title: 'Groepslicentie', large: true),
+            BqTopBar(title: tr.groupLicense, large: true),
             const SizedBox(height: 14),
-            const Text(
-              'Heeft je jeugdleider, dominee of docent een groepscode? Vul hem '
-              'hieronder in en je hebt meteen Premium.',
+            Text(
+              tr.groupCodeIntro,
               style: AppTheme.bodyLead,
             ),
             const SizedBox(height: 18),
@@ -108,10 +108,10 @@ class _GroupLicenseScreenState extends ConsumerState<GroupLicenseScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const _CardHeading(
+                  _CardHeading(
                     icon: BqIcons.enter,
                     title: 'Meedoen met code',
-                    subtitle: 'Premium via je groep',
+                    subtitle: tr.premiumViaGroup,
                   ),
                   const SizedBox(height: 16),
                   _CodeField(
@@ -149,7 +149,7 @@ class _GroupLicenseScreenState extends ConsumerState<GroupLicenseScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const BqSectionHeader(title: 'Jouw groepen'),
+                      BqSectionHeader(title: tr.yourGroups),
                       const SizedBox(height: 10),
                       for (final license in licenses) ...[
                         _LicenseCard(license: license),
@@ -166,29 +166,27 @@ class _GroupLicenseScreenState extends ConsumerState<GroupLicenseScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const _CardHeading(
+                  _CardHeading(
                     icon: BqIcons.users,
                     iconColor: AppTheme.goldText,
                     tint: AppTheme.goldTint,
-                    title: 'Premium voor je hele groep',
-                    subtitle: 'Voor kerken, scholen en verenigingen',
+                    title: tr.premiumWholeGroup,
+                    subtitle: tr.forChurches,
                   ),
                   const SizedBox(height: 16),
-                  const _Benefit('Alles van Premium voor elk lid'),
+                  _Benefit(tr.groupPerkAll),
                   const SizedBox(height: 8),
-                  const _Benefit('Een code die je voorleest in de zaal'),
+                  _Benefit(tr.groupPerkCode),
                   const SizedBox(height: 8),
-                  const _Benefit('Je beheert zelf wie er meedoet'),
+                  _Benefit(tr.groupPerkManage),
                   const SizedBox(height: 14),
-                  const Text(
-                    'Een groepslicentie koop je op de website, omdat een '
-                    'aankoop in de App Store aan een enkel account vastzit en '
-                    'niet aan een groep.',
+                  Text(
+                    tr.groupLicenseWebsiteOnly,
                     style: AppTheme.bodyMuted,
                   ),
                   const SizedBox(height: 14),
                   BqButton(
-                    label: 'Open bijbelquiz.com',
+                    label: tr.openWebsite,
                     icon: const BqIcon(BqIcons.link, size: 18),
                     onPressed: _openWebPurchase,
                   ),
@@ -208,7 +206,7 @@ class _GroupLicenseScreenState extends ConsumerState<GroupLicenseScreen> {
                   constraints: const BoxConstraints(minHeight: 44),
                   child: Center(
                     child: Text.rich(
-                      const TextSpan(
+                      TextSpan(
                         children: [
                           TextSpan(text: 'Liever eerst overleggen? Mail '),
                           TextSpan(
@@ -384,7 +382,7 @@ class _LicenseCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           BqPill(
-            label: license.isOwner ? 'Je beheert deze groep' : 'Je doet mee',
+            label: license.isOwner ? tr.youManageGroup : tr.youTakePart,
             background: AppTheme.positiveTint,
             foreground: AppTheme.positive,
             icon: const BqIcon(
@@ -407,8 +405,8 @@ class _LicenseCard extends StatelessWidget {
             const SizedBox(height: 10),
             Row(
               children: [
-                const Expanded(
-                  child: Text('Groepscode', style: AppTheme.bodyMuted),
+                Expanded(
+                  child: Text(tr.groupCode, style: AppTheme.bodyMuted),
                 ),
                 Text(
                   license.joinCode,

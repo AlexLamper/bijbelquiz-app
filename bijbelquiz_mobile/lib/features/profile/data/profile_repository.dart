@@ -6,6 +6,7 @@ import 'badge_catalog.dart';
 import 'profile_model.dart';
 import 'package:dio/dio.dart';
 import '../../premium/domain/premium_plan.dart' show ServerPremium;
+import '../../../l10n/tr.dart';
 
 final profileRepositoryProvider = Provider((ref) {
   final apiClient = ref.watch(apiClientProvider);
@@ -93,8 +94,8 @@ class ProfileRepository {
     } on DioException catch (error) {
       throw IdentityUpdateException(_serverMessage(error));
     } catch (_) {
-      throw const IdentityUpdateException(
-        'Opslaan is niet gelukt. Probeer het opnieuw.',
+      throw IdentityUpdateException(
+        tr.saveFailed,
       );
     }
   }
@@ -107,7 +108,7 @@ class ProfileRepository {
       if (text != null && text.isNotEmpty) return text;
     }
 
-    return 'Opslaan is niet gelukt. Controleer je verbinding.';
+    return tr.saveFailedConnection;
   }
 
   /// Achievement definitions straight from the server catalogue.

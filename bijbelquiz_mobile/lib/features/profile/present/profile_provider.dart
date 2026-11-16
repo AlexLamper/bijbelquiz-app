@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../auth/present/auth_controller.dart';
 import '../data/profile_model.dart';
 import '../data/profile_repository.dart';
+import '../../../l10n/tr.dart';
 
 /// Thrown instead of fetching when nobody is signed in.
 ///
@@ -12,7 +13,7 @@ class NoSessionException implements Exception {
   const NoSessionException();
 
   @override
-  String toString() => 'Niet ingelogd';
+  String toString() => tr.notSignedIn;
 }
 
 final profileProvider = FutureProvider.autoDispose<ProfileModel>((ref) async {

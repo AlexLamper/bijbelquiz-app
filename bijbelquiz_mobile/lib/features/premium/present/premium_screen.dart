@@ -14,24 +14,25 @@ import '../domain/plan_pricing.dart';
 import 'premium_controller.dart';
 import 'premium_status_notices.dart';
 import 'widgets/paywall_parts.dart';
+import '../../../l10n/tr.dart';
 
 /// Shown in place of a store price until the store has answered. Never a
 /// made-up amount: the store owns the price, in the buyer's own currency.
-const String _pricePending = '-';
+String _pricePending = '-';
 
-const String _defaultTitle = 'Speel onbeperkt\nmet Premium';
+String _defaultTitle = tr.paywallHeadlineDefault;
 
 /// Title naming what the player was just stopped from doing.
 ///
 /// A paywall that opens on "Premium" sells a product; one that opens on what
 /// the player wanted to do answers the question they actually have.
-const Map<String, String> _triggerTitles = {
-  PaywallTrigger.freeLimit: 'Je $kFreeQuizLimit gratis quizzen\nzijn gespeeld',
-  PaywallTrigger.hostQuotaExhausted: 'Speel onbeperkt\nsamen verder',
-  PaywallTrigger.hostQuotaWarning: 'Speel onbeperkt\nsamen verder',
-  PaywallTrigger.hostPlayerCap: 'Speel met je\nhele groep',
-  PaywallTrigger.explanationLocked: 'Lees bij elke vraag\nwaarom',
-  PaywallTrigger.premiumQuizLocked: 'Ontgrendel\nalle quizzen',
+final Map<String, String> _triggerTitles = {
+  PaywallTrigger.freeLimit: tr.paywallHeadlineLimit(kFreeQuizLimit),
+  PaywallTrigger.hostQuotaExhausted: tr.paywallHeadlineTogether,
+  PaywallTrigger.hostQuotaWarning: tr.paywallHeadlineTogether,
+  PaywallTrigger.hostPlayerCap: tr.paywallHeadlineGroup,
+  PaywallTrigger.explanationLocked: tr.paywallHeadlineExplain,
+  PaywallTrigger.premiumQuizLocked: tr.paywallHeadlineUnlock,
   PaywallTrigger.direct: _defaultTitle,
 };
 
@@ -140,12 +141,11 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(restored ? 'Premium hersteld' : 'Welkom bij Premium'),
+        title: Text(restored ? tr.premiumRestored : tr.welcomePremium),
         content: Text(
           restored
-              ? 'Je Premium staat weer aan op dit account.'
-              : 'Je hebt nu volledige toegang tot alle premium functies, in '
-                    'de app en op de website. Veel plezier!',
+              ? tr.premiumBackOn
+              : tr.premiumFullAccess,
         ),
         actions: [
           TextButton(
@@ -303,8 +303,8 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                       ),
                       if (widget.trigger == PaywallTrigger.freeLimit) ...[
                         const SizedBox(height: 6),
-                        const Text(
-                          'Speel verder met Premium.',
+                        Text(
+                          tr.playOnPremium,
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 16,
@@ -349,7 +349,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                       // Room for the badge that sits on the card's top edge.
                       const SizedBox(height: 12),
                       Semantics(
-                        label: 'Kies een abonnement',
+                        label: tr.chooseSubscription,
                         container: true,
                         // Both cards as tall as the taller one, whatever
                         // notes or trial badge either carries.
@@ -359,9 +359,9 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                             children: [
                               Expanded(
                                 child: PaywallPlanCard(
-                                  title: 'Jaarlijks',
+                                  title: tr.yearly,
                                   price: yearlyPrice,
-                                  period: 'per jaar',
+                                  period: tr.perYear,
                                   weekly: yearlyPerWeek,
                                   badge:
                                       yearlyTrial?.label ??
@@ -377,13 +377,13 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: PaywallPlanCard(
-                                  title: 'Maandelijks',
+                                  title: tr.monthly,
                                   price: monthlyPrice,
-                                  period: 'per maand',
+                                  period: tr.perMonth,
                                   weekly: monthlyPerWeek,
                                   note:
                                       monthlyTrial?.label ??
-                                      'Geen proefperiode',
+                                      tr.noTrial,
                                   selected:
                                       _selectedPlan == PremiumPlan.monthly,
                                   onTap: isLoading
@@ -411,7 +411,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                         label: offersUnavailable || !selectedAvailable
                             ? (offersLoading
                                   ? paywallCtaLabel(trial)
-                                  : 'Prijzen opnieuw laden')
+                                  : tr.reloadPrices)
                             : paywallCtaLabel(trial),
                         height: 56,
                         fontSize: 17,
@@ -429,8 +429,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                       PaywallReassurance(
                         offersUnavailable ||
                                 (!offersLoading && !selectedAvailable)
-                            ? 'De ${_storeName()} is nu niet bereikbaar. '
-                                  'Controleer je verbinding.'
+                            ? tr.storeUnreachable(_storeName())
                             : paywallReassuranceText(
                                 trial: trial,
                                 isSubscription: isSubscription,
@@ -442,7 +441,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                       // action of the screen.
                       Center(
                         child: PaywallLink(
-                          label: 'Aankoop herstellen',
+                          label: tr.restorePurchase,
                           color: AppTheme.inkMuted,
                           fontSize: 13,
                           onTap: isLoading ? null : _onRestore,
@@ -452,7 +451,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           PaywallLink(
-                            label: 'Voorwaarden',
+                            label: tr.terms,
                             color: AppTheme.inkMuted,
                             fontSize: 12,
                             link: true,
@@ -463,7 +462,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                           ),
                           const SizedBox(width: 2),
                           PaywallLink(
-                            label: 'Privacy',
+                            label: tr.privacy,
                             color: AppTheme.inkMuted,
                             fontSize: 12,
                             link: true,
@@ -476,7 +475,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                           // A leader buying for thirty people is not served by
                           // a per-person plan.
                           PaywallLink(
-                            label: 'Groepscode',
+                            label: tr.groupCode,
                             color: AppTheme.inkMuted,
                             fontSize: 12,
                             onTap: isLoading

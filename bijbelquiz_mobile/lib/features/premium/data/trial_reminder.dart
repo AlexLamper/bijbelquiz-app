@@ -6,6 +6,7 @@ import 'package:timezone/timezone.dart' as tz;
 
 import '../../../core/notifications/streak_reminder.dart';
 import '../domain/premium_plan.dart';
+import '../../../l10n/tr.dart';
 
 /// How many days before a free trial ends the player is reminded.
 ///
@@ -106,16 +107,15 @@ class TrialReminder implements TrialReminderScheduler {
 
       await _plugin.zonedSchedule(
         _notificationId,
-        'Je proefperiode loopt bijna af',
-        'Over $kTrialReminderDaysBeforeEnd dagen gaat je BijbelQuiz Premium '
-            'in. Wil je niet verder? Zeg dan op in je store-instellingen.',
+        tr.trialEndingTitle,
+        tr.trialEndingBody(kTrialReminderDaysBeforeEnd),
         tz.TZDateTime.from(fireAt.toUtc(), tz.UTC),
-        const NotificationDetails(
+        NotificationDetails(
           android: AndroidNotificationDetails(
             _channelId,
-            'Herinnering proefperiode',
+            tr.trialReminderChannel,
             channelDescription:
-                'Een herinnering voordat je gratis proefperiode afloopt.',
+                tr.trialReminderChannelDescription,
             importance: Importance.defaultImportance,
             priority: Priority.defaultPriority,
           ),

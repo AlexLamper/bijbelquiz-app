@@ -7,6 +7,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/bq.dart';
 import 'premium_controller.dart';
 import 'widgets/paywall_parts.dart';
+import '../../../l10n/tr.dart';
 
 /// A short pre-sell funnel shown before the paywall, in the spirit of
 /// bijbelstudie-app's `/pro-intro`: pick a goal, see what Premium does for that
@@ -77,22 +78,22 @@ class _PremiumIntroScreenState extends ConsumerState<PremiumIntroScreen> {
       // and Samen spelen (any room size, as often as you like) are free for
       // everyone, so they are never listed as a reason to pay.
       case _Goal.knowledge:
-        return const [
-          'Uitleg bij elke vraag: waarom het antwoord klopt',
-          'Alle quizzen, zo vaak je wilt',
-          'Een volledige review na elke quiz',
+        return [
+          tr.introPerkExplain,
+          tr.introPerkAll,
+          tr.introPerkReview,
         ];
       case _Goal.habit:
-        return const [
-          'Elke dag een nieuwe quiz, zonder limiet',
-          'Uitleg bij elke vraag, zodat het blijft hangen',
-          'Je antwoorden terugkijken na elke quiz',
+        return [
+          tr.introPerkDaily,
+          tr.introPerkStick,
+          tr.introPerkLookBack,
         ];
       case _Goal.together:
-        return const [
-          'Samen spelen blijft voor iedereen gratis',
-          'Daarnaast alleen onbeperkt verder spelen',
-          'Uitleg bij elke vraag om samen na te praten',
+        return [
+          tr.introPerkTogetherFree,
+          tr.introPerkSoloUnlimited,
+          tr.introPerkDiscuss,
         ];
     }
   }
@@ -118,7 +119,7 @@ class _PremiumIntroScreenState extends ConsumerState<PremiumIntroScreen> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: Semantics(
-                      label: 'Stap ${_page + 1} van 3',
+                      label: tr.stepOfThree(_page + 1),
                       child: ExcludeSemantics(
                         child: BqSegments(total: 3, done: _page + 1),
                       ),
@@ -146,7 +147,7 @@ class _PremiumIntroScreenState extends ConsumerState<PremiumIntroScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 22),
               child: BqButton(
-                label: _page < 2 ? 'Verder' : 'Bekijk Premium',
+                label: _page < 2 ? tr.actionNext : 'Bekijk Premium',
                 height: 56,
                 fontSize: 17,
                 radius: 14,
@@ -206,17 +207,17 @@ class _GoalStep extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
       children: [
-        const _StepHeading(
-          title: 'Waar wil je in groeien?',
-          subtitle: 'Dan laten we zien wat Premium daarvoor doet.',
+        _StepHeading(
+          title: tr.introGrowQuestion,
+          subtitle: tr.introGrowSubtitle,
         ),
         const SizedBox(height: 24),
         _GoalTile(
           icon: BqIcons.book,
           tint: AppTheme.lapisTint,
           iconColor: AppTheme.lapis,
-          label: 'Meer Bijbelkennis',
-          description: 'Begrijpen waarom een antwoord klopt.',
+          label: tr.introGoalKnowledge,
+          description: tr.introGoalKnowledgeBody,
           active: selected == _Goal.knowledge,
           onTap: () => onSelect(_Goal.knowledge),
         ),
@@ -224,8 +225,8 @@ class _GoalStep extends StatelessWidget {
         _GoalTile(
           icon: BqIcons.flame,
           tint: AppTheme.coralTint,
-          label: 'Elke dag iets leren',
-          description: 'Een gewoonte opbouwen en vasthouden.',
+          label: tr.introGoalDaily,
+          description: tr.introGoalDailyBody,
           active: selected == _Goal.habit,
           onTap: () => onSelect(_Goal.habit),
         ),
@@ -235,7 +236,7 @@ class _GoalStep extends StatelessWidget {
           tint: AppTheme.positiveTint,
           iconColor: AppTheme.positive,
           label: 'Samen spelen',
-          description: 'Met familie of een groep tegen elkaar.',
+          description: tr.introGoalGroupBody,
           active: selected == _Goal.together,
           onTap: () => onSelect(_Goal.together),
         ),
@@ -360,9 +361,9 @@ class _ValueStep extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
       children: [
-        const _StepHeading(
-          title: 'Dit krijg je erbij',
-          subtitle: 'Alles in een lidmaatschap, op web en app.',
+        _StepHeading(
+          title: tr.introYouGet,
+          subtitle: tr.introOneMembership,
         ),
         const SizedBox(height: 24),
         BqCard(
@@ -407,11 +408,11 @@ class _ReadyStep extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
-      children: const [
+      children: [
         _StepHeading(
-          title: 'Kies je plan',
+          title: tr.choosePlan,
           subtitle:
-              'Op de volgende pagina zie je de prijzen. Opzeggen kan altijd.',
+              tr.pricesNextPage,
         ),
         SizedBox(height: 24),
         BqCard(
@@ -425,8 +426,7 @@ class _ReadyStep extends StatelessWidget {
               SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Je account werkt op web en app tegelijk. Een aankoop op je '
-                  'telefoon geeft je ook Premium op de website, en andersom.',
+                  tr.accountWebAndApp,
                   style: AppTheme.bodyMuted,
                 ),
               ),

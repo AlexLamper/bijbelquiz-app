@@ -376,5 +376,389 @@
         "type": "Object"
       }
     }
-  }
+  },
+  "joinFailed": "Deelnemen is niet gelukt.",
+  "joinFailedConnection": "Deelnemen is niet gelukt. Controleer je verbinding.",
+  "trialEndingTitle": "Je proefperiode loopt bijna af",
+  "trialEndingBody": "Over {kTrialReminderDaysBeforeEnd} dagen gaat je BijbelQuiz Premium in. Wil je niet verder? Zeg dan op in je store-instellingen.",
+  "@trialEndingBody": {
+    "placeholders": {
+      "kTrialReminderDaysBeforeEnd": {
+        "type": "Object"
+      }
+    }
+  },
+  "trialReminderChannel": "Herinnering proefperiode",
+  "trialReminderChannelDescription": "Een herinnering voordat je gratis proefperiode afloopt.",
+  "supportEmail": "info@bijbelquiz.com",
+  "groupCodeIncomplete": "Vul de volledige groepscode in.",
+  "groupJoined": "Je hoort nu bij {name}.",
+  "@groupJoined": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "groupLicenseGoToSite": "Ga naar bijbelquiz.com/groepslicentie in je browser.",
+  "groupLicense": "Groepslicentie",
+  "mailUsAt": "Mail ons op {supportEmail}.",
+  "@mailUsAt": {
+    "placeholders": {
+      "supportEmail": {
+        "type": "Object"
+      }
+    }
+  },
+  "groupCodeIntro": "Heeft je jeugdleider, dominee of docent een groepscode? Vul hem hieronder in en je hebt meteen Premium.",
+  "premiumViaGroup": "Premium via je groep",
+  "yourGroups": "Jouw groepen",
+  "premiumWholeGroup": "Premium voor je hele groep",
+  "forChurches": "Voor kerken, scholen en verenigingen",
+  "groupPerkAll": "Alles van Premium voor elk lid",
+  "groupPerkCode": "Een code die je voorleest in de zaal",
+  "groupPerkManage": "Je beheert zelf wie er meedoet",
+  "groupLicenseWebsiteOnly": "Een groepslicentie koop je op de website, omdat een aankoop in de App Store aan een enkel account vastzit en niet aan een groep.",
+  "openWebsite": "Open bijbelquiz.com",
+  "youManageGroup": "Je beheert deze groep",
+  "youTakePart": "Je doet mee",
+  "groupCode": "Groepscode",
+  "purchaseReceivedNotActive": "Je aankoop is ontvangen, maar Premium staat nog niet aan. Tik over een minuut op \"Herstellen\".",
+  "noPurchaseFound": "We vonden geen Premium-aankoop op dit {storeName}-account.",
+  "@noPurchaseFound": {
+    "placeholders": {
+      "storeName": {
+        "type": "Object"
+      }
+    }
+  },
+  "purchasePending": "Je aankoop wacht nog op goedkeuring of betaling. Premium gaat vanzelf aan zodra de {storeName} die afrondt.",
+  "@purchasePending": {
+    "placeholders": {
+      "storeName": {
+        "type": "Object"
+      }
+    }
+  },
+  "noInternetRetry": "Geen internetverbinding. Controleer je verbinding en probeer het opnieuw.",
+  "alreadyPurchased": "Je hebt dit al gekocht. Tik op \"Herstellen\" om het terug te zetten.",
+  "purchaseOtherAccount": "Deze aankoop hoort al bij een ander BijbelQuiz-account. Log in met dat account om je Premium te gebruiken.",
+  "purchasesNotAllowed": "Aankopen zijn niet toegestaan op dit apparaat. Controleer de instellingen van je {store}-account.",
+  "@purchasesNotAllowed": {
+    "placeholders": {
+      "store": {
+        "type": "Object"
+      }
+    }
+  },
+  "subscriptionUnavailable": "Dit abonnement is nu niet beschikbaar in de {store}. Probeer het later opnieuw.",
+  "@subscriptionUnavailable": {
+    "placeholders": {
+      "store": {
+        "type": "Object"
+      }
+    }
+  },
+  "storeError": "De {store} geeft een fout. Probeer het later opnieuw.",
+  "@storeError": {
+    "placeholders": {
+      "store": {
+        "type": "Object"
+      }
+    }
+  },
+  "purchasesNotInVersion": "Aankopen zijn in deze versie van de app niet beschikbaar.",
+  "restoreFailed": "Herstellen is niet gelukt. Probeer het opnieuw.",
+  "introPerkExplain": "Uitleg bij elke vraag: waarom het antwoord klopt",
+  "introPerkAll": "Alle quizzen, zo vaak je wilt",
+  "introPerkReview": "Een volledige review na elke quiz",
+  "introPerkDaily": "Elke dag een nieuwe quiz, zonder limiet",
+  "introPerkStick": "Uitleg bij elke vraag, zodat het blijft hangen",
+  "introPerkLookBack": "Je antwoorden terugkijken na elke quiz",
+  "introPerkTogetherFree": "Samen spelen blijft voor iedereen gratis",
+  "introPerkSoloUnlimited": "Daarnaast alleen onbeperkt verder spelen",
+  "introPerkDiscuss": "Uitleg bij elke vraag om samen na te praten",
+  "stepOfThree": "Stap {page} van 3",
+  "@stepOfThree": {
+    "placeholders": {
+      "page": {
+        "type": "Object"
+      }
+    }
+  },
+  "actionNext": "Verder",
+  "introGrowQuestion": "Waar wil je in groeien?",
+  "introGrowSubtitle": "Dan laten we zien wat Premium daarvoor doet.",
+  "introGoalKnowledge": "Meer Bijbelkennis",
+  "introGoalKnowledgeBody": "Begrijpen waarom een antwoord klopt.",
+  "introGoalDaily": "Elke dag iets leren",
+  "introGoalDailyBody": "Een gewoonte opbouwen en vasthouden.",
+  "introGoalGroupBody": "Met familie of een groep tegen elkaar.",
+  "introYouGet": "Dit krijg je erbij",
+  "introOneMembership": "Alles in een lidmaatschap, op web en app.",
+  "choosePlan": "Kies je plan",
+  "pricesNextPage": "Op de volgende pagina zie je de prijzen. Opzeggen kan altijd.",
+  "accountWebAndApp": "Je account werkt op web en app tegelijk. Een aankoop op je telefoon geeft je ook Premium op de website, en andersom.",
+  "paywallHeadlineDefault": "Speel onbeperkt\nmet Premium",
+  "paywallHeadlineLimit": "Je {kFreeQuizLimit} gratis quizzen\nzijn gespeeld",
+  "@paywallHeadlineLimit": {
+    "placeholders": {
+      "kFreeQuizLimit": {
+        "type": "Object"
+      }
+    }
+  },
+  "paywallHeadlineTogether": "Speel onbeperkt\nsamen verder",
+  "paywallHeadlineGroup": "Speel met je\nhele groep",
+  "paywallHeadlineExplain": "Lees bij elke vraag\nwaarom",
+  "paywallHeadlineUnlock": "Ontgrendel\nalle quizzen",
+  "premiumRestored": "Premium hersteld",
+  "welcomePremium": "Welkom bij Premium",
+  "premiumBackOn": "Je Premium staat weer aan op dit account.",
+  "premiumFullAccess": "Je hebt nu volledige toegang tot alle premium functies, in de app en op de website. Veel plezier!",
+  "playOnPremium": "Speel verder met Premium.",
+  "chooseSubscription": "Kies een abonnement",
+  "yearly": "Jaarlijks",
+  "perYear": "per jaar",
+  "monthly": "Maandelijks",
+  "perMonth": "per maand",
+  "noTrial": "Geen proefperiode",
+  "reloadPrices": "Prijzen opnieuw laden",
+  "storeUnreachable": "De {storeName} is nu niet bereikbaar. Controleer je verbinding.",
+  "@storeUnreachable": {
+    "placeholders": {
+      "storeName": {
+        "type": "Object"
+      }
+    }
+  },
+  "restorePurchase": "Aankoop herstellen",
+  "terms": "Voorwaarden",
+  "privacy": "Privacy",
+  "alreadyPremium": "Je hebt al Premium op dit account. Er is niets afgeschreven.",
+  "premiumOn": "Premium staat aan",
+  "restoreSignIn": "Log in met je account, dan zetten we je aankopen terug op dat account.",
+  "needAccountForPremium": "Maak eerst een gratis account of log in, dan hoort Premium bij jou - in de app en op de website.",
+  "accountNeeded": "Account nodig",
+  "pleaseWait": "Even geduld",
+  "nothingToRestore": "Niets om te herstellen",
+  "viewAllPlans": "Alle plannen bekijken",
+  "explainEveryAnswer": "Uitleg bij elk antwoord",
+  "paywallFreeLimit": "Gratis speel je {kFreeQuizLimit} quizzen. Met Premium gaan alle bijbelboeken open, ook Psalmen en Openbaring.",
+  "@paywallFreeLimit": {
+    "placeholders": {
+      "kFreeQuizLimit": {
+        "type": "Object"
+      }
+    }
+  },
+  "premiumEverythingOpen": "Met Premium alles open",
+  "abbrGenesis": "Gen",
+  "quizzes12": "12 quizzen",
+  "abbrPsalms": "Ps",
+  "quizzes15": "15 quizzen",
+  "abbrRevelation": "Opb",
+  "bookRevelation": "Openbaring",
+  "quizzes9": "9 quizzen",
+  "free": "Gratis",
+  "orLifetime": "Of eenmalig: levenslang Premium",
+  "lifetimeOnce": "Levenslang Premium, {price} eenmalig",
+  "@lifetimeOnce": {
+    "placeholders": {
+      "price": {
+        "type": "Object"
+      }
+    }
+  },
+  "lifetimePerWeek": "{weekly} per week over {lifetimeHorizonYears} jaar",
+  "@lifetimePerWeek": {
+    "placeholders": {
+      "weekly": {
+        "type": "Object"
+      },
+      "lifetimeHorizonYears": {
+        "type": "Object"
+      }
+    }
+  },
+  "lifetimePremium": "Levenslang Premium",
+  "payNothingToday": "Vandaag betaal je niets.",
+  "payNothingTodayReminder": "Vandaag betaal je niets. Herinnering op dag {day}.",
+  "@payNothingTodayReminder": {
+    "placeholders": {
+      "day": {
+        "type": "Object"
+      }
+    }
+  },
+  "cancelAnytime": "Zeg op wanneer je wilt.",
+  "payOnceNoSub": "Eenmalig betalen, geen abonnement.",
+  "startPremium": "Start Premium",
+  "tryTrial": "Probeer {label}",
+  "@tryTrial": {
+    "placeholders": {
+      "label": {
+        "type": "Object"
+      }
+    }
+  },
+  "badgeFirstStepsDesc": "Voltooi je eerste quiz.",
+  "badgeKnowledgeSeeker": "Kenniszoeker",
+  "badgeKnowledgeSeekerDesc": "Speel 10 verschillende quizzen.",
+  "badgePerfect": "Foutloos",
+  "badgePerfectDesc": "Haal een 100% score op een quiz.",
+  "badgeOnARoll": "Op Dreef",
+  "badgeOnARollDesc": "Bouw een streak van 3 dagen op.",
+  "badgeDedicated": "Toegewijd",
+  "badgeDedicatedDesc": "Speel 7 dagen op rij.",
+  "badgeScholar": "Geleerde",
+  "badgeMaster": "Meester",
+  "badgeAllRounder": "Allrounder",
+  "badgeAllRounderDesc": "Speel een brede selectie quizzen.",
+  "rankSeeker": "Zoeker",
+  "saveFailed": "Opslaan is niet gelukt. Probeer het opnieuw.",
+  "saveFailedConnection": "Opslaan is niet gelukt. Controleer je verbinding.",
+  "achievements": "Prestaties",
+  "achievementsLoadFailed": "Prestaties konden niet laden",
+  "noBadgesYet": "Nog geen badges behaald. Speel quizzen om je eerste badge vrij te spelen.",
+  "stillToEarn": "Nog te halen · {lockedCount}",
+  "@stillToEarn": {
+    "placeholders": {
+      "lockedCount": {
+        "type": "Object"
+      }
+    }
+  },
+  "badgesEarnedA11y": "{unlocked} van {total} badges behaald",
+  "@badgesEarnedA11y": {
+    "placeholders": {
+      "unlocked": {
+        "type": "Object"
+      },
+      "total": {
+        "type": "Object"
+      }
+    }
+  },
+  "badgesOf": "{unlocked} van {total} badges",
+  "@badgesOf": {
+    "placeholders": {
+      "unlocked": {
+        "type": "Object"
+      },
+      "total": {
+        "type": "Object"
+      }
+    }
+  },
+  "allEarned": "Alles behaald",
+  "leftToEarn": "Nog {left} te halen",
+  "@leftToEarn": {
+    "placeholders": {
+      "left": {
+        "type": "Object"
+      }
+    }
+  },
+  "profileUpdated": "Profiel bijgewerkt.",
+  "editProfile": "Profiel bewerken",
+  "profileLoadFailed": "Profiel kon niet laden",
+  "actionSave": "Opslaan",
+  "surpriseMe": "Verras me",
+  "displayName": "Weergavenaam",
+  "displayNameHint": "Hoe je op de ranglijst verschijnt",
+  "displayNameHelp": "Zichtbaar op de ranglijst en in multiplayer. Eens per 30 dagen te wijzigen.",
+  "buildMascot": "Stel je mascotte samen",
+  "figure": "Figuur",
+  "color": "Kleur",
+  "background": "Achtergrond",
+  "accessory": "Accessoire",
+  "notSignedIn": "Niet ingelogd",
+  "settings": "Instellingen",
+  "statistics": "Statistieken",
+  "recentlyPlayed": "Recent gespeeld",
+  "levelN": "Level {level}",
+  "@levelN": {
+    "placeholders": {
+      "level": {
+        "type": "Object"
+      }
+    }
+  },
+  "maxLevel": "Hoogste level bereikt",
+  "progressToLevel": "Voortgang naar level {level}",
+  "@progressToLevel": {
+    "placeholders": {
+      "level": {
+        "type": "Object"
+      }
+    }
+  },
+  "xpToLevel": "Nog {xpRemaining} XP tot level {level}",
+  "@xpToLevel": {
+    "placeholders": {
+      "xpRemaining": {
+        "type": "Object"
+      },
+      "level": {
+        "type": "Object"
+      }
+    }
+  },
+  "daysInARow": "Dagen op rij",
+  "quizzesPlayed": "Quizzen gespeeld",
+  "averageScore": "Gemiddelde score",
+  "viewAllAchievementsA11y": "Alle prestaties bekijken, {unlockedCount} van {overviewCount} behaald",
+  "@viewAllAchievementsA11y": {
+    "placeholders": {
+      "unlockedCount": {
+        "type": "Object"
+      },
+      "overviewCount": {
+        "type": "Object"
+      }
+    }
+  },
+  "allOf": "Alle {unlockedCount} van {overviewCount}",
+  "@allOf": {
+    "placeholders": {
+      "unlockedCount": {
+        "type": "Object"
+      },
+      "overviewCount": {
+        "type": "Object"
+      }
+    }
+  },
+  "youHavePremium": "Je hebt Premium",
+  "youPlayFree": "Je speelt gratis",
+  "scoreOfTotal": "{score} van {totalQuestions} goed",
+  "@scoreOfTotal": {
+    "placeholders": {
+      "score": {
+        "type": "Object"
+      },
+      "totalQuestions": {
+        "type": "Object"
+      }
+    }
+  },
+  "completed": "Voltooid",
+  "guestPerkKeep": "Punten, niveau en reeks die blijven staan",
+  "guestPerkLeaderboard": "Een plek op de ranglijst",
+  "guestPerkBadges": "Badges voor je prestaties",
+  "guestPerkWebsite": "Dezelfde voortgang op bijbelquiz.com",
+  "saveYourProgress": "Bewaar je voortgang",
+  "guestExplain": "Je speelt zonder account. Dat kan gewoon, maar je score, punten en reeks blijven alleen bewaard met een gratis account.",
+  "createFreeAccount": "Gratis account aanmaken",
+  "pendingOne": "Eén quiz wacht op je account",
+  "pendingMany": "{pendingCount} quizzen wachten op je account",
+  "@pendingMany": {
+    "placeholders": {
+      "pendingCount": {
+        "type": "Object"
+      }
+    }
+  },
+  "withAccount": "Met een account"
 }

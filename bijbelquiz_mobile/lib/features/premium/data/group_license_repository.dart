@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../auth/present/auth_controller.dart';
+import '../../../l10n/tr.dart';
 
 /// Group licences: one purchase covering a whole church, class or youth club.
 ///
@@ -130,7 +131,7 @@ class GroupLicenseRepository {
       final data = response.data;
       final license = data is Map ? data['license'] : null;
       if (license is! Map) {
-        throw const GroupLicenseException('Deelnemen is niet gelukt.');
+        throw GroupLicenseException(tr.joinFailed);
       }
 
       return GroupLicenseSummary.fromJson(Map<String, dynamic>.from(license));
@@ -147,6 +148,6 @@ class GroupLicenseRepository {
       if (text != null && text.isNotEmpty) return text;
     }
 
-    return 'Deelnemen is niet gelukt. Controleer je verbinding.';
+    return tr.joinFailedConnection;
   }
 }

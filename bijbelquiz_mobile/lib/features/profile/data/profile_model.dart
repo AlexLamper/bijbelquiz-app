@@ -1,4 +1,5 @@
 import '../../../core/avatar/avatar_catalog.dart';
+import '../../../l10n/tr.dart';
 
 /// Reads an int that the API may send as int, double, or numeric string.
 int _asInt(dynamic value, [int fallback = 0]) {
@@ -206,7 +207,7 @@ class ProfileModel {
       nameChangeAllowedInDays: _asInt(json['nameChangeAllowedInDays']),
       xp: xp,
       level: _asInt(json['level'], 1),
-      levelTitle: json['levelTitle'] as String? ?? 'Zoeker',
+      levelTitle: json['levelTitle'] as String? ?? tr.rankSeeker,
       levelProgress: _asInt(json['levelProgress']).clamp(0, 100),
       nextLevelXp: _asInt(json['nextLevelXp'], xp),
       isPremium: json['isPremium'] as bool? ?? false,

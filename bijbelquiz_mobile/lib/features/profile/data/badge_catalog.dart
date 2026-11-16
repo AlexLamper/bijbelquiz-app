@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'profile_repository.dart';
+import '../../../l10n/tr.dart';
 
 /// One achievement, as the backend defines it.
 ///
@@ -102,58 +103,58 @@ IconData iconForBadge(String codeOrLabel) {
 /// case where that call fails. Codes, labels, and descriptions are copied from
 /// the server verbatim - an entry the server never awards would be a badge the
 /// player can never unlock, so nothing is invented here.
-const List<BadgeDefinition> kFallbackBadgeCatalog = <BadgeDefinition>[
+final List<BadgeDefinition> kFallbackBadgeCatalog = <BadgeDefinition>[
   BadgeDefinition(
     code: 'first_steps',
     label: 'Eerste Stappen',
     icon: Icons.star_border,
-    description: 'Voltooi je eerste quiz.',
+    description: tr.badgeFirstStepsDesc,
     aliases: <String>['eerste quiz', 'first quiz'],
   ),
   BadgeDefinition(
     code: 'knowledge_seeker',
-    label: 'Kenniszoeker',
+    label: tr.badgeKnowledgeSeeker,
     icon: Icons.search,
-    description: 'Speel 10 verschillende quizzen.',
+    description: tr.badgeKnowledgeSeekerDesc,
   ),
   BadgeDefinition(
     code: 'perfect_score',
-    label: 'Foutloos',
+    label: tr.badgePerfect,
     icon: Icons.gps_fixed,
-    description: 'Haal een 100% score op een quiz.',
+    description: tr.badgePerfectDesc,
     aliases: <String>['perfecte score'],
   ),
   BadgeDefinition(
     code: 'streak_3',
-    label: 'Op Dreef',
+    label: tr.badgeOnARoll,
     icon: Icons.local_fire_department_outlined,
-    description: 'Bouw een streak van 3 dagen op.',
+    description: tr.badgeOnARollDesc,
   ),
   BadgeDefinition(
     code: 'streak_7',
-    label: 'Toegewijd',
+    label: tr.badgeDedicated,
     icon: Icons.local_fire_department_outlined,
-    description: 'Speel 7 dagen op rij.',
+    description: tr.badgeDedicatedDesc,
     aliases: <String>['7 dagen reeks', 'week streak'],
   ),
   BadgeDefinition(
     code: 'scholar',
-    label: 'Geleerde',
+    label: tr.badgeScholar,
     icon: Icons.school_outlined,
     description: 'Behaal niveau 5.',
   ),
   BadgeDefinition(
     code: 'master',
-    label: 'Meester',
+    label: tr.badgeMaster,
     icon: Icons.emoji_events_outlined,
     description: 'Behaal niveau 10.',
     aliases: <String>['quiz meester'],
   ),
   BadgeDefinition(
     code: 'all_rounder',
-    label: 'Allrounder',
+    label: tr.badgeAllRounder,
     icon: Icons.public,
-    description: 'Speel een brede selectie quizzen.',
+    description: tr.badgeAllRounderDesc,
   ),
 ];
 

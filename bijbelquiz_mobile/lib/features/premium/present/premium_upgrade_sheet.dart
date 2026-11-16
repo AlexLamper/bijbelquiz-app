@@ -11,6 +11,7 @@ import '../domain/plan_pricing.dart';
 import 'premium_controller.dart';
 import 'premium_status_notices.dart';
 import 'widgets/paywall_parts.dart';
+import '../../../l10n/tr.dart';
 
 /// A compact paywall that opens over whatever the player was doing.
 ///
@@ -185,9 +186,9 @@ class _PremiumUpgradeSheetState extends ConsumerState<_PremiumUpgradeSheet> {
                 children: [
                   Expanded(
                     child: PaywallPlanCard(
-                      title: 'Jaarlijks',
+                      title: tr.yearly,
                       price: yearlyPrice,
-                      period: 'per jaar',
+                      period: tr.perYear,
                       weekly: yearlyPerWeek,
                       badge:
                           yearlyTrial?.label ??
@@ -201,11 +202,11 @@ class _PremiumUpgradeSheetState extends ConsumerState<_PremiumUpgradeSheet> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: PaywallPlanCard(
-                      title: 'Maandelijks',
+                      title: tr.monthly,
                       price: monthlyPrice,
-                      period: 'per maand',
+                      period: tr.perMonth,
                       weekly: monthlyPerWeek,
-                      note: monthlyTrial?.label ?? 'Geen proefperiode',
+                      note: monthlyTrial?.label ?? tr.noTrial,
                       selected: _plan == _SheetPlan.monthly,
                       onTap: isLoading
                           ? null
@@ -218,7 +219,7 @@ class _PremiumUpgradeSheetState extends ConsumerState<_PremiumUpgradeSheet> {
             const SizedBox(height: 16),
             BqButton(
               label: selectedOffer == null && !offersLoading
-                  ? 'Prijzen opnieuw laden'
+                  ? tr.reloadPrices
                   : paywallCtaLabel(trial),
               height: 56,
               fontSize: 17,
@@ -249,7 +250,7 @@ class _PremiumUpgradeSheetState extends ConsumerState<_PremiumUpgradeSheet> {
             const SizedBox(height: 4),
             Center(
               child: PaywallLink(
-                label: 'Alle plannen bekijken',
+                label: tr.viewAllPlans,
                 onTap: isLoading
                     ? null
                     : () {

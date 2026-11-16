@@ -14,6 +14,7 @@ import '../data/badge_catalog.dart';
 import '../data/profile_model.dart';
 import 'profile_provider.dart';
 import 'widgets/badge_medal.dart';
+import '../../../l10n/tr.dart';
 
 /// Profiel - BijbelQuiz 2.0 (`R-Profiel`).
 ///
@@ -78,7 +79,7 @@ class ProfileScreen extends ConsumerWidget {
                 const SizedBox(height: 60),
                 AppEmptyState(
                   icon: Icons.error_outline,
-                  title: 'Profiel kon niet laden',
+                  title: tr.profileLoadFailed,
                   description: '$err',
                 ),
               ],
@@ -130,7 +131,7 @@ class _PageHeader extends StatelessWidget {
         ),
         _RoundIconButton(
           icon: BqIcons.gear,
-          label: 'Instellingen',
+          label: tr.settings,
           onTap: () => context.push('/settings'),
         ),
       ],
@@ -203,7 +204,7 @@ class _ProfileContent extends StatelessWidget {
         const SizedBox(height: 14),
         _ProfileCard(profile: profile, rank: rank),
         const SizedBox(height: 16),
-        const _SectionTitle('Statistieken'),
+        _SectionTitle(tr.statistics),
         const SizedBox(height: 8),
         _StatsGrid(profile: profile),
         // The "Alle N van M" link is 44 high to tap, which adds its own
@@ -217,7 +218,7 @@ class _ProfileContent extends StatelessWidget {
         _PremiumRow(isPremium: profile.isPremium),
         if (profile.recentProgress.isNotEmpty) ...[
           const SizedBox(height: 16),
-          const _SectionTitle('Recent gespeeld'),
+          _SectionTitle(tr.recentlyPlayed),
           const SizedBox(height: 8),
           _RecentActivityList(recentProgress: profile.recentProgress),
         ],
@@ -315,7 +316,7 @@ class _ProfileCard extends StatelessWidget {
                   height: 68,
                   child: Align(
                     alignment: Alignment.topRight,
-                    child: BqPill(label: 'Level ${profile.level}'),
+                    child: BqPill(label: tr.levelN(profile.level)),
                   ),
                 ),
               ],
@@ -323,8 +324,8 @@ class _ProfileCard extends StatelessWidget {
             const SizedBox(height: 14),
             Semantics(
               label: isMaxLevel
-                  ? 'Hoogste level bereikt'
-                  : 'Voortgang naar level ${profile.level + 1}',
+                  ? tr.maxLevel
+                  : tr.progressToLevel(profile.level + 1),
               child: BqProgressBar(
                 value: isMaxLevel ? 1 : profile.levelFraction,
                 height: 8,
@@ -333,9 +334,8 @@ class _ProfileCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               isMaxLevel
-                  ? 'Hoogste level bereikt'
-                  : 'Nog ${_formatNumber(xpRemaining)} XP tot level '
-                        '${profile.level + 1}',
+                  ? tr.maxLevel
+                  : tr.xpToLevel(_formatNumber(xpRemaining), profile.level + 1),
               style: AppTheme.metaLabel,
             ),
           ],
@@ -357,7 +357,7 @@ class _EditableAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: 'Profiel bewerken',
+      label: tr.editProfile,
       excludeSemantics: true,
       onTap: onTap,
       child: GestureDetector(
@@ -423,7 +423,7 @@ class _StatsGrid extends StatelessWidget {
         // player comes back for.
         icon: const BqIcon(BqIcons.flame, size: 30),
         value: '${profile.streak}',
-        label: 'Dagen op rij',
+        label: tr.daysInARow,
       ),
       _StatTile(
         icon: const BqIcon(BqIcons.bolt, size: 22),
@@ -433,12 +433,12 @@ class _StatsGrid extends StatelessWidget {
       _StatTile(
         icon: const BqIcon(BqIcons.book, size: 22, color: AppTheme.lapis),
         value: _formatNumber(profile.quizzesPlayed),
-        label: 'Quizzen gespeeld',
+        label: tr.quizzesPlayed,
       ),
       _StatTile(
         icon: const BqIcon(_check, size: 22),
         value: '${profile.averageScore}%',
-        label: 'Gemiddelde score',
+        label: tr.averageScore,
       ),
     ];
 
@@ -535,11 +535,10 @@ class _AchievementsSection extends ConsumerWidget {
       children: [
         Row(
           children: [
-            const Expanded(child: _SectionTitle('Prestaties')),
+            Expanded(child: _SectionTitle(tr.achievements)),
             Semantics(
               button: true,
-              label: 'Alle prestaties bekijken, ${unlocked.length} van '
-                  '${overview.length} behaald',
+              label: tr.viewAllAchievementsA11y(unlocked.length, overview.length),
               excludeSemantics: true,
               onTap: onViewAll,
               child: GestureDetector(
@@ -552,7 +551,7 @@ class _AchievementsSection extends ConsumerWidget {
                     child: Center(
                       widthFactor: 1,
                       child: Text(
-                        'Alle ${unlocked.length} van ${overview.length}',
+                        tr.allOf(unlocked.length, overview.length),
                         style: const TextStyle(
                           fontFamily: AppTheme.sansFontName,
                           fontSize: 14,
@@ -607,7 +606,7 @@ class _PremiumRow extends StatelessWidget {
           child: BqIcon(BqIcons.crown, size: 22),
         ),
         title: 'Premium',
-        subtitle: isPremium ? 'Je hebt Premium' : 'Je speelt gratis',
+        subtitle: isPremium ? tr.youHavePremium : tr.youPlayFree,
         // Premium players have nothing to buy, so the row is informational.
         onTap: isPremium ? null : () => context.push('/premium-intro'),
       ),
@@ -633,8 +632,8 @@ class _RecentActivityList extends StatelessWidget {
             ),
             title: item.quizTitle,
             subtitle: item.totalQuestions > 0
-                ? '${item.score} van ${item.totalQuestions} goed'
-                : 'Voltooid',
+                ? tr.scoreOfTotal(item.score, item.totalQuestions)
+                : tr.completed,
             trailing: Text(
               // `score` is a correct-answer count, not a percentage.
               '${(item.accuracy * 100).round()}%',
@@ -660,15 +659,15 @@ class _GuestProfileContent extends StatelessWidget {
   static const String _sync =
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 20v-4h-4"/></svg>';
 
-  static const List<(String, Color, Color, String)> _benefits = [
+  static final List<(String, Color, Color, String)> _benefits = [
     (BqIcons.bolt, AppTheme.goldTint, AppTheme.goldText,
-        'Punten, niveau en reeks die blijven staan'),
+        tr.guestPerkKeep),
     (BqIcons.trophy, AppTheme.lapisTint, AppTheme.lapis,
-        'Een plek op de ranglijst'),
+        tr.guestPerkLeaderboard),
     (BqIcons.shield, AppTheme.positiveTint, AppTheme.positive,
-        'Badges voor je prestaties'),
+        tr.guestPerkBadges),
     (_sync, AppTheme.lapisTint, AppTheme.lapis,
-        'Dezelfde voortgang op bijbelquiz.com'),
+        tr.guestPerkWebsite),
   ];
 
   @override
@@ -685,17 +684,15 @@ class _GuestProfileContent extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Bewaar je voortgang', style: AppTheme.displayTitle),
+                Text(tr.saveYourProgress, style: AppTheme.displayTitle),
                 const SizedBox(height: 6),
-                const Text(
-                  'Je speelt zonder account. Dat kan gewoon, maar je score, '
-                  'punten en reeks blijven alleen bewaard met een gratis '
-                  'account.',
+                Text(
+                  tr.guestExplain,
                   style: AppTheme.bodyMuted,
                 ),
                 const SizedBox(height: 16),
                 BqButton(
-                  label: 'Gratis account aanmaken',
+                  label: tr.createFreeAccount,
                   onPressed: () => context.push('/register'),
                 ),
                 const SizedBox(height: 10),
@@ -717,8 +714,8 @@ class _GuestProfileContent extends StatelessWidget {
                 children: [
                   Text(
                     pending.length == 1
-                        ? 'Eén quiz wacht op je account'
-                        : '${pending.length} quizzen wachten op je account',
+                        ? tr.pendingOne
+                        : tr.pendingMany(pending.length),
                     style: AppTheme.bodyStrong.copyWith(
                       color: AppTheme.lapisStrong,
                     ),
@@ -741,7 +738,7 @@ class _GuestProfileContent extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 16),
-          const _SectionTitle('Met een account'),
+          _SectionTitle(tr.withAccount),
           const SizedBox(height: 8),
           BqListCard(
             children: [

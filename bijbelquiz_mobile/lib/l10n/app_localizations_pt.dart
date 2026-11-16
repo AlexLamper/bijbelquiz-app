@@ -737,4 +737,605 @@ class AppLocalizationsPt extends AppLocalizations {
   String secondsN(Object choice) {
     return '$choice segundos';
   }
+
+  @override
+  String get joinFailed => 'Não foi possível participar.';
+
+  @override
+  String get joinFailedConnection =>
+      'Não foi possível participar. Verifique sua conexão.';
+
+  @override
+  String get trialEndingTitle => 'Seu teste está quase acabando';
+
+  @override
+  String trialEndingBody(Object kTrialReminderDaysBeforeEnd) {
+    return 'Seu Bible Quizzes Premium começa em $kTrialReminderDaysBeforeEnd dias. Não quer continuar? Cancele nas configurações da loja.';
+  }
+
+  @override
+  String get trialReminderChannel => 'Lembrete de teste';
+
+  @override
+  String get trialReminderChannelDescription =>
+      'Um lembrete antes do fim do seu teste grátis.';
+
+  @override
+  String get supportEmail => 'info@biblequizzes.app';
+
+  @override
+  String get groupCodeIncomplete => 'Digite o código do grupo completo.';
+
+  @override
+  String groupJoined(Object name) {
+    return 'Agora você faz parte de $name.';
+  }
+
+  @override
+  String get groupLicenseGoToSite =>
+      'Acesse biblequizzes.app/group-license no navegador.';
+
+  @override
+  String get groupLicense => 'Licença de grupo';
+
+  @override
+  String mailUsAt(Object supportEmail) {
+    return 'Escreva para $supportEmail.';
+  }
+
+  @override
+  String get groupCodeIntro =>
+      'Seu líder de jovens, pastor ou professor tem um código de grupo? Digite abaixo e ganhe Premium na hora.';
+
+  @override
+  String get premiumViaGroup => 'Premium pelo seu grupo';
+
+  @override
+  String get yourGroups => 'Seus grupos';
+
+  @override
+  String get premiumWholeGroup => 'Premium para o seu grupo inteiro';
+
+  @override
+  String get forChurches => 'Para igrejas, escolas e associações';
+
+  @override
+  String get groupPerkAll => 'Todo o Premium para cada membro';
+
+  @override
+  String get groupPerkCode => 'Um código que você lê em voz alta na sala';
+
+  @override
+  String get groupPerkManage => 'Você decide quem participa';
+
+  @override
+  String get groupLicenseWebsiteOnly =>
+      'A licença de grupo é comprada no site, porque uma compra na App Store fica presa a uma única conta e não a um grupo.';
+
+  @override
+  String get openWebsite => 'Abrir biblequizzes.app';
+
+  @override
+  String get youManageGroup => 'Você administra este grupo';
+
+  @override
+  String get youTakePart => 'Você participa';
+
+  @override
+  String get groupCode => 'Código do grupo';
+
+  @override
+  String get purchaseReceivedNotActive =>
+      'Recebemos sua compra, mas o Premium ainda não está ativo. Toque em \"Restaurar\" daqui a um minuto.';
+
+  @override
+  String noPurchaseFound(Object storeName) {
+    return 'Não encontramos nenhuma compra Premium nesta conta $storeName.';
+  }
+
+  @override
+  String purchasePending(Object storeName) {
+    return 'Sua compra ainda aguarda aprovação ou pagamento. O Premium liga sozinho quando a $storeName concluir.';
+  }
+
+  @override
+  String get noInternetRetry =>
+      'Sem conexão com a internet. Verifique sua conexão e tente de novo.';
+
+  @override
+  String get alreadyPurchased =>
+      'Você já comprou isso. Toque em \"Restaurar\" para recuperar.';
+
+  @override
+  String get purchaseOtherAccount =>
+      'Esta compra já pertence a outra conta do Bible Quizzes. Entre com essa conta para usar seu Premium.';
+
+  @override
+  String purchasesNotAllowed(Object store) {
+    return 'Compras não são permitidas neste aparelho. Verifique as configurações da sua conta $store.';
+  }
+
+  @override
+  String subscriptionUnavailable(Object store) {
+    return 'Esta assinatura não está disponível na $store agora. Tente mais tarde.';
+  }
+
+  @override
+  String storeError(Object store) {
+    return 'A $store retornou um erro. Tente mais tarde.';
+  }
+
+  @override
+  String get purchasesNotInVersion =>
+      'Compras não estão disponíveis nesta versão do app.';
+
+  @override
+  String get restoreFailed => 'Não foi possível restaurar. Tente de novo.';
+
+  @override
+  String get introPerkExplain =>
+      'Uma explicação em cada pergunta: por que a resposta está certa';
+
+  @override
+  String get introPerkAll => 'Todos os quizzes, quantas vezes quiser';
+
+  @override
+  String get introPerkReview => 'Uma revisão completa após cada quiz';
+
+  @override
+  String get introPerkDaily => 'Um quiz novo todo dia, sem limite';
+
+  @override
+  String get introPerkStick => 'Uma explicação em cada pergunta, para fixar';
+
+  @override
+  String get introPerkLookBack => 'Reveja suas respostas após cada quiz';
+
+  @override
+  String get introPerkTogetherFree => 'Jogar juntos continua grátis para todos';
+
+  @override
+  String get introPerkSoloUnlimited => 'Além disso, jogo solo ilimitado';
+
+  @override
+  String get introPerkDiscuss =>
+      'Uma explicação em cada pergunta para conversar juntos';
+
+  @override
+  String stepOfThree(Object page) {
+    return 'Etapa $page de 3';
+  }
+
+  @override
+  String get actionNext => 'Avançar';
+
+  @override
+  String get introGrowQuestion => 'Em que você quer crescer?';
+
+  @override
+  String get introGrowSubtitle =>
+      'Vamos mostrar o que o Premium faz para isso.';
+
+  @override
+  String get introGoalKnowledge => 'Mais conhecimento bíblico';
+
+  @override
+  String get introGoalKnowledgeBody =>
+      'Entender por que uma resposta está certa.';
+
+  @override
+  String get introGoalDaily => 'Aprender algo todo dia';
+
+  @override
+  String get introGoalDailyBody => 'Criar um hábito e mantê-lo.';
+
+  @override
+  String get introGoalGroupBody =>
+      'Com a família ou um grupo, uns contra os outros.';
+
+  @override
+  String get introYouGet => 'Veja o que você ganha';
+
+  @override
+  String get introOneMembership => 'Tudo em uma assinatura, no site e no app.';
+
+  @override
+  String get choosePlan => 'Escolha seu plano';
+
+  @override
+  String get pricesNextPage =>
+      'Na próxima página você vê os preços. Dá para cancelar quando quiser.';
+
+  @override
+  String get accountWebAndApp =>
+      'Sua conta funciona no site e no app ao mesmo tempo. Uma compra no celular também dá Premium no site, e vice-versa.';
+
+  @override
+  String get paywallHeadlineDefault => 'Jogue sem limites\ncom Premium';
+
+  @override
+  String paywallHeadlineLimit(Object kFreeQuizLimit) {
+    return 'Você jogou seus\n$kFreeQuizLimit quizzes grátis';
+  }
+
+  @override
+  String get paywallHeadlineTogether => 'Continue jogando juntos\nsem limites';
+
+  @override
+  String get paywallHeadlineGroup => 'Jogue com o\nseu grupo inteiro';
+
+  @override
+  String get paywallHeadlineExplain => 'Leia o porquê\nde cada pergunta';
+
+  @override
+  String get paywallHeadlineUnlock => 'Desbloqueie\ntodos os quizzes';
+
+  @override
+  String get premiumRestored => 'Premium restaurado';
+
+  @override
+  String get welcomePremium => 'Bem-vindo ao Premium';
+
+  @override
+  String get premiumBackOn => 'Seu Premium está ativo de novo nesta conta.';
+
+  @override
+  String get premiumFullAccess =>
+      'Agora você tem acesso total a todos os recursos Premium, no app e no site. Aproveite!';
+
+  @override
+  String get playOnPremium => 'Continue jogando com Premium.';
+
+  @override
+  String get chooseSubscription => 'Escolha uma assinatura';
+
+  @override
+  String get yearly => 'Anual';
+
+  @override
+  String get perYear => 'por ano';
+
+  @override
+  String get monthly => 'Mensal';
+
+  @override
+  String get perMonth => 'por mês';
+
+  @override
+  String get noTrial => 'Sem teste';
+
+  @override
+  String get reloadPrices => 'Recarregar preços';
+
+  @override
+  String storeUnreachable(Object storeName) {
+    return 'A $storeName não está acessível agora. Verifique sua conexão.';
+  }
+
+  @override
+  String get restorePurchase => 'Restaurar compra';
+
+  @override
+  String get terms => 'Termos';
+
+  @override
+  String get privacy => 'Privacidade';
+
+  @override
+  String get alreadyPremium =>
+      'Você já tem Premium nesta conta. Nada foi cobrado.';
+
+  @override
+  String get premiumOn => 'Premium está ativo';
+
+  @override
+  String get restoreSignIn =>
+      'Entre com sua conta e restauraremos suas compras nela.';
+
+  @override
+  String get needAccountForPremium =>
+      'Primeiro crie uma conta grátis ou entre, assim o Premium fica com você - no app e no site.';
+
+  @override
+  String get accountNeeded => 'Conta necessária';
+
+  @override
+  String get pleaseWait => 'Aguarde';
+
+  @override
+  String get nothingToRestore => 'Nada para restaurar';
+
+  @override
+  String get viewAllPlans => 'Ver todos os planos';
+
+  @override
+  String get explainEveryAnswer => 'Explicação em cada resposta';
+
+  @override
+  String paywallFreeLimit(Object kFreeQuizLimit) {
+    return 'De graça você joga $kFreeQuizLimit quizzes. Com Premium todos os livros da Bíblia ficam abertos, inclusive Salmos e Apocalipse.';
+  }
+
+  @override
+  String get premiumEverythingOpen => 'Tudo liberado com Premium';
+
+  @override
+  String get abbrGenesis => 'Gn';
+
+  @override
+  String get quizzes12 => '12 quizzes';
+
+  @override
+  String get abbrPsalms => 'Sl';
+
+  @override
+  String get quizzes15 => '15 quizzes';
+
+  @override
+  String get abbrRevelation => 'Ap';
+
+  @override
+  String get bookRevelation => 'Apocalipse';
+
+  @override
+  String get quizzes9 => '9 quizzes';
+
+  @override
+  String get free => 'Grátis';
+
+  @override
+  String get orLifetime => 'Ou pagamento único: Premium vitalício';
+
+  @override
+  String lifetimeOnce(Object price) {
+    return 'Premium vitalício, $price uma vez';
+  }
+
+  @override
+  String lifetimePerWeek(Object weekly, Object lifetimeHorizonYears) {
+    return '$weekly por semana em $lifetimeHorizonYears anos';
+  }
+
+  @override
+  String get lifetimePremium => 'Premium vitalício';
+
+  @override
+  String get payNothingToday => 'Hoje você não paga nada.';
+
+  @override
+  String payNothingTodayReminder(Object day) {
+    return 'Hoje você não paga nada. Lembrete no dia $day.';
+  }
+
+  @override
+  String get cancelAnytime => 'Cancele quando quiser.';
+
+  @override
+  String get payOnceNoSub => 'Pagamento único, sem assinatura.';
+
+  @override
+  String get startPremium => 'Começar Premium';
+
+  @override
+  String tryTrial(Object label) {
+    return 'Experimente $label';
+  }
+
+  @override
+  String get badgeFirstStepsDesc => 'Conclua seu primeiro quiz.';
+
+  @override
+  String get badgeKnowledgeSeeker => 'Buscador do saber';
+
+  @override
+  String get badgeKnowledgeSeekerDesc => 'Jogue 10 quizzes diferentes.';
+
+  @override
+  String get badgePerfect => 'Sem erros';
+
+  @override
+  String get badgePerfectDesc => 'Tire 100% em um quiz.';
+
+  @override
+  String get badgeOnARoll => 'Embalado';
+
+  @override
+  String get badgeOnARollDesc => 'Faça uma sequência de 3 dias.';
+
+  @override
+  String get badgeDedicated => 'Dedicado';
+
+  @override
+  String get badgeDedicatedDesc => 'Jogue 7 dias seguidos.';
+
+  @override
+  String get badgeScholar => 'Estudioso';
+
+  @override
+  String get badgeMaster => 'Mestre';
+
+  @override
+  String get badgeAllRounder => 'Versátil';
+
+  @override
+  String get badgeAllRounderDesc => 'Jogue uma grande variedade de quizzes.';
+
+  @override
+  String get rankSeeker => 'Buscador';
+
+  @override
+  String get saveFailed => 'Não foi possível salvar. Tente de novo.';
+
+  @override
+  String get saveFailedConnection =>
+      'Não foi possível salvar. Verifique sua conexão.';
+
+  @override
+  String get achievements => 'Conquistas';
+
+  @override
+  String get achievementsLoadFailed => 'As conquistas não carregaram';
+
+  @override
+  String get noBadgesYet =>
+      'Ainda sem medalhas. Jogue quizzes para desbloquear a primeira.';
+
+  @override
+  String stillToEarn(Object lockedCount) {
+    return 'A conquistar · $lockedCount';
+  }
+
+  @override
+  String badgesEarnedA11y(Object unlocked, Object total) {
+    return '$unlocked de $total medalhas conquistadas';
+  }
+
+  @override
+  String badgesOf(Object unlocked, Object total) {
+    return '$unlocked de $total medalhas';
+  }
+
+  @override
+  String get allEarned => 'Tudo conquistado';
+
+  @override
+  String leftToEarn(Object left) {
+    return 'Faltam $left';
+  }
+
+  @override
+  String get profileUpdated => 'Perfil atualizado.';
+
+  @override
+  String get editProfile => 'Editar perfil';
+
+  @override
+  String get profileLoadFailed => 'O perfil não carregou';
+
+  @override
+  String get actionSave => 'Salvar';
+
+  @override
+  String get surpriseMe => 'Surpreenda-me';
+
+  @override
+  String get displayName => 'Nome de exibição';
+
+  @override
+  String get displayNameHint => 'Como você aparece no ranking';
+
+  @override
+  String get displayNameHelp =>
+      'Visível no ranking e no multijogador. Pode ser mudado uma vez a cada 30 dias.';
+
+  @override
+  String get buildMascot => 'Monte seu mascote';
+
+  @override
+  String get figure => 'Figura';
+
+  @override
+  String get color => 'Cor';
+
+  @override
+  String get background => 'Fundo';
+
+  @override
+  String get accessory => 'Acessório';
+
+  @override
+  String get notSignedIn => 'Não conectado';
+
+  @override
+  String get settings => 'Configurações';
+
+  @override
+  String get statistics => 'Estatísticas';
+
+  @override
+  String get recentlyPlayed => 'Jogados recentemente';
+
+  @override
+  String levelN(Object level) {
+    return 'Nível $level';
+  }
+
+  @override
+  String get maxLevel => 'Nível máximo alcançado';
+
+  @override
+  String progressToLevel(Object level) {
+    return 'Progresso para o nível $level';
+  }
+
+  @override
+  String xpToLevel(Object xpRemaining, Object level) {
+    return '$xpRemaining XP para o nível $level';
+  }
+
+  @override
+  String get daysInARow => 'Dias seguidos';
+
+  @override
+  String get quizzesPlayed => 'Quizzes jogados';
+
+  @override
+  String get averageScore => 'Pontuação média';
+
+  @override
+  String viewAllAchievementsA11y(Object unlockedCount, Object overviewCount) {
+    return 'Ver todas as conquistas, $unlockedCount de $overviewCount conquistadas';
+  }
+
+  @override
+  String allOf(Object unlockedCount, Object overviewCount) {
+    return 'Todas $unlockedCount de $overviewCount';
+  }
+
+  @override
+  String get youHavePremium => 'Você tem Premium';
+
+  @override
+  String get youPlayFree => 'Você joga grátis';
+
+  @override
+  String scoreOfTotal(Object score, Object totalQuestions) {
+    return '$score de $totalQuestions certas';
+  }
+
+  @override
+  String get completed => 'Concluído';
+
+  @override
+  String get guestPerkKeep => 'Pontos, nível e sequência que ficam';
+
+  @override
+  String get guestPerkLeaderboard => 'Um lugar no ranking';
+
+  @override
+  String get guestPerkBadges => 'Medalhas pelas suas conquistas';
+
+  @override
+  String get guestPerkWebsite => 'O mesmo progresso em biblequizzes.app';
+
+  @override
+  String get saveYourProgress => 'Salve seu progresso';
+
+  @override
+  String get guestExplain =>
+      'Você está jogando sem conta. Tudo bem, mas sua pontuação, pontos e sequência só ficam salvos com uma conta grátis.';
+
+  @override
+  String get createFreeAccount => 'Criar uma conta grátis';
+
+  @override
+  String get pendingOne => 'Um quiz está esperando sua conta';
+
+  @override
+  String pendingMany(Object pendingCount) {
+    return '$pendingCount quizzes estão esperando sua conta';
+  }
+
+  @override
+  String get withAccount => 'Com uma conta';
 }

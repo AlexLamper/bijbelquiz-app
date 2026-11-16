@@ -1401,6 +1401,1050 @@ abstract class AppLocalizations {
   /// In nl, this message translates to:
   /// **'{choice} seconden'**
   String secondsN(Object choice);
+
+  /// No description provided for @joinFailed.
+  ///
+  /// In nl, this message translates to:
+  /// **'Deelnemen is niet gelukt.'**
+  String get joinFailed;
+
+  /// No description provided for @joinFailedConnection.
+  ///
+  /// In nl, this message translates to:
+  /// **'Deelnemen is niet gelukt. Controleer je verbinding.'**
+  String get joinFailedConnection;
+
+  /// No description provided for @trialEndingTitle.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je proefperiode loopt bijna af'**
+  String get trialEndingTitle;
+
+  /// No description provided for @trialEndingBody.
+  ///
+  /// In nl, this message translates to:
+  /// **'Over {kTrialReminderDaysBeforeEnd} dagen gaat je BijbelQuiz Premium in. Wil je niet verder? Zeg dan op in je store-instellingen.'**
+  String trialEndingBody(Object kTrialReminderDaysBeforeEnd);
+
+  /// No description provided for @trialReminderChannel.
+  ///
+  /// In nl, this message translates to:
+  /// **'Herinnering proefperiode'**
+  String get trialReminderChannel;
+
+  /// No description provided for @trialReminderChannelDescription.
+  ///
+  /// In nl, this message translates to:
+  /// **'Een herinnering voordat je gratis proefperiode afloopt.'**
+  String get trialReminderChannelDescription;
+
+  /// No description provided for @supportEmail.
+  ///
+  /// In nl, this message translates to:
+  /// **'info@bijbelquiz.com'**
+  String get supportEmail;
+
+  /// No description provided for @groupCodeIncomplete.
+  ///
+  /// In nl, this message translates to:
+  /// **'Vul de volledige groepscode in.'**
+  String get groupCodeIncomplete;
+
+  /// No description provided for @groupJoined.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je hoort nu bij {name}.'**
+  String groupJoined(Object name);
+
+  /// No description provided for @groupLicenseGoToSite.
+  ///
+  /// In nl, this message translates to:
+  /// **'Ga naar bijbelquiz.com/groepslicentie in je browser.'**
+  String get groupLicenseGoToSite;
+
+  /// No description provided for @groupLicense.
+  ///
+  /// In nl, this message translates to:
+  /// **'Groepslicentie'**
+  String get groupLicense;
+
+  /// No description provided for @mailUsAt.
+  ///
+  /// In nl, this message translates to:
+  /// **'Mail ons op {supportEmail}.'**
+  String mailUsAt(Object supportEmail);
+
+  /// No description provided for @groupCodeIntro.
+  ///
+  /// In nl, this message translates to:
+  /// **'Heeft je jeugdleider, dominee of docent een groepscode? Vul hem hieronder in en je hebt meteen Premium.'**
+  String get groupCodeIntro;
+
+  /// No description provided for @premiumViaGroup.
+  ///
+  /// In nl, this message translates to:
+  /// **'Premium via je groep'**
+  String get premiumViaGroup;
+
+  /// No description provided for @yourGroups.
+  ///
+  /// In nl, this message translates to:
+  /// **'Jouw groepen'**
+  String get yourGroups;
+
+  /// No description provided for @premiumWholeGroup.
+  ///
+  /// In nl, this message translates to:
+  /// **'Premium voor je hele groep'**
+  String get premiumWholeGroup;
+
+  /// No description provided for @forChurches.
+  ///
+  /// In nl, this message translates to:
+  /// **'Voor kerken, scholen en verenigingen'**
+  String get forChurches;
+
+  /// No description provided for @groupPerkAll.
+  ///
+  /// In nl, this message translates to:
+  /// **'Alles van Premium voor elk lid'**
+  String get groupPerkAll;
+
+  /// No description provided for @groupPerkCode.
+  ///
+  /// In nl, this message translates to:
+  /// **'Een code die je voorleest in de zaal'**
+  String get groupPerkCode;
+
+  /// No description provided for @groupPerkManage.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je beheert zelf wie er meedoet'**
+  String get groupPerkManage;
+
+  /// No description provided for @groupLicenseWebsiteOnly.
+  ///
+  /// In nl, this message translates to:
+  /// **'Een groepslicentie koop je op de website, omdat een aankoop in de App Store aan een enkel account vastzit en niet aan een groep.'**
+  String get groupLicenseWebsiteOnly;
+
+  /// No description provided for @openWebsite.
+  ///
+  /// In nl, this message translates to:
+  /// **'Open bijbelquiz.com'**
+  String get openWebsite;
+
+  /// No description provided for @youManageGroup.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je beheert deze groep'**
+  String get youManageGroup;
+
+  /// No description provided for @youTakePart.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je doet mee'**
+  String get youTakePart;
+
+  /// No description provided for @groupCode.
+  ///
+  /// In nl, this message translates to:
+  /// **'Groepscode'**
+  String get groupCode;
+
+  /// No description provided for @purchaseReceivedNotActive.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je aankoop is ontvangen, maar Premium staat nog niet aan. Tik over een minuut op \"Herstellen\".'**
+  String get purchaseReceivedNotActive;
+
+  /// No description provided for @noPurchaseFound.
+  ///
+  /// In nl, this message translates to:
+  /// **'We vonden geen Premium-aankoop op dit {storeName}-account.'**
+  String noPurchaseFound(Object storeName);
+
+  /// No description provided for @purchasePending.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je aankoop wacht nog op goedkeuring of betaling. Premium gaat vanzelf aan zodra de {storeName} die afrondt.'**
+  String purchasePending(Object storeName);
+
+  /// No description provided for @noInternetRetry.
+  ///
+  /// In nl, this message translates to:
+  /// **'Geen internetverbinding. Controleer je verbinding en probeer het opnieuw.'**
+  String get noInternetRetry;
+
+  /// No description provided for @alreadyPurchased.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je hebt dit al gekocht. Tik op \"Herstellen\" om het terug te zetten.'**
+  String get alreadyPurchased;
+
+  /// No description provided for @purchaseOtherAccount.
+  ///
+  /// In nl, this message translates to:
+  /// **'Deze aankoop hoort al bij een ander BijbelQuiz-account. Log in met dat account om je Premium te gebruiken.'**
+  String get purchaseOtherAccount;
+
+  /// No description provided for @purchasesNotAllowed.
+  ///
+  /// In nl, this message translates to:
+  /// **'Aankopen zijn niet toegestaan op dit apparaat. Controleer de instellingen van je {store}-account.'**
+  String purchasesNotAllowed(Object store);
+
+  /// No description provided for @subscriptionUnavailable.
+  ///
+  /// In nl, this message translates to:
+  /// **'Dit abonnement is nu niet beschikbaar in de {store}. Probeer het later opnieuw.'**
+  String subscriptionUnavailable(Object store);
+
+  /// No description provided for @storeError.
+  ///
+  /// In nl, this message translates to:
+  /// **'De {store} geeft een fout. Probeer het later opnieuw.'**
+  String storeError(Object store);
+
+  /// No description provided for @purchasesNotInVersion.
+  ///
+  /// In nl, this message translates to:
+  /// **'Aankopen zijn in deze versie van de app niet beschikbaar.'**
+  String get purchasesNotInVersion;
+
+  /// No description provided for @restoreFailed.
+  ///
+  /// In nl, this message translates to:
+  /// **'Herstellen is niet gelukt. Probeer het opnieuw.'**
+  String get restoreFailed;
+
+  /// No description provided for @introPerkExplain.
+  ///
+  /// In nl, this message translates to:
+  /// **'Uitleg bij elke vraag: waarom het antwoord klopt'**
+  String get introPerkExplain;
+
+  /// No description provided for @introPerkAll.
+  ///
+  /// In nl, this message translates to:
+  /// **'Alle quizzen, zo vaak je wilt'**
+  String get introPerkAll;
+
+  /// No description provided for @introPerkReview.
+  ///
+  /// In nl, this message translates to:
+  /// **'Een volledige review na elke quiz'**
+  String get introPerkReview;
+
+  /// No description provided for @introPerkDaily.
+  ///
+  /// In nl, this message translates to:
+  /// **'Elke dag een nieuwe quiz, zonder limiet'**
+  String get introPerkDaily;
+
+  /// No description provided for @introPerkStick.
+  ///
+  /// In nl, this message translates to:
+  /// **'Uitleg bij elke vraag, zodat het blijft hangen'**
+  String get introPerkStick;
+
+  /// No description provided for @introPerkLookBack.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je antwoorden terugkijken na elke quiz'**
+  String get introPerkLookBack;
+
+  /// No description provided for @introPerkTogetherFree.
+  ///
+  /// In nl, this message translates to:
+  /// **'Samen spelen blijft voor iedereen gratis'**
+  String get introPerkTogetherFree;
+
+  /// No description provided for @introPerkSoloUnlimited.
+  ///
+  /// In nl, this message translates to:
+  /// **'Daarnaast alleen onbeperkt verder spelen'**
+  String get introPerkSoloUnlimited;
+
+  /// No description provided for @introPerkDiscuss.
+  ///
+  /// In nl, this message translates to:
+  /// **'Uitleg bij elke vraag om samen na te praten'**
+  String get introPerkDiscuss;
+
+  /// No description provided for @stepOfThree.
+  ///
+  /// In nl, this message translates to:
+  /// **'Stap {page} van 3'**
+  String stepOfThree(Object page);
+
+  /// No description provided for @actionNext.
+  ///
+  /// In nl, this message translates to:
+  /// **'Verder'**
+  String get actionNext;
+
+  /// No description provided for @introGrowQuestion.
+  ///
+  /// In nl, this message translates to:
+  /// **'Waar wil je in groeien?'**
+  String get introGrowQuestion;
+
+  /// No description provided for @introGrowSubtitle.
+  ///
+  /// In nl, this message translates to:
+  /// **'Dan laten we zien wat Premium daarvoor doet.'**
+  String get introGrowSubtitle;
+
+  /// No description provided for @introGoalKnowledge.
+  ///
+  /// In nl, this message translates to:
+  /// **'Meer Bijbelkennis'**
+  String get introGoalKnowledge;
+
+  /// No description provided for @introGoalKnowledgeBody.
+  ///
+  /// In nl, this message translates to:
+  /// **'Begrijpen waarom een antwoord klopt.'**
+  String get introGoalKnowledgeBody;
+
+  /// No description provided for @introGoalDaily.
+  ///
+  /// In nl, this message translates to:
+  /// **'Elke dag iets leren'**
+  String get introGoalDaily;
+
+  /// No description provided for @introGoalDailyBody.
+  ///
+  /// In nl, this message translates to:
+  /// **'Een gewoonte opbouwen en vasthouden.'**
+  String get introGoalDailyBody;
+
+  /// No description provided for @introGoalGroupBody.
+  ///
+  /// In nl, this message translates to:
+  /// **'Met familie of een groep tegen elkaar.'**
+  String get introGoalGroupBody;
+
+  /// No description provided for @introYouGet.
+  ///
+  /// In nl, this message translates to:
+  /// **'Dit krijg je erbij'**
+  String get introYouGet;
+
+  /// No description provided for @introOneMembership.
+  ///
+  /// In nl, this message translates to:
+  /// **'Alles in een lidmaatschap, op web en app.'**
+  String get introOneMembership;
+
+  /// No description provided for @choosePlan.
+  ///
+  /// In nl, this message translates to:
+  /// **'Kies je plan'**
+  String get choosePlan;
+
+  /// No description provided for @pricesNextPage.
+  ///
+  /// In nl, this message translates to:
+  /// **'Op de volgende pagina zie je de prijzen. Opzeggen kan altijd.'**
+  String get pricesNextPage;
+
+  /// No description provided for @accountWebAndApp.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je account werkt op web en app tegelijk. Een aankoop op je telefoon geeft je ook Premium op de website, en andersom.'**
+  String get accountWebAndApp;
+
+  /// No description provided for @paywallHeadlineDefault.
+  ///
+  /// In nl, this message translates to:
+  /// **'Speel onbeperkt\nmet Premium'**
+  String get paywallHeadlineDefault;
+
+  /// No description provided for @paywallHeadlineLimit.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je {kFreeQuizLimit} gratis quizzen\nzijn gespeeld'**
+  String paywallHeadlineLimit(Object kFreeQuizLimit);
+
+  /// No description provided for @paywallHeadlineTogether.
+  ///
+  /// In nl, this message translates to:
+  /// **'Speel onbeperkt\nsamen verder'**
+  String get paywallHeadlineTogether;
+
+  /// No description provided for @paywallHeadlineGroup.
+  ///
+  /// In nl, this message translates to:
+  /// **'Speel met je\nhele groep'**
+  String get paywallHeadlineGroup;
+
+  /// No description provided for @paywallHeadlineExplain.
+  ///
+  /// In nl, this message translates to:
+  /// **'Lees bij elke vraag\nwaarom'**
+  String get paywallHeadlineExplain;
+
+  /// No description provided for @paywallHeadlineUnlock.
+  ///
+  /// In nl, this message translates to:
+  /// **'Ontgrendel\nalle quizzen'**
+  String get paywallHeadlineUnlock;
+
+  /// No description provided for @premiumRestored.
+  ///
+  /// In nl, this message translates to:
+  /// **'Premium hersteld'**
+  String get premiumRestored;
+
+  /// No description provided for @welcomePremium.
+  ///
+  /// In nl, this message translates to:
+  /// **'Welkom bij Premium'**
+  String get welcomePremium;
+
+  /// No description provided for @premiumBackOn.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je Premium staat weer aan op dit account.'**
+  String get premiumBackOn;
+
+  /// No description provided for @premiumFullAccess.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je hebt nu volledige toegang tot alle premium functies, in de app en op de website. Veel plezier!'**
+  String get premiumFullAccess;
+
+  /// No description provided for @playOnPremium.
+  ///
+  /// In nl, this message translates to:
+  /// **'Speel verder met Premium.'**
+  String get playOnPremium;
+
+  /// No description provided for @chooseSubscription.
+  ///
+  /// In nl, this message translates to:
+  /// **'Kies een abonnement'**
+  String get chooseSubscription;
+
+  /// No description provided for @yearly.
+  ///
+  /// In nl, this message translates to:
+  /// **'Jaarlijks'**
+  String get yearly;
+
+  /// No description provided for @perYear.
+  ///
+  /// In nl, this message translates to:
+  /// **'per jaar'**
+  String get perYear;
+
+  /// No description provided for @monthly.
+  ///
+  /// In nl, this message translates to:
+  /// **'Maandelijks'**
+  String get monthly;
+
+  /// No description provided for @perMonth.
+  ///
+  /// In nl, this message translates to:
+  /// **'per maand'**
+  String get perMonth;
+
+  /// No description provided for @noTrial.
+  ///
+  /// In nl, this message translates to:
+  /// **'Geen proefperiode'**
+  String get noTrial;
+
+  /// No description provided for @reloadPrices.
+  ///
+  /// In nl, this message translates to:
+  /// **'Prijzen opnieuw laden'**
+  String get reloadPrices;
+
+  /// No description provided for @storeUnreachable.
+  ///
+  /// In nl, this message translates to:
+  /// **'De {storeName} is nu niet bereikbaar. Controleer je verbinding.'**
+  String storeUnreachable(Object storeName);
+
+  /// No description provided for @restorePurchase.
+  ///
+  /// In nl, this message translates to:
+  /// **'Aankoop herstellen'**
+  String get restorePurchase;
+
+  /// No description provided for @terms.
+  ///
+  /// In nl, this message translates to:
+  /// **'Voorwaarden'**
+  String get terms;
+
+  /// No description provided for @privacy.
+  ///
+  /// In nl, this message translates to:
+  /// **'Privacy'**
+  String get privacy;
+
+  /// No description provided for @alreadyPremium.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je hebt al Premium op dit account. Er is niets afgeschreven.'**
+  String get alreadyPremium;
+
+  /// No description provided for @premiumOn.
+  ///
+  /// In nl, this message translates to:
+  /// **'Premium staat aan'**
+  String get premiumOn;
+
+  /// No description provided for @restoreSignIn.
+  ///
+  /// In nl, this message translates to:
+  /// **'Log in met je account, dan zetten we je aankopen terug op dat account.'**
+  String get restoreSignIn;
+
+  /// No description provided for @needAccountForPremium.
+  ///
+  /// In nl, this message translates to:
+  /// **'Maak eerst een gratis account of log in, dan hoort Premium bij jou - in de app en op de website.'**
+  String get needAccountForPremium;
+
+  /// No description provided for @accountNeeded.
+  ///
+  /// In nl, this message translates to:
+  /// **'Account nodig'**
+  String get accountNeeded;
+
+  /// No description provided for @pleaseWait.
+  ///
+  /// In nl, this message translates to:
+  /// **'Even geduld'**
+  String get pleaseWait;
+
+  /// No description provided for @nothingToRestore.
+  ///
+  /// In nl, this message translates to:
+  /// **'Niets om te herstellen'**
+  String get nothingToRestore;
+
+  /// No description provided for @viewAllPlans.
+  ///
+  /// In nl, this message translates to:
+  /// **'Alle plannen bekijken'**
+  String get viewAllPlans;
+
+  /// No description provided for @explainEveryAnswer.
+  ///
+  /// In nl, this message translates to:
+  /// **'Uitleg bij elk antwoord'**
+  String get explainEveryAnswer;
+
+  /// No description provided for @paywallFreeLimit.
+  ///
+  /// In nl, this message translates to:
+  /// **'Gratis speel je {kFreeQuizLimit} quizzen. Met Premium gaan alle bijbelboeken open, ook Psalmen en Openbaring.'**
+  String paywallFreeLimit(Object kFreeQuizLimit);
+
+  /// No description provided for @premiumEverythingOpen.
+  ///
+  /// In nl, this message translates to:
+  /// **'Met Premium alles open'**
+  String get premiumEverythingOpen;
+
+  /// No description provided for @abbrGenesis.
+  ///
+  /// In nl, this message translates to:
+  /// **'Gen'**
+  String get abbrGenesis;
+
+  /// No description provided for @quizzes12.
+  ///
+  /// In nl, this message translates to:
+  /// **'12 quizzen'**
+  String get quizzes12;
+
+  /// No description provided for @abbrPsalms.
+  ///
+  /// In nl, this message translates to:
+  /// **'Ps'**
+  String get abbrPsalms;
+
+  /// No description provided for @quizzes15.
+  ///
+  /// In nl, this message translates to:
+  /// **'15 quizzen'**
+  String get quizzes15;
+
+  /// No description provided for @abbrRevelation.
+  ///
+  /// In nl, this message translates to:
+  /// **'Opb'**
+  String get abbrRevelation;
+
+  /// No description provided for @bookRevelation.
+  ///
+  /// In nl, this message translates to:
+  /// **'Openbaring'**
+  String get bookRevelation;
+
+  /// No description provided for @quizzes9.
+  ///
+  /// In nl, this message translates to:
+  /// **'9 quizzen'**
+  String get quizzes9;
+
+  /// No description provided for @free.
+  ///
+  /// In nl, this message translates to:
+  /// **'Gratis'**
+  String get free;
+
+  /// No description provided for @orLifetime.
+  ///
+  /// In nl, this message translates to:
+  /// **'Of eenmalig: levenslang Premium'**
+  String get orLifetime;
+
+  /// No description provided for @lifetimeOnce.
+  ///
+  /// In nl, this message translates to:
+  /// **'Levenslang Premium, {price} eenmalig'**
+  String lifetimeOnce(Object price);
+
+  /// No description provided for @lifetimePerWeek.
+  ///
+  /// In nl, this message translates to:
+  /// **'{weekly} per week over {lifetimeHorizonYears} jaar'**
+  String lifetimePerWeek(Object weekly, Object lifetimeHorizonYears);
+
+  /// No description provided for @lifetimePremium.
+  ///
+  /// In nl, this message translates to:
+  /// **'Levenslang Premium'**
+  String get lifetimePremium;
+
+  /// No description provided for @payNothingToday.
+  ///
+  /// In nl, this message translates to:
+  /// **'Vandaag betaal je niets.'**
+  String get payNothingToday;
+
+  /// No description provided for @payNothingTodayReminder.
+  ///
+  /// In nl, this message translates to:
+  /// **'Vandaag betaal je niets. Herinnering op dag {day}.'**
+  String payNothingTodayReminder(Object day);
+
+  /// No description provided for @cancelAnytime.
+  ///
+  /// In nl, this message translates to:
+  /// **'Zeg op wanneer je wilt.'**
+  String get cancelAnytime;
+
+  /// No description provided for @payOnceNoSub.
+  ///
+  /// In nl, this message translates to:
+  /// **'Eenmalig betalen, geen abonnement.'**
+  String get payOnceNoSub;
+
+  /// No description provided for @startPremium.
+  ///
+  /// In nl, this message translates to:
+  /// **'Start Premium'**
+  String get startPremium;
+
+  /// No description provided for @tryTrial.
+  ///
+  /// In nl, this message translates to:
+  /// **'Probeer {label}'**
+  String tryTrial(Object label);
+
+  /// No description provided for @badgeFirstStepsDesc.
+  ///
+  /// In nl, this message translates to:
+  /// **'Voltooi je eerste quiz.'**
+  String get badgeFirstStepsDesc;
+
+  /// No description provided for @badgeKnowledgeSeeker.
+  ///
+  /// In nl, this message translates to:
+  /// **'Kenniszoeker'**
+  String get badgeKnowledgeSeeker;
+
+  /// No description provided for @badgeKnowledgeSeekerDesc.
+  ///
+  /// In nl, this message translates to:
+  /// **'Speel 10 verschillende quizzen.'**
+  String get badgeKnowledgeSeekerDesc;
+
+  /// No description provided for @badgePerfect.
+  ///
+  /// In nl, this message translates to:
+  /// **'Foutloos'**
+  String get badgePerfect;
+
+  /// No description provided for @badgePerfectDesc.
+  ///
+  /// In nl, this message translates to:
+  /// **'Haal een 100% score op een quiz.'**
+  String get badgePerfectDesc;
+
+  /// No description provided for @badgeOnARoll.
+  ///
+  /// In nl, this message translates to:
+  /// **'Op Dreef'**
+  String get badgeOnARoll;
+
+  /// No description provided for @badgeOnARollDesc.
+  ///
+  /// In nl, this message translates to:
+  /// **'Bouw een streak van 3 dagen op.'**
+  String get badgeOnARollDesc;
+
+  /// No description provided for @badgeDedicated.
+  ///
+  /// In nl, this message translates to:
+  /// **'Toegewijd'**
+  String get badgeDedicated;
+
+  /// No description provided for @badgeDedicatedDesc.
+  ///
+  /// In nl, this message translates to:
+  /// **'Speel 7 dagen op rij.'**
+  String get badgeDedicatedDesc;
+
+  /// No description provided for @badgeScholar.
+  ///
+  /// In nl, this message translates to:
+  /// **'Geleerde'**
+  String get badgeScholar;
+
+  /// No description provided for @badgeMaster.
+  ///
+  /// In nl, this message translates to:
+  /// **'Meester'**
+  String get badgeMaster;
+
+  /// No description provided for @badgeAllRounder.
+  ///
+  /// In nl, this message translates to:
+  /// **'Allrounder'**
+  String get badgeAllRounder;
+
+  /// No description provided for @badgeAllRounderDesc.
+  ///
+  /// In nl, this message translates to:
+  /// **'Speel een brede selectie quizzen.'**
+  String get badgeAllRounderDesc;
+
+  /// No description provided for @rankSeeker.
+  ///
+  /// In nl, this message translates to:
+  /// **'Zoeker'**
+  String get rankSeeker;
+
+  /// No description provided for @saveFailed.
+  ///
+  /// In nl, this message translates to:
+  /// **'Opslaan is niet gelukt. Probeer het opnieuw.'**
+  String get saveFailed;
+
+  /// No description provided for @saveFailedConnection.
+  ///
+  /// In nl, this message translates to:
+  /// **'Opslaan is niet gelukt. Controleer je verbinding.'**
+  String get saveFailedConnection;
+
+  /// No description provided for @achievements.
+  ///
+  /// In nl, this message translates to:
+  /// **'Prestaties'**
+  String get achievements;
+
+  /// No description provided for @achievementsLoadFailed.
+  ///
+  /// In nl, this message translates to:
+  /// **'Prestaties konden niet laden'**
+  String get achievementsLoadFailed;
+
+  /// No description provided for @noBadgesYet.
+  ///
+  /// In nl, this message translates to:
+  /// **'Nog geen badges behaald. Speel quizzen om je eerste badge vrij te spelen.'**
+  String get noBadgesYet;
+
+  /// No description provided for @stillToEarn.
+  ///
+  /// In nl, this message translates to:
+  /// **'Nog te halen · {lockedCount}'**
+  String stillToEarn(Object lockedCount);
+
+  /// No description provided for @badgesEarnedA11y.
+  ///
+  /// In nl, this message translates to:
+  /// **'{unlocked} van {total} badges behaald'**
+  String badgesEarnedA11y(Object unlocked, Object total);
+
+  /// No description provided for @badgesOf.
+  ///
+  /// In nl, this message translates to:
+  /// **'{unlocked} van {total} badges'**
+  String badgesOf(Object unlocked, Object total);
+
+  /// No description provided for @allEarned.
+  ///
+  /// In nl, this message translates to:
+  /// **'Alles behaald'**
+  String get allEarned;
+
+  /// No description provided for @leftToEarn.
+  ///
+  /// In nl, this message translates to:
+  /// **'Nog {left} te halen'**
+  String leftToEarn(Object left);
+
+  /// No description provided for @profileUpdated.
+  ///
+  /// In nl, this message translates to:
+  /// **'Profiel bijgewerkt.'**
+  String get profileUpdated;
+
+  /// No description provided for @editProfile.
+  ///
+  /// In nl, this message translates to:
+  /// **'Profiel bewerken'**
+  String get editProfile;
+
+  /// No description provided for @profileLoadFailed.
+  ///
+  /// In nl, this message translates to:
+  /// **'Profiel kon niet laden'**
+  String get profileLoadFailed;
+
+  /// No description provided for @actionSave.
+  ///
+  /// In nl, this message translates to:
+  /// **'Opslaan'**
+  String get actionSave;
+
+  /// No description provided for @surpriseMe.
+  ///
+  /// In nl, this message translates to:
+  /// **'Verras me'**
+  String get surpriseMe;
+
+  /// No description provided for @displayName.
+  ///
+  /// In nl, this message translates to:
+  /// **'Weergavenaam'**
+  String get displayName;
+
+  /// No description provided for @displayNameHint.
+  ///
+  /// In nl, this message translates to:
+  /// **'Hoe je op de ranglijst verschijnt'**
+  String get displayNameHint;
+
+  /// No description provided for @displayNameHelp.
+  ///
+  /// In nl, this message translates to:
+  /// **'Zichtbaar op de ranglijst en in multiplayer. Eens per 30 dagen te wijzigen.'**
+  String get displayNameHelp;
+
+  /// No description provided for @buildMascot.
+  ///
+  /// In nl, this message translates to:
+  /// **'Stel je mascotte samen'**
+  String get buildMascot;
+
+  /// No description provided for @figure.
+  ///
+  /// In nl, this message translates to:
+  /// **'Figuur'**
+  String get figure;
+
+  /// No description provided for @color.
+  ///
+  /// In nl, this message translates to:
+  /// **'Kleur'**
+  String get color;
+
+  /// No description provided for @background.
+  ///
+  /// In nl, this message translates to:
+  /// **'Achtergrond'**
+  String get background;
+
+  /// No description provided for @accessory.
+  ///
+  /// In nl, this message translates to:
+  /// **'Accessoire'**
+  String get accessory;
+
+  /// No description provided for @notSignedIn.
+  ///
+  /// In nl, this message translates to:
+  /// **'Niet ingelogd'**
+  String get notSignedIn;
+
+  /// No description provided for @settings.
+  ///
+  /// In nl, this message translates to:
+  /// **'Instellingen'**
+  String get settings;
+
+  /// No description provided for @statistics.
+  ///
+  /// In nl, this message translates to:
+  /// **'Statistieken'**
+  String get statistics;
+
+  /// No description provided for @recentlyPlayed.
+  ///
+  /// In nl, this message translates to:
+  /// **'Recent gespeeld'**
+  String get recentlyPlayed;
+
+  /// No description provided for @levelN.
+  ///
+  /// In nl, this message translates to:
+  /// **'Level {level}'**
+  String levelN(Object level);
+
+  /// No description provided for @maxLevel.
+  ///
+  /// In nl, this message translates to:
+  /// **'Hoogste level bereikt'**
+  String get maxLevel;
+
+  /// No description provided for @progressToLevel.
+  ///
+  /// In nl, this message translates to:
+  /// **'Voortgang naar level {level}'**
+  String progressToLevel(Object level);
+
+  /// No description provided for @xpToLevel.
+  ///
+  /// In nl, this message translates to:
+  /// **'Nog {xpRemaining} XP tot level {level}'**
+  String xpToLevel(Object xpRemaining, Object level);
+
+  /// No description provided for @daysInARow.
+  ///
+  /// In nl, this message translates to:
+  /// **'Dagen op rij'**
+  String get daysInARow;
+
+  /// No description provided for @quizzesPlayed.
+  ///
+  /// In nl, this message translates to:
+  /// **'Quizzen gespeeld'**
+  String get quizzesPlayed;
+
+  /// No description provided for @averageScore.
+  ///
+  /// In nl, this message translates to:
+  /// **'Gemiddelde score'**
+  String get averageScore;
+
+  /// No description provided for @viewAllAchievementsA11y.
+  ///
+  /// In nl, this message translates to:
+  /// **'Alle prestaties bekijken, {unlockedCount} van {overviewCount} behaald'**
+  String viewAllAchievementsA11y(Object unlockedCount, Object overviewCount);
+
+  /// No description provided for @allOf.
+  ///
+  /// In nl, this message translates to:
+  /// **'Alle {unlockedCount} van {overviewCount}'**
+  String allOf(Object unlockedCount, Object overviewCount);
+
+  /// No description provided for @youHavePremium.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je hebt Premium'**
+  String get youHavePremium;
+
+  /// No description provided for @youPlayFree.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je speelt gratis'**
+  String get youPlayFree;
+
+  /// No description provided for @scoreOfTotal.
+  ///
+  /// In nl, this message translates to:
+  /// **'{score} van {totalQuestions} goed'**
+  String scoreOfTotal(Object score, Object totalQuestions);
+
+  /// No description provided for @completed.
+  ///
+  /// In nl, this message translates to:
+  /// **'Voltooid'**
+  String get completed;
+
+  /// No description provided for @guestPerkKeep.
+  ///
+  /// In nl, this message translates to:
+  /// **'Punten, niveau en reeks die blijven staan'**
+  String get guestPerkKeep;
+
+  /// No description provided for @guestPerkLeaderboard.
+  ///
+  /// In nl, this message translates to:
+  /// **'Een plek op de ranglijst'**
+  String get guestPerkLeaderboard;
+
+  /// No description provided for @guestPerkBadges.
+  ///
+  /// In nl, this message translates to:
+  /// **'Badges voor je prestaties'**
+  String get guestPerkBadges;
+
+  /// No description provided for @guestPerkWebsite.
+  ///
+  /// In nl, this message translates to:
+  /// **'Dezelfde voortgang op bijbelquiz.com'**
+  String get guestPerkWebsite;
+
+  /// No description provided for @saveYourProgress.
+  ///
+  /// In nl, this message translates to:
+  /// **'Bewaar je voortgang'**
+  String get saveYourProgress;
+
+  /// No description provided for @guestExplain.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je speelt zonder account. Dat kan gewoon, maar je score, punten en reeks blijven alleen bewaard met een gratis account.'**
+  String get guestExplain;
+
+  /// No description provided for @createFreeAccount.
+  ///
+  /// In nl, this message translates to:
+  /// **'Gratis account aanmaken'**
+  String get createFreeAccount;
+
+  /// No description provided for @pendingOne.
+  ///
+  /// In nl, this message translates to:
+  /// **'Eén quiz wacht op je account'**
+  String get pendingOne;
+
+  /// No description provided for @pendingMany.
+  ///
+  /// In nl, this message translates to:
+  /// **'{pendingCount} quizzen wachten op je account'**
+  String pendingMany(Object pendingCount);
+
+  /// No description provided for @withAccount.
+  ///
+  /// In nl, this message translates to:
+  /// **'Met een account'**
+  String get withAccount;
 }
 
 class _AppLocalizationsDelegate

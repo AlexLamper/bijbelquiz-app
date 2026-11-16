@@ -9,6 +9,7 @@ import '../data/badge_catalog.dart';
 import '../data/profile_model.dart';
 import 'profile_provider.dart';
 import 'widgets/badge_medal.dart';
+import '../../../l10n/tr.dart';
 
 /// Prestaties: every achievement, earned ones as medals, the rest as a list
 /// that says what to do for them.
@@ -38,7 +39,7 @@ class ProfileAchievementsScreen extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
             children: [
               BqTopBar(
-                title: 'Prestaties',
+                title: tr.achievements,
                 large: true,
                 onBack: () =>
                     context.canPop() ? context.pop() : context.go('/profile'),
@@ -51,7 +52,7 @@ class ProfileAchievementsScreen extends ConsumerWidget {
                   const SizedBox(height: 60),
                   AppEmptyState(
                     icon: Icons.error_outline,
-                    title: 'Prestaties konden niet laden',
+                    title: tr.achievementsLoadFailed,
                     description: '$err',
                   ),
                 ],
@@ -81,10 +82,9 @@ class ProfileAchievementsScreen extends ConsumerWidget {
       _SectionTitle('Behaald · ${unlocked.length}'),
       const SizedBox(height: 8),
       if (unlocked.isEmpty)
-        const BqCard(
+        BqCard(
           child: Text(
-            'Nog geen badges behaald. Speel quizzen om je eerste badge vrij '
-            'te spelen.',
+            tr.noBadgesYet,
             style: AppTheme.bodyMuted,
           ),
         )
@@ -92,7 +92,7 @@ class ProfileAchievementsScreen extends ConsumerWidget {
         _MedalGrid(badges: unlocked),
       if (locked.isNotEmpty) ...[
         const SizedBox(height: 16),
-        _SectionTitle('Nog te halen · ${locked.length}'),
+        _SectionTitle(tr.stillToEarn(locked.length)),
         const SizedBox(height: 8),
         BqListCard(
           children: [
@@ -137,7 +137,7 @@ class _SummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final left = total - unlocked;
     return Semantics(
-      label: '$unlocked van $total badges behaald',
+      label: tr.badgesEarnedA11y(unlocked, total),
       excludeSemantics: true,
       child: BqCard(
         child: Column(
@@ -156,12 +156,12 @@ class _SummaryCard extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    '$unlocked van $total badges',
+                    tr.badgesOf(unlocked, total),
                     style: AppTheme.displayTitle,
                   ),
                 ),
                 Text(
-                  left == 0 ? 'Alles behaald' : 'Nog $left te halen',
+                  left == 0 ? tr.allEarned : tr.leftToEarn(left),
                   style: AppTheme.metaLabel,
                 ),
               ],

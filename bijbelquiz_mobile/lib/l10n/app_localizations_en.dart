@@ -735,4 +735,606 @@ class AppLocalizationsEn extends AppLocalizations {
   String secondsN(Object choice) {
     return '$choice seconds';
   }
+
+  @override
+  String get joinFailed => 'Joining didn\'t work.';
+
+  @override
+  String get joinFailedConnection =>
+      'Joining didn\'t work. Check your connection.';
+
+  @override
+  String get trialEndingTitle => 'Your trial is almost over';
+
+  @override
+  String trialEndingBody(Object kTrialReminderDaysBeforeEnd) {
+    return 'Your Bible Quizzes Premium starts in $kTrialReminderDaysBeforeEnd days. Don\'t want to continue? Cancel in your store settings.';
+  }
+
+  @override
+  String get trialReminderChannel => 'Trial reminder';
+
+  @override
+  String get trialReminderChannelDescription =>
+      'A reminder before your free trial ends.';
+
+  @override
+  String get supportEmail => 'info@biblequizzes.app';
+
+  @override
+  String get groupCodeIncomplete => 'Enter the full group code.';
+
+  @override
+  String groupJoined(Object name) {
+    return 'You\'re now part of $name.';
+  }
+
+  @override
+  String get groupLicenseGoToSite =>
+      'Go to biblequizzes.app/group-license in your browser.';
+
+  @override
+  String get groupLicense => 'Group license';
+
+  @override
+  String mailUsAt(Object supportEmail) {
+    return 'Email us at $supportEmail.';
+  }
+
+  @override
+  String get groupCodeIntro =>
+      'Does your youth leader, pastor or teacher have a group code? Enter it below and you get Premium right away.';
+
+  @override
+  String get premiumViaGroup => 'Premium through your group';
+
+  @override
+  String get yourGroups => 'Your groups';
+
+  @override
+  String get premiumWholeGroup => 'Premium for your whole group';
+
+  @override
+  String get forChurches => 'For churches, schools and clubs';
+
+  @override
+  String get groupPerkAll => 'All of Premium for every member';
+
+  @override
+  String get groupPerkCode => 'One code you read out in the room';
+
+  @override
+  String get groupPerkManage => 'You decide who takes part';
+
+  @override
+  String get groupLicenseWebsiteOnly =>
+      'You buy a group license on the website, because an App Store purchase is tied to a single account, not a group.';
+
+  @override
+  String get openWebsite => 'Open biblequizzes.app';
+
+  @override
+  String get youManageGroup => 'You manage this group';
+
+  @override
+  String get youTakePart => 'You\'re in';
+
+  @override
+  String get groupCode => 'Group code';
+
+  @override
+  String get purchaseReceivedNotActive =>
+      'Your purchase came through, but Premium isn\'t on yet. Tap \"Restore\" in a minute.';
+
+  @override
+  String noPurchaseFound(Object storeName) {
+    return 'We found no Premium purchase on this $storeName account.';
+  }
+
+  @override
+  String purchasePending(Object storeName) {
+    return 'Your purchase is still waiting for approval or payment. Premium turns on by itself once $storeName completes it.';
+  }
+
+  @override
+  String get noInternetRetry =>
+      'No internet connection. Check your connection and try again.';
+
+  @override
+  String get alreadyPurchased =>
+      'You\'ve already bought this. Tap \"Restore\" to get it back.';
+
+  @override
+  String get purchaseOtherAccount =>
+      'This purchase already belongs to another Bible Quizzes account. Sign in with that account to use your Premium.';
+
+  @override
+  String purchasesNotAllowed(Object store) {
+    return 'Purchases aren\'t allowed on this device. Check your $store account settings.';
+  }
+
+  @override
+  String subscriptionUnavailable(Object store) {
+    return 'This subscription isn\'t available in $store right now. Try again later.';
+  }
+
+  @override
+  String storeError(Object store) {
+    return '$store returned an error. Try again later.';
+  }
+
+  @override
+  String get purchasesNotInVersion =>
+      'Purchases aren\'t available in this version of the app.';
+
+  @override
+  String get restoreFailed => 'Restoring didn\'t work. Please try again.';
+
+  @override
+  String get introPerkExplain =>
+      'An explanation for every question: why the answer is right';
+
+  @override
+  String get introPerkAll => 'All quizzes, as often as you like';
+
+  @override
+  String get introPerkReview => 'A full review after every quiz';
+
+  @override
+  String get introPerkDaily => 'A new quiz every day, no limit';
+
+  @override
+  String get introPerkStick =>
+      'An explanation for every question, so it sticks';
+
+  @override
+  String get introPerkLookBack => 'Look back at your answers after every quiz';
+
+  @override
+  String get introPerkTogetherFree =>
+      'Playing together stays free for everyone';
+
+  @override
+  String get introPerkSoloUnlimited => 'Plus unlimited solo play';
+
+  @override
+  String get introPerkDiscuss =>
+      'An explanation for every question to talk over together';
+
+  @override
+  String stepOfThree(Object page) {
+    return 'Step $page of 3';
+  }
+
+  @override
+  String get actionNext => 'Next';
+
+  @override
+  String get introGrowQuestion => 'Where do you want to grow?';
+
+  @override
+  String get introGrowSubtitle =>
+      'Then we\'ll show what Premium does for that.';
+
+  @override
+  String get introGoalKnowledge => 'More Bible knowledge';
+
+  @override
+  String get introGoalKnowledgeBody => 'Understand why an answer is right.';
+
+  @override
+  String get introGoalDaily => 'Learn something every day';
+
+  @override
+  String get introGoalDailyBody => 'Build a habit and keep it.';
+
+  @override
+  String get introGoalGroupBody => 'Against each other with family or a group.';
+
+  @override
+  String get introYouGet => 'Here\'s what you get';
+
+  @override
+  String get introOneMembership =>
+      'Everything in one membership, on web and app.';
+
+  @override
+  String get choosePlan => 'Choose your plan';
+
+  @override
+  String get pricesNextPage =>
+      'You\'ll see the prices on the next page. You can cancel any time.';
+
+  @override
+  String get accountWebAndApp =>
+      'Your account works on web and app at the same time. A purchase on your phone also gives you Premium on the website, and the other way round.';
+
+  @override
+  String get paywallHeadlineDefault => 'Play unlimited\nwith Premium';
+
+  @override
+  String paywallHeadlineLimit(Object kFreeQuizLimit) {
+    return 'You\'ve played your\n$kFreeQuizLimit free quizzes';
+  }
+
+  @override
+  String get paywallHeadlineTogether => 'Keep playing together\nwithout limits';
+
+  @override
+  String get paywallHeadlineGroup => 'Play with your\nwhole group';
+
+  @override
+  String get paywallHeadlineExplain => 'Read why\nfor every question';
+
+  @override
+  String get paywallHeadlineUnlock => 'Unlock\nevery quiz';
+
+  @override
+  String get premiumRestored => 'Premium restored';
+
+  @override
+  String get welcomePremium => 'Welcome to Premium';
+
+  @override
+  String get premiumBackOn => 'Your Premium is back on for this account.';
+
+  @override
+  String get premiumFullAccess =>
+      'You now have full access to every Premium feature, in the app and on the website. Enjoy!';
+
+  @override
+  String get playOnPremium => 'Keep playing with Premium.';
+
+  @override
+  String get chooseSubscription => 'Choose a subscription';
+
+  @override
+  String get yearly => 'Yearly';
+
+  @override
+  String get perYear => 'per year';
+
+  @override
+  String get monthly => 'Monthly';
+
+  @override
+  String get perMonth => 'per month';
+
+  @override
+  String get noTrial => 'No trial';
+
+  @override
+  String get reloadPrices => 'Reload prices';
+
+  @override
+  String storeUnreachable(Object storeName) {
+    return '$storeName can\'t be reached right now. Check your connection.';
+  }
+
+  @override
+  String get restorePurchase => 'Restore purchase';
+
+  @override
+  String get terms => 'Terms';
+
+  @override
+  String get privacy => 'Privacy';
+
+  @override
+  String get alreadyPremium =>
+      'You already have Premium on this account. Nothing was charged.';
+
+  @override
+  String get premiumOn => 'Premium is on';
+
+  @override
+  String get restoreSignIn =>
+      'Sign in with your account and we\'ll put your purchases back on it.';
+
+  @override
+  String get needAccountForPremium =>
+      'First create a free account or sign in, so Premium belongs to you - in the app and on the website.';
+
+  @override
+  String get accountNeeded => 'Account needed';
+
+  @override
+  String get pleaseWait => 'Please wait';
+
+  @override
+  String get nothingToRestore => 'Nothing to restore';
+
+  @override
+  String get viewAllPlans => 'View all plans';
+
+  @override
+  String get explainEveryAnswer => 'An explanation for every answer';
+
+  @override
+  String paywallFreeLimit(Object kFreeQuizLimit) {
+    return 'For free you play $kFreeQuizLimit quizzes. With Premium every book of the Bible opens up, including Psalms and Revelation.';
+  }
+
+  @override
+  String get premiumEverythingOpen => 'Everything open with Premium';
+
+  @override
+  String get abbrGenesis => 'Gen';
+
+  @override
+  String get quizzes12 => '12 quizzes';
+
+  @override
+  String get abbrPsalms => 'Ps';
+
+  @override
+  String get quizzes15 => '15 quizzes';
+
+  @override
+  String get abbrRevelation => 'Rev';
+
+  @override
+  String get bookRevelation => 'Revelation';
+
+  @override
+  String get quizzes9 => '9 quizzes';
+
+  @override
+  String get free => 'Free';
+
+  @override
+  String get orLifetime => 'Or one-time: lifetime Premium';
+
+  @override
+  String lifetimeOnce(Object price) {
+    return 'Lifetime Premium, $price once';
+  }
+
+  @override
+  String lifetimePerWeek(Object weekly, Object lifetimeHorizonYears) {
+    return '$weekly per week over $lifetimeHorizonYears years';
+  }
+
+  @override
+  String get lifetimePremium => 'Lifetime Premium';
+
+  @override
+  String get payNothingToday => 'You pay nothing today.';
+
+  @override
+  String payNothingTodayReminder(Object day) {
+    return 'You pay nothing today. Reminder on day $day.';
+  }
+
+  @override
+  String get cancelAnytime => 'Cancel whenever you like.';
+
+  @override
+  String get payOnceNoSub => 'Pay once, no subscription.';
+
+  @override
+  String get startPremium => 'Start Premium';
+
+  @override
+  String tryTrial(Object label) {
+    return 'Try $label';
+  }
+
+  @override
+  String get badgeFirstStepsDesc => 'Complete your first quiz.';
+
+  @override
+  String get badgeKnowledgeSeeker => 'Knowledge Seeker';
+
+  @override
+  String get badgeKnowledgeSeekerDesc => 'Play 10 different quizzes.';
+
+  @override
+  String get badgePerfect => 'Flawless';
+
+  @override
+  String get badgePerfectDesc => 'Score 100% on a quiz.';
+
+  @override
+  String get badgeOnARoll => 'On a Roll';
+
+  @override
+  String get badgeOnARollDesc => 'Build a 3-day streak.';
+
+  @override
+  String get badgeDedicated => 'Dedicated';
+
+  @override
+  String get badgeDedicatedDesc => 'Play 7 days in a row.';
+
+  @override
+  String get badgeScholar => 'Scholar';
+
+  @override
+  String get badgeMaster => 'Master';
+
+  @override
+  String get badgeAllRounder => 'All-Rounder';
+
+  @override
+  String get badgeAllRounderDesc => 'Play a wide range of quizzes.';
+
+  @override
+  String get rankSeeker => 'Seeker';
+
+  @override
+  String get saveFailed => 'Saving didn\'t work. Please try again.';
+
+  @override
+  String get saveFailedConnection =>
+      'Saving didn\'t work. Check your connection.';
+
+  @override
+  String get achievements => 'Achievements';
+
+  @override
+  String get achievementsLoadFailed => 'Achievements didn\'t load';
+
+  @override
+  String get noBadgesYet =>
+      'No badges yet. Play quizzes to unlock your first badge.';
+
+  @override
+  String stillToEarn(Object lockedCount) {
+    return 'Still to earn · $lockedCount';
+  }
+
+  @override
+  String badgesEarnedA11y(Object unlocked, Object total) {
+    return '$unlocked of $total badges earned';
+  }
+
+  @override
+  String badgesOf(Object unlocked, Object total) {
+    return '$unlocked of $total badges';
+  }
+
+  @override
+  String get allEarned => 'All earned';
+
+  @override
+  String leftToEarn(Object left) {
+    return '$left to go';
+  }
+
+  @override
+  String get profileUpdated => 'Profile updated.';
+
+  @override
+  String get editProfile => 'Edit profile';
+
+  @override
+  String get profileLoadFailed => 'Profile didn\'t load';
+
+  @override
+  String get actionSave => 'Save';
+
+  @override
+  String get surpriseMe => 'Surprise me';
+
+  @override
+  String get displayName => 'Display name';
+
+  @override
+  String get displayNameHint => 'How you appear on the leaderboard';
+
+  @override
+  String get displayNameHelp =>
+      'Visible on the leaderboard and in multiplayer. Can be changed once every 30 days.';
+
+  @override
+  String get buildMascot => 'Build your mascot';
+
+  @override
+  String get figure => 'Figure';
+
+  @override
+  String get color => 'Colour';
+
+  @override
+  String get background => 'Background';
+
+  @override
+  String get accessory => 'Accessory';
+
+  @override
+  String get notSignedIn => 'Not signed in';
+
+  @override
+  String get settings => 'Settings';
+
+  @override
+  String get statistics => 'Statistics';
+
+  @override
+  String get recentlyPlayed => 'Recently played';
+
+  @override
+  String levelN(Object level) {
+    return 'Level $level';
+  }
+
+  @override
+  String get maxLevel => 'Highest level reached';
+
+  @override
+  String progressToLevel(Object level) {
+    return 'Progress to level $level';
+  }
+
+  @override
+  String xpToLevel(Object xpRemaining, Object level) {
+    return '$xpRemaining XP to level $level';
+  }
+
+  @override
+  String get daysInARow => 'Days in a row';
+
+  @override
+  String get quizzesPlayed => 'Quizzes played';
+
+  @override
+  String get averageScore => 'Average score';
+
+  @override
+  String viewAllAchievementsA11y(Object unlockedCount, Object overviewCount) {
+    return 'View all achievements, $unlockedCount of $overviewCount earned';
+  }
+
+  @override
+  String allOf(Object unlockedCount, Object overviewCount) {
+    return 'All $unlockedCount of $overviewCount';
+  }
+
+  @override
+  String get youHavePremium => 'You have Premium';
+
+  @override
+  String get youPlayFree => 'You play for free';
+
+  @override
+  String scoreOfTotal(Object score, Object totalQuestions) {
+    return '$score of $totalQuestions correct';
+  }
+
+  @override
+  String get completed => 'Completed';
+
+  @override
+  String get guestPerkKeep => 'Points, level and streak that stay';
+
+  @override
+  String get guestPerkLeaderboard => 'A place on the leaderboard';
+
+  @override
+  String get guestPerkBadges => 'Badges for your achievements';
+
+  @override
+  String get guestPerkWebsite => 'The same progress on biblequizzes.app';
+
+  @override
+  String get saveYourProgress => 'Save your progress';
+
+  @override
+  String get guestExplain =>
+      'You\'re playing without an account. That\'s fine, but your score, points and streak are only kept with a free account.';
+
+  @override
+  String get createFreeAccount => 'Create a free account';
+
+  @override
+  String get pendingOne => 'One quiz is waiting for your account';
+
+  @override
+  String pendingMany(Object pendingCount) {
+    return '$pendingCount quizzes are waiting for your account';
+  }
+
+  @override
+  String get withAccount => 'With an account';
 }

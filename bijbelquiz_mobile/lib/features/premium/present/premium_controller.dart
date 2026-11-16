@@ -9,6 +9,7 @@ import '../../profile/present/profile_provider.dart';
 import '../data/premium_server.dart';
 import '../data/purchase_service.dart';
 import '../data/trial_reminder.dart';
+import '../../../l10n/tr.dart';
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -345,8 +346,7 @@ class PremiumController extends Notifier<PremiumState> {
             status: PurchaseStatus.error,
             action: PremiumAction.purchase,
             message:
-                'Je aankoop is ontvangen, maar Premium staat nog niet aan. '
-                'Tik over een minuut op "Herstellen".',
+                tr.purchaseReceivedNotActive,
           ),
         );
       }
@@ -413,8 +413,7 @@ class PremiumController extends Notifier<PremiumState> {
             status: PurchaseStatus.nothingToRestore,
             action: PremiumAction.restore,
             message:
-                'We vonden geen Premium-aankoop op dit '
-                '${_storeName()}-account.',
+                tr.noPurchaseFound(_storeName()),
           ),
         );
       }
@@ -440,8 +439,7 @@ class PremiumController extends Notifier<PremiumState> {
             status: PurchaseStatus.pending,
             action: action,
             message:
-                'Je aankoop wacht nog op goedkeuring of betaling. Premium '
-                'gaat vanzelf aan zodra de ${_storeName()} die afrondt.',
+                tr.purchasePending(_storeName()),
           ),
         );
       default:
@@ -502,29 +500,24 @@ String purchaseErrorMessage(PurchaseFailureKind kind, PremiumAction action) {
   final store = _storeName();
   switch (kind) {
     case PurchaseFailureKind.network:
-      return 'Geen internetverbinding. Controleer je verbinding en probeer '
-          'het opnieuw.';
+      return tr.noInternetRetry;
     case PurchaseFailureKind.alreadyOwned:
-      return 'Je hebt dit al gekocht. Tik op "Herstellen" om het terug te '
-          'zetten.';
+      return tr.alreadyPurchased;
     case PurchaseFailureKind.ownedByOtherAccount:
-      return 'Deze aankoop hoort al bij een ander BijbelQuiz-account. Log in '
-          'met dat account om je Premium te gebruiken.';
+      return tr.purchaseOtherAccount;
     case PurchaseFailureKind.notAllowed:
-      return 'Aankopen zijn niet toegestaan op dit apparaat. Controleer de '
-          'instellingen van je $store-account.';
+      return tr.purchasesNotAllowed(store);
     case PurchaseFailureKind.notAvailable:
-      return 'Dit abonnement is nu niet beschikbaar in de $store. Probeer '
-          'het later opnieuw.';
+      return tr.subscriptionUnavailable(store);
     case PurchaseFailureKind.store:
-      return 'De $store geeft een fout. Probeer het later opnieuw.';
+      return tr.storeError(store);
     case PurchaseFailureKind.notConfigured:
-      return 'Aankopen zijn in deze versie van de app niet beschikbaar.';
+      return tr.purchasesNotInVersion;
     case PurchaseFailureKind.cancelled:
     case PurchaseFailureKind.pending:
     case PurchaseFailureKind.unknown:
       return action == PremiumAction.restore
-          ? 'Herstellen is niet gelukt. Probeer het opnieuw.'
-          : 'De aankoop is niet afgerond. Er is niets in rekening gebracht.';
+          ? tr.restoreFailed
+          : tr.errPurchaseMessage;
   }
 }

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/ui/app_notice.dart';
 import 'premium_controller.dart';
+import '../../../l10n/tr.dart';
 
 /// What every surface that can buy or restore (paywall, upgrade sheet,
 /// Instellingen) shows for a finished purchase or restore. Clears the status
@@ -30,8 +31,8 @@ void showPremiumOutcome(
       notifier.clearStatus();
       AppNotice.success(
         context,
-        'Je hebt al Premium op dit account. Er is niets afgeschreven.',
-        title: 'Premium staat aan',
+        tr.alreadyPremium,
+        title: tr.premiumOn,
       );
       onPremium(next.action);
     case PurchaseStatus.needsAccount:
@@ -39,22 +40,20 @@ void showPremiumOutcome(
       AppNotice.info(
         context,
         next.action == PremiumAction.restore
-            ? 'Log in met je account, dan zetten we je aankopen terug op dat '
-                  'account.'
-            : 'Maak eerst een gratis account of log in, dan hoort Premium bij '
-                  'jou - in de app en op de website.',
-        title: 'Account nodig',
+            ? tr.restoreSignIn
+            : tr.needAccountForPremium,
+        title: tr.accountNeeded,
       );
       context.push('/login');
     case PurchaseStatus.pending:
       notifier.clearStatus();
-      AppNotice.info(context, next.message ?? '', title: 'Even geduld');
+      AppNotice.info(context, next.message ?? '', title: tr.pleaseWait);
     case PurchaseStatus.nothingToRestore:
       notifier.clearStatus();
       AppNotice.info(
         context,
         next.message ?? '',
-        title: 'Niets om te herstellen',
+        title: tr.nothingToRestore,
       );
     case PurchaseStatus.error:
       notifier.clearStatus();
