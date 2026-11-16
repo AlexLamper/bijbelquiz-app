@@ -1,0 +1,7 @@
+{
+  "@@locale": "de",
+  "appName": "Bible Quizzes",
+  "inviteFallbackTitle": "ein Bibelquiz",
+  "inviteJoin": "Machst du mit bei {title} auf {brand}?",
+  "inviteCode": "Oder gib den Code ein: {code}"
+}

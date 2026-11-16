@@ -1,0 +1,24 @@
+{
+  "@@locale": "nl",
+  "appName": "Bijbelquiz",
+  "inviteFallbackTitle": "een bijbelquiz",
+  "inviteJoin": "Doe je mee met {title} op {brand}?",
+  "@inviteJoin": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "brand": {
+        "type": "String"
+      }
+    }
+  },
+  "inviteCode": "Of vul de code in: {code}",
+  "@inviteCode": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  }
+}

@@ -1,11 +1,16 @@
 import 'package:flutter/foundation.dart';
 
+import '../../l10n/app_localizations.dart';
+import 'brand.dart';
+
 /// Environment-based configuration for API endpoints
 /// Automatically switches between development and production based on build mode
 class AppConfig {
   // Production API endpoints
-  static const String _productionBaseUrl =
-      'https://www.bijbelquiz.com/api/mobile';
+  // BijbelQuiz: www.bijbelquiz.com. Bible Quizzes: the site of the app's
+  // language (biblequizzes.app, biblequizzes.app/de, ...), each with its own
+  // accounts, so the language decides which API the app talks to.
+  static String get _productionBaseUrl => '${Brand.siteUrl}/api/mobile';
 
   // Development API endpoints (localhost)
   static const String _developmentBaseUrl = 'http://localhost:3000/api/mobile';
@@ -26,10 +31,13 @@ class AppConfig {
 
   // Legal links used in subscription and account flows.
   // Override per environment via dart-define if needed.
-  static const String privacyPolicyUrl = String.fromEnvironment(
+  static const String _privacyPolicyUrlFromDefine = String.fromEnvironment(
     'PRIVACY_POLICY_URL',
-    defaultValue: 'https://www.bijbelquiz.com/privacy-policy',
+    defaultValue: '',
   );
+  static String get privacyPolicyUrl => _privacyPolicyUrlFromDefine.isNotEmpty
+      ? _privacyPolicyUrlFromDefine
+      : '${Brand.siteUrl}/privacy-policy';
   static const String termsOfUseUrl = String.fromEnvironment(
     'TERMS_OF_USE_URL',
     defaultValue:
@@ -64,7 +72,12 @@ class AppConfig {
     final authority = apiUri.hasPort
         ? '${apiUri.host}:${apiUri.port}'
         : apiUri.host;
-    return '${apiUri.scheme}://$authority';
+    // Bible Quizzes languages live under a path prefix (/de); keep it, or
+    // images and links would land on the English site.
+    final path = apiUri.path.endsWith('/api/mobile')
+        ? apiUri.path.substring(0, apiUri.path.length - '/api/mobile'.length)
+        : '';
+    return '${apiUri.scheme}://$authority$path';
   }
 
   /// Returns whether app is in debug mode
@@ -100,7 +113,9 @@ class AppConfig {
   /// hosted this same URL will open the app for those who do have it.
   static String roomInviteUrl(String roomCode) {
     final code = roomCode.trim().toUpperCase();
-    return '$baseUrl/samen-spelen/$code/lobby'
+    // The website's localized path (see src/config/route-map.ts there).
+    final lobby = Brand.isBijbelQuiz ? 'samen-spelen' : 'play-together';
+    return '$baseUrl/$lobby/$code/lobby'
         '?$inviteSourceParam=$inviteSourceValue';
   }
 
@@ -111,14 +126,17 @@ class AppConfig {
   /// stays visible for clients that strip links.
   static String roomInviteMessage(String roomCode, String quizTitle) {
     final code = roomCode.trim().toUpperCase();
-    final title = quizTitle.trim().isEmpty ? 'een bijbelquiz' : quizTitle.trim();
+    final l = lookupAppLocalizations(Brand.locale);
+    final title = quizTitle.trim().isEmpty ? l.inviteFallbackTitle : quizTitle.trim();
+    // BijbelQuiz keeps its own spelling of the name in the invite.
+    final brand = Brand.isBijbelQuiz ? 'BijbelQuiz' : Brand.name;
 
     return [
-      'Doe je mee met $title op BijbelQuiz?',
+      l.inviteJoin(title, brand),
       '',
       roomInviteUrl(code),
       '',
-      'Of vul de code in: $code',
+      l.inviteCode(code),
     ].join('\n');
   }
 }

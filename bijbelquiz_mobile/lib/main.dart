@@ -1,3 +1,5 @@
+import 'core/config/brand.dart';
+import 'l10n/app_localizations.dart';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -154,7 +156,10 @@ class BijbelquizApp extends ConsumerWidget {
     final routerConfig = ref.watch(routerProvider);
 
     return MaterialApp.router(
-      title: 'Bijbelquiz',
+      title: Brand.name,
+      locale: Brand.locale,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: rootScaffoldMessengerKey,
       theme: AppTheme.lightTheme,
