@@ -14,6 +14,7 @@ import 'library_category_request.dart';
 import 'quiz_order.dart';
 import 'widgets/bible_books.dart';
 import 'widgets/quiz_cover.dart';
+import '../../../l10n/tr.dart';
 
 part 'library_books.dart';
 
@@ -52,11 +53,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   /// "Nog niet gespeeld": the list without the quizzes this player finished.
   bool _hidePlayed = false;
 
-  static const List<MapEntry<String, String>> _difficultyChips = [
-    MapEntry('all', 'Elk niveau'),
-    MapEntry('easy', 'Makkelijk'),
-    MapEntry('medium', 'Gemiddeld'),
-    MapEntry('hard', 'Moeilijk'),
+  static final List<MapEntry<String, String>> _difficultyChips = [
+    MapEntry('all', tr.anyLevel),
+    MapEntry('easy', tr.easy),
+    MapEntry('medium', tr.medium),
+    MapEntry('hard', tr.hard),
   ];
 
   @override
@@ -210,7 +211,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: AppEmptyState(
                   icon: Icons.error_outline,
-                  title: 'Quizzen konden niet laden',
+                  title: tr.quizzesLoadFailed,
                   description: '$err',
                 ),
               ),
@@ -286,7 +287,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
 
     final listSection = _AllQuizzesSection(
       key: _allQuizzesKey,
-      title: filtering ? 'Resultaten' : 'Alle quizzen',
+      title: filtering ? tr.results : tr.allQuizzes,
       quizzes: listed,
       playedIds: playedIds,
       difficultyChips: _difficultyChips,
@@ -328,7 +329,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: _SectionTitle(
-            title: 'Populair',
+            title: tr.popular,
             actionLabel: 'Alles',
             onAction: _showAllQuizzes,
           ),
@@ -344,8 +345,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: _SectionTitle(
-            title: 'Per bijbelboek',
-            actionLabel: 'Alle boeken',
+            title: tr.byBibleBook,
+            actionLabel: tr.allBooks,
             onAction: () => context.push('/quizzes/boeken'),
           ),
         ),
@@ -390,7 +391,7 @@ class _SearchField extends StatelessWidget {
         color: AppTheme.ink,
       ),
       decoration: InputDecoration(
-        hintText: 'Zoek een bijbelboek of onderwerp',
+        hintText: tr.searchHint,
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(vertical: 13),
         prefixIcon: const Padding(
@@ -403,7 +404,7 @@ class _SearchField extends StatelessWidget {
         ),
         suffixIcon: hasText
             ? IconButton(
-                tooltip: 'Wissen',
+                tooltip: tr.clear,
                 onPressed: controller.clear,
                 icon: const BqIcon(
                   BqIcons.close,
@@ -729,7 +730,7 @@ class _PopularCard extends StatelessWidget {
                       const _PlayedMeta(fontSize: 12)
                     else
                       Text(
-                        '${quiz.questionCount} vragen · ${_minutesFor(quiz.questionCount)} min',
+                        tr.questionsAndMinutes(quiz.questionCount, _minutesFor(quiz.questionCount)),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -935,7 +936,7 @@ class _AllQuizzesSection extends StatelessWidget {
             children: [
               if (hidePlayed != null) ...[
                 _Chip(
-                  label: 'Nog niet gespeeld',
+                  label: tr.notPlayedYet,
                   active: hidePlayed!,
                   height: 32,
                   fontSize: 13,
@@ -963,7 +964,7 @@ class _AllQuizzesSection extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  quizzes.length == 1 ? '1 quiz' : '${quizzes.length} quizzen',
+                  quizzes.length == 1 ? tr.oneQuiz : tr.quizzesCountList(quizzes.length),
                   style: AppTheme.caption,
                 ),
               ),
@@ -973,11 +974,11 @@ class _AllQuizzesSection extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         if (quizzes.isEmpty)
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(horizontal: 20),
             child: BqCard(
               child: Text(
-                'Geen quizzen gevonden met de huidige filters.',
+                tr.noQuizzesFilters,
                 style: AppTheme.bodyMuted,
               ),
             ),
@@ -1024,19 +1025,19 @@ class _SortSelector extends StatelessWidget {
   final String selectedSort;
   final ValueChanged<String> onChanged;
 
-  static const Map<String, String> _labels = {
-    'bible': 'Bijbelvolgorde',
-    'popular': 'Meest populair',
-    'newest': 'Nieuwste eerst',
+  static final Map<String, String> _labels = {
+    'bible': tr.sortBibleOrder,
+    'popular': tr.sortMostPopular,
+    'newest': tr.sortNewest,
     'title': 'Titel (A-Z)',
-    'short': 'Kortste',
+    'short': tr.sortShortest,
     'reward': 'Hoogste XP',
   };
 
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
-      tooltip: 'Sorteren',
+      tooltip: tr.sort,
       onSelected: onChanged,
       color: AppTheme.paperRaised,
       elevation: 0,
@@ -1219,10 +1220,10 @@ class _QuizRow extends StatelessWidget {
 String _difficultyLabel(Quiz quiz) {
   switch (quiz.difficultyBucket) {
     case 'easy':
-      return 'Makkelijk';
+      return tr.easy;
     case 'hard':
-      return 'Moeilijk';
+      return tr.hard;
     default:
-      return 'Gemiddeld';
+      return tr.medium;
   }
 }

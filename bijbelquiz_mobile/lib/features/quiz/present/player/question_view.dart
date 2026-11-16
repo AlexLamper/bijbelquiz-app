@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/bq.dart';
 import 'player_widgets.dart';
+import '../../../../l10n/tr.dart';
 
 /// Empty segment colour from the quiz design (`#D9D6CE`).
 const Color _segmentTrack = Color(0xFFD9D6CE);
@@ -45,7 +46,7 @@ class PlayerHeader extends StatelessWidget {
         const SizedBox(width: 10),
         Expanded(
           child: Semantics(
-            label: 'Vraag $current van $total',
+            label: tr.questionOf(current, total),
             excludeSemantics: true,
             child: progress,
           ),
@@ -172,7 +173,7 @@ class QuestionTimerPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final fg = urgent ? AppTheme.vermilion : AppTheme.inkSoft;
     return Semantics(
-      label: timedOut ? 'Tijd om' : 'Nog $secondsLeft seconden',
+      label: timedOut ? tr.timeUp : tr.secondsLeft(secondsLeft),
       excludeSemantics: true,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

@@ -9,6 +9,7 @@ import '../../../profile/present/profile_provider.dart';
 import '../../domain/question.dart';
 import '../../domain/quiz.dart';
 import 'player_widgets.dart';
+import '../../../../l10n/tr.dart';
 
 /// "Bekijk antwoorden": the post-quiz review in a tall sheet.
 ///
@@ -115,8 +116,8 @@ class _QuizReviewSheet extends ConsumerWidget {
         const SizedBox(height: 18),
         Row(
           children: [
-            const Expanded(
-              child: Text('Jouw antwoorden', style: AppTheme.displayLarge),
+            Expanded(
+              child: Text(tr.yourAnswers, style: AppTheme.displayLarge),
             ),
             PlayerCloseButton(
               label: 'Sluiten',
@@ -127,8 +128,8 @@ class _QuizReviewSheet extends ConsumerWidget {
         const SizedBox(height: 4),
         Text(
           wrongCount == 0
-              ? 'Alles goed. Bekijk de uitleg bij elke vraag.'
-              : '$wrongCount van de ${questions.length} vragen fout.',
+              ? tr.allCorrectReview
+              : tr.wrongOf(wrongCount, questions.length),
           style: AppTheme.bodyMuted,
         ),
         const SizedBox(height: 16),
@@ -140,12 +141,12 @@ class _QuizReviewSheet extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'De volledige uitleg bij elke vraag is onderdeel van Premium.',
+                  tr.fullExplainPremium,
                   style: AppTheme.caption.copyWith(color: AppTheme.inkSoft),
                 ),
                 const SizedBox(height: 12),
                 BqButton(
-                  label: 'Ontgrendel de volledige review',
+                  label: tr.unlockFullReview,
                   icon: const BqIcon(BqIcons.lock, size: 18),
                   onPressed: () => _unlock(context, ref),
                 ),
@@ -197,7 +198,7 @@ class _ReviewRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Semantics(
-            label: wasCorrect ? 'Goed' : 'Fout',
+            label: wasCorrect ? tr.correct : tr.wrong,
             excludeSemantics: true,
             child: Container(
               width: 28,
@@ -232,7 +233,7 @@ class _ReviewRow extends StatelessWidget {
                 if (!wasCorrect && correctAnswer != null) ...[
                   const SizedBox(height: 2),
                   Text(
-                    'Goed antwoord: ${correctAnswer.text}',
+                    tr.correctAnswerIs(correctAnswer.text),
                     style: AppTheme.caption.copyWith(color: AppTheme.inkSoft),
                   ),
                 ],

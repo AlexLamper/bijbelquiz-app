@@ -8,6 +8,7 @@ import '../../../core/ui/bq.dart';
 import '../data/bible_chapter_repository.dart';
 import '../data/quiz_repository.dart';
 import '../domain/quiz_passage.dart';
+import '../../../l10n/tr.dart';
 
 /// The chapter a quiz is about, read before the first question.
 ///
@@ -45,11 +46,11 @@ class QuizPassageScreen extends ConsumerWidget {
       data: (quiz) => quiz.passage == null
           // Quizzes spanning several books have no single chapter. Never a
           // dead end: the quiz can still be started below.
-          ? const AppEmptyState(
+          ? AppEmptyState(
               icon: Icons.menu_book_outlined,
-              title: 'Geen hoofdstuk om te lezen',
+              title: tr.noChapterToRead,
               description:
-                  'Deze quiz gaat over meer dan een hoofdstuk. Je kunt gewoon met de quiz beginnen.',
+                  tr.multiChapter,
             )
           : _PassageText(passage: quiz.passage!),
       loading: () => const AppLoader(),
@@ -57,7 +58,7 @@ class QuizPassageScreen extends ConsumerWidget {
         icon: Icons.menu_book_outlined,
         title: 'Hoofdstuk niet geladen',
         description:
-            'Dit hoofdstuk kon nu niet opgehaald worden. Je kunt gewoon met de quiz beginnen.',
+            tr.chapterFetchFailed,
         action: BqButton(
           label: 'Opnieuw proberen',
           style: BqButtonStyle.secondary,
@@ -102,7 +103,7 @@ class QuizPassageScreen extends ConsumerWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                passage?.label ?? 'Lees eerst',
+                                passage?.label ?? tr.readFirst,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
@@ -115,7 +116,7 @@ class QuizPassageScreen extends ConsumerWidget {
                               ),
                               if (quiz != null)
                                 Text(
-                                  'Lees voor de quiz ${quiz.title}',
+                                  tr.readBeforeQuiz(quiz.title),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
@@ -191,11 +192,11 @@ class _PassageText extends ConsumerWidget {
     return versesAsync.when(
       data: (verses) {
         if (verses.isEmpty) {
-          return const AppEmptyState(
+          return AppEmptyState(
             icon: Icons.menu_book_outlined,
             title: 'Hoofdstuk niet geladen',
             description:
-                'Dit hoofdstuk kon nu niet opgehaald worden. Je kunt gewoon met de quiz beginnen.',
+                tr.chapterFetchFailed,
           );
         }
         // One verse per line, each starting at the left edge.
@@ -207,7 +208,7 @@ class _PassageText extends ConsumerWidget {
               return Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
-                  'Statenvertaling',
+                  tr.bibleVersionName,
                   style: AppTheme.caption.copyWith(color: AppTheme.inkFaint),
                 ),
               );
@@ -225,7 +226,7 @@ class _PassageText extends ConsumerWidget {
         icon: Icons.menu_book_outlined,
         title: 'Hoofdstuk niet geladen',
         description:
-            'Dit hoofdstuk kon nu niet opgehaald worden. Je kunt gewoon met de quiz beginnen.',
+            tr.chapterFetchFailed,
         action: BqButton(
           label: 'Opnieuw proberen',
           style: BqButtonStyle.secondary,

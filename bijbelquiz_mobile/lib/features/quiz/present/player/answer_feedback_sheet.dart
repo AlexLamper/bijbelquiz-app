@@ -9,6 +9,7 @@ import '../../../../core/ui/bq.dart';
 import '../../data/bible_verse_repository.dart';
 import '../../domain/question.dart';
 import 'player_widgets.dart';
+import '../../../../l10n/tr.dart';
 
 enum AnswerOutcome { correct, wrong, timedOut }
 
@@ -83,9 +84,9 @@ class _AnswerFeedbackSheetState extends ConsumerState<AnswerFeedbackSheet> {
           children: [
             if (hasReference)
               PlayerChip(
-                label: _verseExpanded ? 'Verberg tekst' : 'Lees $reference',
+                label: _verseExpanded ? tr.hideText : 'Lees $reference',
                 semanticLabel: _verseExpanded
-                    ? 'Verberg de tekst van $reference'
+                    ? tr.hideTextOf(reference)
                     : 'Lees $reference',
                 icon: PlayerIcons.book,
                 onTap: () => setState(() => _verseExpanded = !_verseExpanded),
@@ -96,8 +97,8 @@ class _AnswerFeedbackSheetState extends ConsumerState<AnswerFeedbackSheet> {
                 // at any other moment, so the ask names that instead of the
                 // product.
                 label: _gotItRight
-                    ? 'Ontgrendel Premium voor uitleg'
-                    : 'Lees waarom dit fout was',
+                    ? tr.unlockPremiumExplain
+                    : tr.readWhyWrong,
                 icon: BqIcons.lock,
                 background: AppTheme.goldTint,
                 foreground: AppTheme.goldText,
@@ -118,7 +119,7 @@ class _AnswerFeedbackSheetState extends ConsumerState<AnswerFeedbackSheet> {
       label: switch (widget.outcome) {
         AnswerOutcome.correct => 'Goed antwoord',
         AnswerOutcome.wrong => 'Fout antwoord',
-        AnswerOutcome.timedOut => 'Tijd om',
+        AnswerOutcome.timedOut => tr.timeUp,
       },
       child: Container(
         width: double.infinity,
@@ -152,7 +153,7 @@ class _AnswerFeedbackSheetState extends ConsumerState<AnswerFeedbackSheet> {
               ),
             SizedBox(height: details.isEmpty ? 14 : 5),
             BqButton(
-              label: widget.isLastQuestion ? 'Rond quiz af' : 'Volgende vraag',
+              label: widget.isLastQuestion ? tr.finishQuiz : 'Volgende vraag',
               onPressed: widget.onNext,
             ),
           ],
@@ -194,7 +195,7 @@ class _Verdict extends StatelessWidget {
         AppTheme.vermilion,
       ),
       AnswerOutcome.timedOut => (
-        'Tijd om',
+        tr.timeUp,
         BqIcons.clock,
         AppTheme.coral,
         AppTheme.vermilion,

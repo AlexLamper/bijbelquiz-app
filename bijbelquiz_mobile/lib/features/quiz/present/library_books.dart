@@ -37,8 +37,8 @@ class LibraryBook {
   /// "12 quizzen", or "3 van 12 gespeeld" once the player started the book.
   String get countLabel {
     final total = quizzes.length;
-    if (played == 0) return total == 1 ? '1 quiz' : '$total quizzen';
-    return '$played van $total gespeeld';
+    if (played == 0) return total == 1 ? tr.oneQuiz : tr.quizzesN(total);
+    return tr.playedOf(played, total);
   }
 }
 
@@ -223,7 +223,7 @@ Widget _catalogueState(
       padding: const EdgeInsets.fromLTRB(20, 60, 20, 0),
       child: AppEmptyState(
         icon: Icons.error_outline,
-        title: 'Quizzen konden niet laden',
+        title: tr.quizzesLoadFailed,
         description: '$err',
       ),
     ),
@@ -260,7 +260,7 @@ class LibraryBooksScreen extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
             children: [
               BqTopBar(
-                title: 'Per bijbelboek',
+                title: tr.byBibleBook,
                 onBack: () => _backToLibrary(context),
               ),
               const SizedBox(height: 8),
@@ -329,7 +329,7 @@ class _TestamentHeader extends StatelessWidget {
       children: [
         Expanded(child: Text(title, style: AppTheme.displaySmall)),
         Text(
-          '${books.length} boeken · $quizzes quizzen',
+          tr.booksAndQuizzes(books.length, quizzes),
           style: AppTheme.caption,
         ),
       ],
@@ -432,7 +432,7 @@ class LibraryBookScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final order = BibleBooks.orderForKey(bookKey);
-    final name = BibleBooks.nameFor(order) ?? 'Bijbelboek';
+    final name = BibleBooks.nameFor(order) ?? tr.bibleBook;
     final quizzesAsync = ref.watch(quizzesProvider(const QuizQuery()));
     final playedIds = _playedIdsOf(ref);
     void openQuiz(Quiz quiz) => context.push('/quiz/${_routeKey(quiz)}');
@@ -461,8 +461,8 @@ class LibraryBookScreen extends ConsumerWidget {
                       subtitle: book == null
                           ? null
                           : played == 0
-                          ? '${quizzes.length} quizzen'
-                          : '$played van ${quizzes.length} gespeeld',
+                          ? tr.quizzesCountList(quizzes.length)
+                          : tr.playedOfList(played, quizzes.length),
                       onBack: () => _backToLibrary(context),
                     ),
                     if (book == null)
@@ -472,11 +472,11 @@ class LibraryBookScreen extends ConsumerWidget {
                         (_) => const SizedBox.shrink(),
                       )
                     else if (quizzes.isEmpty)
-                      const Padding(
+                      Padding(
                         padding: EdgeInsets.only(top: 24),
                         child: BqCard(
                           child: Text(
-                            'Over dit boek zijn nog geen quizzen.',
+                            tr.noQuizzesForBook,
                             style: AppTheme.bodyMuted,
                           ),
                         ),
@@ -499,7 +499,7 @@ class LibraryBookScreen extends ConsumerWidget {
                       ],
                       const SizedBox(height: 22),
                       Text(
-                        'Alle quizzen over $name',
+                        tr.allQuizzesAbout(name),
                         style: const TextStyle(
                           fontFamily: AppTheme.sansFontName,
                           fontSize: 16,
@@ -541,7 +541,7 @@ class _NextInBookCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = first ? 'BEGIN MET' : 'GA VERDER MET';
+    final label = first ? tr.startWith : tr.continueWith;
     return Semantics(
       button: true,
       onTap: onTap,

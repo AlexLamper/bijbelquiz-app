@@ -2445,6 +2445,618 @@ abstract class AppLocalizations {
   /// In nl, this message translates to:
   /// **'Met een account'**
   String get withAccount;
+
+  /// No description provided for @oneQuiz.
+  ///
+  /// In nl, this message translates to:
+  /// **'1 quiz'**
+  String get oneQuiz;
+
+  /// No description provided for @quizzesN.
+  ///
+  /// In nl, this message translates to:
+  /// **'{total} quizzen'**
+  String quizzesN(Object total);
+
+  /// No description provided for @playedOf.
+  ///
+  /// In nl, this message translates to:
+  /// **'{played} van {total} gespeeld'**
+  String playedOf(Object played, Object total);
+
+  /// No description provided for @quizzesLoadFailed.
+  ///
+  /// In nl, this message translates to:
+  /// **'Quizzen konden niet laden'**
+  String get quizzesLoadFailed;
+
+  /// No description provided for @byBibleBook.
+  ///
+  /// In nl, this message translates to:
+  /// **'Per bijbelboek'**
+  String get byBibleBook;
+
+  /// No description provided for @booksAndQuizzes.
+  ///
+  /// In nl, this message translates to:
+  /// **'{booksCount} boeken · {quizzes} quizzen'**
+  String booksAndQuizzes(Object booksCount, Object quizzes);
+
+  /// No description provided for @bibleBook.
+  ///
+  /// In nl, this message translates to:
+  /// **'Bijbelboek'**
+  String get bibleBook;
+
+  /// No description provided for @quizzesCountList.
+  ///
+  /// In nl, this message translates to:
+  /// **'{quizzesCount} quizzen'**
+  String quizzesCountList(Object quizzesCount);
+
+  /// No description provided for @playedOfList.
+  ///
+  /// In nl, this message translates to:
+  /// **'{played} van {quizzesCount} gespeeld'**
+  String playedOfList(Object played, Object quizzesCount);
+
+  /// No description provided for @noQuizzesForBook.
+  ///
+  /// In nl, this message translates to:
+  /// **'Over dit boek zijn nog geen quizzen.'**
+  String get noQuizzesForBook;
+
+  /// No description provided for @allQuizzesAbout.
+  ///
+  /// In nl, this message translates to:
+  /// **'Alle quizzen over {name}'**
+  String allQuizzesAbout(Object name);
+
+  /// No description provided for @startWith.
+  ///
+  /// In nl, this message translates to:
+  /// **'BEGIN MET'**
+  String get startWith;
+
+  /// No description provided for @continueWith.
+  ///
+  /// In nl, this message translates to:
+  /// **'GA VERDER MET'**
+  String get continueWith;
+
+  /// No description provided for @anyLevel.
+  ///
+  /// In nl, this message translates to:
+  /// **'Elk niveau'**
+  String get anyLevel;
+
+  /// No description provided for @easy.
+  ///
+  /// In nl, this message translates to:
+  /// **'Makkelijk'**
+  String get easy;
+
+  /// No description provided for @medium.
+  ///
+  /// In nl, this message translates to:
+  /// **'Gemiddeld'**
+  String get medium;
+
+  /// No description provided for @hard.
+  ///
+  /// In nl, this message translates to:
+  /// **'Moeilijk'**
+  String get hard;
+
+  /// No description provided for @results.
+  ///
+  /// In nl, this message translates to:
+  /// **'Resultaten'**
+  String get results;
+
+  /// No description provided for @allQuizzes.
+  ///
+  /// In nl, this message translates to:
+  /// **'Alle quizzen'**
+  String get allQuizzes;
+
+  /// No description provided for @popular.
+  ///
+  /// In nl, this message translates to:
+  /// **'Populair'**
+  String get popular;
+
+  /// No description provided for @allBooks.
+  ///
+  /// In nl, this message translates to:
+  /// **'Alle boeken'**
+  String get allBooks;
+
+  /// No description provided for @searchHint.
+  ///
+  /// In nl, this message translates to:
+  /// **'Zoek een bijbelboek of onderwerp'**
+  String get searchHint;
+
+  /// No description provided for @clear.
+  ///
+  /// In nl, this message translates to:
+  /// **'Wissen'**
+  String get clear;
+
+  /// No description provided for @questionsAndMinutes.
+  ///
+  /// In nl, this message translates to:
+  /// **'{questionCount} vragen · {questionCount2} min'**
+  String questionsAndMinutes(Object questionCount, Object questionCount2);
+
+  /// No description provided for @notPlayedYet.
+  ///
+  /// In nl, this message translates to:
+  /// **'Nog niet gespeeld'**
+  String get notPlayedYet;
+
+  /// No description provided for @noQuizzesFilters.
+  ///
+  /// In nl, this message translates to:
+  /// **'Geen quizzen gevonden met de huidige filters.'**
+  String get noQuizzesFilters;
+
+  /// No description provided for @sortBibleOrder.
+  ///
+  /// In nl, this message translates to:
+  /// **'Bijbelvolgorde'**
+  String get sortBibleOrder;
+
+  /// No description provided for @sortMostPopular.
+  ///
+  /// In nl, this message translates to:
+  /// **'Meest populair'**
+  String get sortMostPopular;
+
+  /// No description provided for @sortNewest.
+  ///
+  /// In nl, this message translates to:
+  /// **'Nieuwste eerst'**
+  String get sortNewest;
+
+  /// No description provided for @sortShortest.
+  ///
+  /// In nl, this message translates to:
+  /// **'Kortste'**
+  String get sortShortest;
+
+  /// No description provided for @sort.
+  ///
+  /// In nl, this message translates to:
+  /// **'Sorteren'**
+  String get sort;
+
+  /// No description provided for @hideText.
+  ///
+  /// In nl, this message translates to:
+  /// **'Verberg tekst'**
+  String get hideText;
+
+  /// No description provided for @hideTextOf.
+  ///
+  /// In nl, this message translates to:
+  /// **'Verberg de tekst van {reference}'**
+  String hideTextOf(Object reference);
+
+  /// No description provided for @unlockPremiumExplain.
+  ///
+  /// In nl, this message translates to:
+  /// **'Ontgrendel Premium voor uitleg'**
+  String get unlockPremiumExplain;
+
+  /// No description provided for @readWhyWrong.
+  ///
+  /// In nl, this message translates to:
+  /// **'Lees waarom dit fout was'**
+  String get readWhyWrong;
+
+  /// No description provided for @timeUp.
+  ///
+  /// In nl, this message translates to:
+  /// **'Tijd om'**
+  String get timeUp;
+
+  /// No description provided for @finishQuiz.
+  ///
+  /// In nl, this message translates to:
+  /// **'Rond quiz af'**
+  String get finishQuiz;
+
+  /// No description provided for @a11yYourAnswerRight.
+  ///
+  /// In nl, this message translates to:
+  /// **', jouw antwoord, goed'**
+  String get a11yYourAnswerRight;
+
+  /// No description provided for @a11yCorrectAnswer.
+  ///
+  /// In nl, this message translates to:
+  /// **', het goede antwoord'**
+  String get a11yCorrectAnswer;
+
+  /// No description provided for @a11yYourAnswerWrong.
+  ///
+  /// In nl, this message translates to:
+  /// **', jouw antwoord, fout'**
+  String get a11yYourAnswerWrong;
+
+  /// No description provided for @questionOf.
+  ///
+  /// In nl, this message translates to:
+  /// **'Vraag {current} van {total}'**
+  String questionOf(Object current, Object total);
+
+  /// No description provided for @secondsLeft.
+  ///
+  /// In nl, this message translates to:
+  /// **'Nog {secondsLeft} seconden'**
+  String secondsLeft(Object secondsLeft);
+
+  /// No description provided for @wellPlayed.
+  ///
+  /// In nl, this message translates to:
+  /// **'Mooi gespeeld'**
+  String get wellPlayed;
+
+  /// No description provided for @niceTry.
+  ///
+  /// In nl, this message translates to:
+  /// **'Goed geprobeerd'**
+  String get niceTry;
+
+  /// No description provided for @nextQuiz.
+  ///
+  /// In nl, this message translates to:
+  /// **'Volgende quiz'**
+  String get nextQuiz;
+
+  /// No description provided for @playWithOthers.
+  ///
+  /// In nl, this message translates to:
+  /// **'Speel samen met anderen'**
+  String get playWithOthers;
+
+  /// No description provided for @viewAnswers.
+  ///
+  /// In nl, this message translates to:
+  /// **'Bekijk antwoorden'**
+  String get viewAnswers;
+
+  /// No description provided for @scoreA11yShort.
+  ///
+  /// In nl, this message translates to:
+  /// **'Score {correct} van {total}'**
+  String scoreA11yShort(Object correct, Object total);
+
+  /// No description provided for @newBestScore.
+  ///
+  /// In nl, this message translates to:
+  /// **'Nieuwe beste score'**
+  String get newBestScore;
+
+  /// No description provided for @scoreNotSaved.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je score is nog niet opgeslagen'**
+  String get scoreNotSaved;
+
+  /// No description provided for @scoreSaving.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je score wordt opgeslagen'**
+  String get scoreSaving;
+
+  /// No description provided for @again.
+  ///
+  /// In nl, this message translates to:
+  /// **'Opnieuw'**
+  String get again;
+
+  /// No description provided for @noExtraXp.
+  ///
+  /// In nl, this message translates to:
+  /// **'Geen extra XP deze keer'**
+  String get noExtraXp;
+
+  /// No description provided for @replayRule.
+  ///
+  /// In nl, this message translates to:
+  /// **'Een herhaling telt alleen mee als je jezelf verbetert.'**
+  String get replayRule;
+
+  /// No description provided for @xpToLevelResult.
+  ///
+  /// In nl, this message translates to:
+  /// **'Nog {xpToNextLevel} XP tot level {level}'**
+  String xpToLevelResult(Object xpToNextLevel, Object level);
+
+  /// No description provided for @playTomorrowStreak.
+  ///
+  /// In nl, this message translates to:
+  /// **'Speel morgen om je reeks te houden'**
+  String get playTomorrowStreak;
+
+  /// No description provided for @keepScoreXp.
+  ///
+  /// In nl, this message translates to:
+  /// **'Bewaar je score, {previewXp} XP en je reeks'**
+  String keepScoreXp(Object previewXp);
+
+  /// No description provided for @keepScoreBody.
+  ///
+  /// In nl, this message translates to:
+  /// **'Log in of maak een gratis account, dan wordt deze score direct bijgeschreven. Je quizzen tellen dan mee voor je niveau en de ranglijst.'**
+  String get keepScoreBody;
+
+  /// No description provided for @yourAnswers.
+  ///
+  /// In nl, this message translates to:
+  /// **'Jouw antwoorden'**
+  String get yourAnswers;
+
+  /// No description provided for @allCorrectReview.
+  ///
+  /// In nl, this message translates to:
+  /// **'Alles goed. Bekijk de uitleg bij elke vraag.'**
+  String get allCorrectReview;
+
+  /// No description provided for @wrongOf.
+  ///
+  /// In nl, this message translates to:
+  /// **'{wrongCount} van de {questionsCount} vragen fout.'**
+  String wrongOf(Object wrongCount, Object questionsCount);
+
+  /// No description provided for @fullExplainPremium.
+  ///
+  /// In nl, this message translates to:
+  /// **'De volledige uitleg bij elke vraag is onderdeel van Premium.'**
+  String get fullExplainPremium;
+
+  /// No description provided for @unlockFullReview.
+  ///
+  /// In nl, this message translates to:
+  /// **'Ontgrendel de volledige review'**
+  String get unlockFullReview;
+
+  /// No description provided for @correct.
+  ///
+  /// In nl, this message translates to:
+  /// **'Goed'**
+  String get correct;
+
+  /// No description provided for @wrong.
+  ///
+  /// In nl, this message translates to:
+  /// **'Fout'**
+  String get wrong;
+
+  /// No description provided for @correctAnswerIs.
+  ///
+  /// In nl, this message translates to:
+  /// **'Goed antwoord: {text}'**
+  String correctAnswerIs(Object text);
+
+  /// No description provided for @quizLoadFailed.
+  ///
+  /// In nl, this message translates to:
+  /// **'Quiz kon niet laden'**
+  String get quizLoadFailed;
+
+  /// No description provided for @howToPlay.
+  ///
+  /// In nl, this message translates to:
+  /// **'Hoe wil je spelen?'**
+  String get howToPlay;
+
+  /// No description provided for @rememberedNext.
+  ///
+  /// In nl, this message translates to:
+  /// **'Wordt onthouden voor je volgende quizzen, ook op de website.'**
+  String get rememberedNext;
+
+  /// No description provided for @freeLeftPrefix.
+  ///
+  /// In nl, this message translates to:
+  /// **'Nog '**
+  String get freeLeftPrefix;
+
+  /// No description provided for @freeLeftOne.
+  ///
+  /// In nl, this message translates to:
+  /// **' gratis quiz'**
+  String get freeLeftOne;
+
+  /// No description provided for @freeLeftMany.
+  ///
+  /// In nl, this message translates to:
+  /// **' gratis quizzen'**
+  String get freeLeftMany;
+
+  /// No description provided for @unlockWithPremium.
+  ///
+  /// In nl, this message translates to:
+  /// **'Ontgrendel met Premium'**
+  String get unlockWithPremium;
+
+  /// No description provided for @readAndStart.
+  ///
+  /// In nl, this message translates to:
+  /// **'Lees {label} en start'**
+  String readAndStart(Object label);
+
+  /// No description provided for @startQuiz.
+  ///
+  /// In nl, this message translates to:
+  /// **'Start quiz'**
+  String get startQuiz;
+
+  /// No description provided for @readFirstLabel.
+  ///
+  /// In nl, this message translates to:
+  /// **'Lees eerst {label}'**
+  String readFirstLabel(Object label);
+
+  /// No description provided for @alreadyPlayed.
+  ///
+  /// In nl, this message translates to:
+  /// **'Al gespeeld'**
+  String get alreadyPlayed;
+
+  /// No description provided for @playAgainBetter.
+  ///
+  /// In nl, this message translates to:
+  /// **'Speel opnieuw voor een betere score'**
+  String get playAgainBetter;
+
+  /// No description provided for @yourBestScore.
+  ///
+  /// In nl, this message translates to:
+  /// **'Jouw beste score'**
+  String get yourBestScore;
+
+  /// No description provided for @lastPlayed.
+  ///
+  /// In nl, this message translates to:
+  /// **'Laatst gespeeld {last}'**
+  String lastPlayed(Object last);
+
+  /// No description provided for @testKnowledge.
+  ///
+  /// In nl, this message translates to:
+  /// **'Test je kennis over dit onderwerp.'**
+  String get testKnowledge;
+
+  /// No description provided for @aboutQuiz.
+  ///
+  /// In nl, this message translates to:
+  /// **'Over deze quiz'**
+  String get aboutQuiz;
+
+  /// No description provided for @finished.
+  ///
+  /// In nl, this message translates to:
+  /// **'Afgerond'**
+  String get finished;
+
+  /// No description provided for @readChapterExplain.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je leest het hoofdstuk waar deze quiz over gaat voordat de vragen beginnen.'**
+  String get readChapterExplain;
+
+  /// No description provided for @timePerQuestion.
+  ///
+  /// In nl, this message translates to:
+  /// **'Tijd per vraag'**
+  String get timePerQuestion;
+
+  /// No description provided for @timerExplain.
+  ///
+  /// In nl, this message translates to:
+  /// **'Standaard uit. Zet een klok aan als je jezelf wilt uitdagen.'**
+  String get timerExplain;
+
+  /// No description provided for @off.
+  ///
+  /// In nl, this message translates to:
+  /// **'Uit'**
+  String get off;
+
+  /// No description provided for @noChapterToRead.
+  ///
+  /// In nl, this message translates to:
+  /// **'Geen hoofdstuk om te lezen'**
+  String get noChapterToRead;
+
+  /// No description provided for @multiChapter.
+  ///
+  /// In nl, this message translates to:
+  /// **'Deze quiz gaat over meer dan een hoofdstuk. Je kunt gewoon met de quiz beginnen.'**
+  String get multiChapter;
+
+  /// No description provided for @chapterFetchFailed.
+  ///
+  /// In nl, this message translates to:
+  /// **'Dit hoofdstuk kon nu niet opgehaald worden. Je kunt gewoon met de quiz beginnen.'**
+  String get chapterFetchFailed;
+
+  /// No description provided for @readFirst.
+  ///
+  /// In nl, this message translates to:
+  /// **'Lees eerst'**
+  String get readFirst;
+
+  /// No description provided for @readBeforeQuiz.
+  ///
+  /// In nl, this message translates to:
+  /// **'Lees voor de quiz {title}'**
+  String readBeforeQuiz(Object title);
+
+  /// No description provided for @bibleVersionName.
+  ///
+  /// In nl, this message translates to:
+  /// **'Statenvertaling'**
+  String get bibleVersionName;
+
+  /// No description provided for @keepStreakQuestion.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je reeks vasthouden?'**
+  String get keepStreakQuestion;
+
+  /// No description provided for @keepStreakBody.
+  ///
+  /// In nl, this message translates to:
+  /// **'Je hebt {streak} dagen op rij gespeeld. Zullen we je om 19:00 een seintje geven op een dag dat je nog niet gespeeld hebt?'**
+  String keepStreakBody(Object streak);
+
+  /// No description provided for @noQuestionsYet.
+  ///
+  /// In nl, this message translates to:
+  /// **'Nog geen vragen'**
+  String get noQuestionsYet;
+
+  /// No description provided for @quizNoQuestions.
+  ///
+  /// In nl, this message translates to:
+  /// **'Deze quiz heeft nog geen vragen.'**
+  String get quizNoQuestions;
+
+  /// No description provided for @goBack.
+  ///
+  /// In nl, this message translates to:
+  /// **'Ga terug'**
+  String get goBack;
+
+  /// No description provided for @today.
+  ///
+  /// In nl, this message translates to:
+  /// **'vandaag'**
+  String get today;
+
+  /// No description provided for @yesterday.
+  ///
+  /// In nl, this message translates to:
+  /// **'gisteren'**
+  String get yesterday;
+
+  /// No description provided for @daysAgo.
+  ///
+  /// In nl, this message translates to:
+  /// **'{days} dagen geleden'**
+  String daysAgo(Object days);
+
+  /// No description provided for @onDate.
+  ///
+  /// In nl, this message translates to:
+  /// **'op {date}'**
+  String onDate(Object date);
 }
 
 class _AppLocalizationsDelegate

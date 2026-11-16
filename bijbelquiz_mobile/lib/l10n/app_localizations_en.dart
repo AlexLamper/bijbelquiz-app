@@ -1337,4 +1337,362 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get withAccount => 'With an account';
+
+  @override
+  String get oneQuiz => '1 quiz';
+
+  @override
+  String quizzesN(Object total) {
+    return '$total quizzes';
+  }
+
+  @override
+  String playedOf(Object played, Object total) {
+    return '$played of $total played';
+  }
+
+  @override
+  String get quizzesLoadFailed => 'Quizzes didn\'t load';
+
+  @override
+  String get byBibleBook => 'By book of the Bible';
+
+  @override
+  String booksAndQuizzes(Object booksCount, Object quizzes) {
+    return '$booksCount books · $quizzes quizzes';
+  }
+
+  @override
+  String get bibleBook => 'Book of the Bible';
+
+  @override
+  String quizzesCountList(Object quizzesCount) {
+    return '$quizzesCount quizzes';
+  }
+
+  @override
+  String playedOfList(Object played, Object quizzesCount) {
+    return '$played of $quizzesCount played';
+  }
+
+  @override
+  String get noQuizzesForBook => 'There are no quizzes on this book yet.';
+
+  @override
+  String allQuizzesAbout(Object name) {
+    return 'All quizzes on $name';
+  }
+
+  @override
+  String get startWith => 'START WITH';
+
+  @override
+  String get continueWith => 'CONTINUE WITH';
+
+  @override
+  String get anyLevel => 'Any level';
+
+  @override
+  String get easy => 'Easy';
+
+  @override
+  String get medium => 'Medium';
+
+  @override
+  String get hard => 'Hard';
+
+  @override
+  String get results => 'Results';
+
+  @override
+  String get allQuizzes => 'All quizzes';
+
+  @override
+  String get popular => 'Popular';
+
+  @override
+  String get allBooks => 'All books';
+
+  @override
+  String get searchHint => 'Search a book of the Bible or topic';
+
+  @override
+  String get clear => 'Clear';
+
+  @override
+  String questionsAndMinutes(Object questionCount, Object questionCount2) {
+    return '$questionCount questions · $questionCount2 min';
+  }
+
+  @override
+  String get notPlayedYet => 'Not played yet';
+
+  @override
+  String get noQuizzesFilters => 'No quizzes found with the current filters.';
+
+  @override
+  String get sortBibleOrder => 'Bible order';
+
+  @override
+  String get sortMostPopular => 'Most popular';
+
+  @override
+  String get sortNewest => 'Newest first';
+
+  @override
+  String get sortShortest => 'Shortest';
+
+  @override
+  String get sort => 'Sort';
+
+  @override
+  String get hideText => 'Hide text';
+
+  @override
+  String hideTextOf(Object reference) {
+    return 'Hide the text of $reference';
+  }
+
+  @override
+  String get unlockPremiumExplain => 'Unlock Premium for the explanation';
+
+  @override
+  String get readWhyWrong => 'Read why this was wrong';
+
+  @override
+  String get timeUp => 'Time\'s up';
+
+  @override
+  String get finishQuiz => 'Finish quiz';
+
+  @override
+  String get a11yYourAnswerRight => ', your answer, correct';
+
+  @override
+  String get a11yCorrectAnswer => ', the correct answer';
+
+  @override
+  String get a11yYourAnswerWrong => ', your answer, wrong';
+
+  @override
+  String questionOf(Object current, Object total) {
+    return 'Question $current of $total';
+  }
+
+  @override
+  String secondsLeft(Object secondsLeft) {
+    return '$secondsLeft seconds left';
+  }
+
+  @override
+  String get wellPlayed => 'Well played';
+
+  @override
+  String get niceTry => 'Nice try';
+
+  @override
+  String get nextQuiz => 'Next quiz';
+
+  @override
+  String get playWithOthers => 'Play together with others';
+
+  @override
+  String get viewAnswers => 'View answers';
+
+  @override
+  String scoreA11yShort(Object correct, Object total) {
+    return 'Score $correct of $total';
+  }
+
+  @override
+  String get newBestScore => 'New best score';
+
+  @override
+  String get scoreNotSaved => 'Your score hasn\'t been saved yet';
+
+  @override
+  String get scoreSaving => 'Your score is being saved';
+
+  @override
+  String get again => 'Again';
+
+  @override
+  String get noExtraXp => 'No extra XP this time';
+
+  @override
+  String get replayRule => 'A replay only counts if you beat your own score.';
+
+  @override
+  String xpToLevelResult(Object xpToNextLevel, Object level) {
+    return '$xpToNextLevel XP to level $level';
+  }
+
+  @override
+  String get playTomorrowStreak => 'Play tomorrow to keep your streak';
+
+  @override
+  String keepScoreXp(Object previewXp) {
+    return 'Keep your score, $previewXp XP and your streak';
+  }
+
+  @override
+  String get keepScoreBody =>
+      'Sign in or create a free account and this score is added straight away. Your quizzes then count towards your level and the leaderboard.';
+
+  @override
+  String get yourAnswers => 'Your answers';
+
+  @override
+  String get allCorrectReview =>
+      'All correct. See the explanation for each question.';
+
+  @override
+  String wrongOf(Object wrongCount, Object questionsCount) {
+    return '$wrongCount of the $questionsCount questions wrong.';
+  }
+
+  @override
+  String get fullExplainPremium =>
+      'The full explanation for every question is part of Premium.';
+
+  @override
+  String get unlockFullReview => 'Unlock the full review';
+
+  @override
+  String get correct => 'Correct';
+
+  @override
+  String get wrong => 'Wrong';
+
+  @override
+  String correctAnswerIs(Object text) {
+    return 'Correct answer: $text';
+  }
+
+  @override
+  String get quizLoadFailed => 'Quiz didn\'t load';
+
+  @override
+  String get howToPlay => 'How do you want to play?';
+
+  @override
+  String get rememberedNext =>
+      'Remembered for your next quizzes, also on the website.';
+
+  @override
+  String get freeLeftPrefix => '';
+
+  @override
+  String get freeLeftOne => ' free quiz left';
+
+  @override
+  String get freeLeftMany => ' free quizzes left';
+
+  @override
+  String get unlockWithPremium => 'Unlock with Premium';
+
+  @override
+  String readAndStart(Object label) {
+    return 'Read $label and start';
+  }
+
+  @override
+  String get startQuiz => 'Start quiz';
+
+  @override
+  String readFirstLabel(Object label) {
+    return 'Read $label first';
+  }
+
+  @override
+  String get alreadyPlayed => 'Already played';
+
+  @override
+  String get playAgainBetter => 'Play again for a better score';
+
+  @override
+  String get yourBestScore => 'Your best score';
+
+  @override
+  String lastPlayed(Object last) {
+    return 'Last played $last';
+  }
+
+  @override
+  String get testKnowledge => 'Test your knowledge of this topic.';
+
+  @override
+  String get aboutQuiz => 'About this quiz';
+
+  @override
+  String get finished => 'Finished';
+
+  @override
+  String get readChapterExplain =>
+      'You read the chapter this quiz is about before the questions start.';
+
+  @override
+  String get timePerQuestion => 'Time per question';
+
+  @override
+  String get timerExplain =>
+      'Off by default. Turn on a clock if you want a challenge.';
+
+  @override
+  String get off => 'Off';
+
+  @override
+  String get noChapterToRead => 'No chapter to read';
+
+  @override
+  String get multiChapter =>
+      'This quiz covers more than one chapter. You can just start the quiz.';
+
+  @override
+  String get chapterFetchFailed =>
+      'This chapter couldn\'t be loaded right now. You can just start the quiz.';
+
+  @override
+  String get readFirst => 'Read first';
+
+  @override
+  String readBeforeQuiz(Object title) {
+    return 'Read before the quiz $title';
+  }
+
+  @override
+  String get bibleVersionName => 'World English Bible';
+
+  @override
+  String get keepStreakQuestion => 'Keep your streak?';
+
+  @override
+  String keepStreakBody(Object streak) {
+    return 'You\'ve played $streak days in a row. Shall we nudge you at 7 pm on a day you haven\'t played yet?';
+  }
+
+  @override
+  String get noQuestionsYet => 'No questions yet';
+
+  @override
+  String get quizNoQuestions => 'This quiz has no questions yet.';
+
+  @override
+  String get goBack => 'Go back';
+
+  @override
+  String get today => 'today';
+
+  @override
+  String get yesterday => 'yesterday';
+
+  @override
+  String daysAgo(Object days) {
+    return '$days days ago';
+  }
+
+  @override
+  String onDate(Object date) {
+    return 'on $date';
+  }
 }

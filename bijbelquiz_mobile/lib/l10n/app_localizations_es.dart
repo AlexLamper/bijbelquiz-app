@@ -1340,4 +1340,364 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get withAccount => 'Con una cuenta';
+
+  @override
+  String get oneQuiz => '1 quiz';
+
+  @override
+  String quizzesN(Object total) {
+    return '$total quizzes';
+  }
+
+  @override
+  String playedOf(Object played, Object total) {
+    return '$played de $total jugados';
+  }
+
+  @override
+  String get quizzesLoadFailed => 'No se cargaron los quizzes';
+
+  @override
+  String get byBibleBook => 'Por libro de la Biblia';
+
+  @override
+  String booksAndQuizzes(Object booksCount, Object quizzes) {
+    return '$booksCount libros · $quizzes quizzes';
+  }
+
+  @override
+  String get bibleBook => 'Libro de la Biblia';
+
+  @override
+  String quizzesCountList(Object quizzesCount) {
+    return '$quizzesCount quizzes';
+  }
+
+  @override
+  String playedOfList(Object played, Object quizzesCount) {
+    return '$played de $quizzesCount jugados';
+  }
+
+  @override
+  String get noQuizzesForBook => 'Aún no hay quizzes de este libro.';
+
+  @override
+  String allQuizzesAbout(Object name) {
+    return 'Todos los quizzes de $name';
+  }
+
+  @override
+  String get startWith => 'EMPIEZA CON';
+
+  @override
+  String get continueWith => 'SIGUE CON';
+
+  @override
+  String get anyLevel => 'Cualquier nivel';
+
+  @override
+  String get easy => 'Fácil';
+
+  @override
+  String get medium => 'Medio';
+
+  @override
+  String get hard => 'Difícil';
+
+  @override
+  String get results => 'Resultados';
+
+  @override
+  String get allQuizzes => 'Todos los quizzes';
+
+  @override
+  String get popular => 'Populares';
+
+  @override
+  String get allBooks => 'Todos los libros';
+
+  @override
+  String get searchHint => 'Busca un libro de la Biblia o un tema';
+
+  @override
+  String get clear => 'Borrar';
+
+  @override
+  String questionsAndMinutes(Object questionCount, Object questionCount2) {
+    return '$questionCount preguntas · $questionCount2 min';
+  }
+
+  @override
+  String get notPlayedYet => 'Aún no jugado';
+
+  @override
+  String get noQuizzesFilters =>
+      'No se encontraron quizzes con los filtros actuales.';
+
+  @override
+  String get sortBibleOrder => 'Orden bíblico';
+
+  @override
+  String get sortMostPopular => 'Más populares';
+
+  @override
+  String get sortNewest => 'Más recientes';
+
+  @override
+  String get sortShortest => 'Más cortos';
+
+  @override
+  String get sort => 'Ordenar';
+
+  @override
+  String get hideText => 'Ocultar texto';
+
+  @override
+  String hideTextOf(Object reference) {
+    return 'Ocultar el texto de $reference';
+  }
+
+  @override
+  String get unlockPremiumExplain =>
+      'Desbloquea Premium para ver la explicación';
+
+  @override
+  String get readWhyWrong => 'Lee por qué era incorrecto';
+
+  @override
+  String get timeUp => 'Se acabó el tiempo';
+
+  @override
+  String get finishQuiz => 'Terminar quiz';
+
+  @override
+  String get a11yYourAnswerRight => ', tu respuesta, correcta';
+
+  @override
+  String get a11yCorrectAnswer => ', la respuesta correcta';
+
+  @override
+  String get a11yYourAnswerWrong => ', tu respuesta, incorrecta';
+
+  @override
+  String questionOf(Object current, Object total) {
+    return 'Pregunta $current de $total';
+  }
+
+  @override
+  String secondsLeft(Object secondsLeft) {
+    return 'Quedan $secondsLeft segundos';
+  }
+
+  @override
+  String get wellPlayed => 'Bien jugado';
+
+  @override
+  String get niceTry => 'Buen intento';
+
+  @override
+  String get nextQuiz => 'Siguiente quiz';
+
+  @override
+  String get playWithOthers => 'Juega con otros';
+
+  @override
+  String get viewAnswers => 'Ver respuestas';
+
+  @override
+  String scoreA11yShort(Object correct, Object total) {
+    return 'Puntuación $correct de $total';
+  }
+
+  @override
+  String get newBestScore => 'Nueva mejor puntuación';
+
+  @override
+  String get scoreNotSaved => 'Tu puntuación aún no se ha guardado';
+
+  @override
+  String get scoreSaving => 'Guardando tu puntuación';
+
+  @override
+  String get again => 'Otra vez';
+
+  @override
+  String get noExtraXp => 'Sin XP extra esta vez';
+
+  @override
+  String get replayRule => 'Repetir solo cuenta si mejoras tu puntuación.';
+
+  @override
+  String xpToLevelResult(Object xpToNextLevel, Object level) {
+    return '$xpToNextLevel XP para el nivel $level';
+  }
+
+  @override
+  String get playTomorrowStreak => 'Juega mañana para mantener tu racha';
+
+  @override
+  String keepScoreXp(Object previewXp) {
+    return 'Guarda tu puntuación, $previewXp XP y tu racha';
+  }
+
+  @override
+  String get keepScoreBody =>
+      'Inicia sesión o crea una cuenta gratis y esta puntuación se añadirá al instante. Tus quizzes contarán para tu nivel y la clasificación.';
+
+  @override
+  String get yourAnswers => 'Tus respuestas';
+
+  @override
+  String get allCorrectReview =>
+      'Todo correcto. Mira la explicación de cada pregunta.';
+
+  @override
+  String wrongOf(Object wrongCount, Object questionsCount) {
+    return '$wrongCount de las $questionsCount preguntas incorrectas.';
+  }
+
+  @override
+  String get fullExplainPremium =>
+      'La explicación completa de cada pregunta es parte de Premium.';
+
+  @override
+  String get unlockFullReview => 'Desbloquea la revisión completa';
+
+  @override
+  String get correct => 'Correcta';
+
+  @override
+  String get wrong => 'Incorrecta';
+
+  @override
+  String correctAnswerIs(Object text) {
+    return 'Respuesta correcta: $text';
+  }
+
+  @override
+  String get quizLoadFailed => 'No se cargó el quiz';
+
+  @override
+  String get howToPlay => '¿Cómo quieres jugar?';
+
+  @override
+  String get rememberedNext =>
+      'Se recordará para tus próximos quizzes, también en la web.';
+
+  @override
+  String get freeLeftPrefix => 'Tienes ';
+
+  @override
+  String get freeLeftOne => ' quiz gratis';
+
+  @override
+  String get freeLeftMany => ' quizzes gratis';
+
+  @override
+  String get unlockWithPremium => 'Desbloquear con Premium';
+
+  @override
+  String readAndStart(Object label) {
+    return 'Lee $label y empieza';
+  }
+
+  @override
+  String get startQuiz => 'Empezar quiz';
+
+  @override
+  String readFirstLabel(Object label) {
+    return 'Lee primero $label';
+  }
+
+  @override
+  String get alreadyPlayed => 'Ya jugado';
+
+  @override
+  String get playAgainBetter => 'Juega de nuevo para mejorar tu puntuación';
+
+  @override
+  String get yourBestScore => 'Tu mejor puntuación';
+
+  @override
+  String lastPlayed(Object last) {
+    return 'Jugado por última vez $last';
+  }
+
+  @override
+  String get testKnowledge => 'Pon a prueba lo que sabes de este tema.';
+
+  @override
+  String get aboutQuiz => 'Sobre este quiz';
+
+  @override
+  String get finished => 'Terminado';
+
+  @override
+  String get readChapterExplain =>
+      'Lees el capítulo del quiz antes de que empiecen las preguntas.';
+
+  @override
+  String get timePerQuestion => 'Tiempo por pregunta';
+
+  @override
+  String get timerExplain =>
+      'Desactivado por defecto. Activa un reloj si quieres un reto.';
+
+  @override
+  String get off => 'No';
+
+  @override
+  String get noChapterToRead => 'No hay capítulo que leer';
+
+  @override
+  String get multiChapter =>
+      'Este quiz trata de más de un capítulo. Puedes empezar el quiz directamente.';
+
+  @override
+  String get chapterFetchFailed =>
+      'No se pudo cargar este capítulo ahora. Puedes empezar el quiz directamente.';
+
+  @override
+  String get readFirst => 'Lee primero';
+
+  @override
+  String readBeforeQuiz(Object title) {
+    return 'Lee antes del quiz $title';
+  }
+
+  @override
+  String get bibleVersionName => 'Reina-Valera 1909';
+
+  @override
+  String get keepStreakQuestion => '¿Mantener tu racha?';
+
+  @override
+  String keepStreakBody(Object streak) {
+    return 'Has jugado $streak días seguidos. ¿Te avisamos a las 19:00 los días que aún no hayas jugado?';
+  }
+
+  @override
+  String get noQuestionsYet => 'Aún no hay preguntas';
+
+  @override
+  String get quizNoQuestions => 'Este quiz aún no tiene preguntas.';
+
+  @override
+  String get goBack => 'Volver';
+
+  @override
+  String get today => 'hoy';
+
+  @override
+  String get yesterday => 'ayer';
+
+  @override
+  String daysAgo(Object days) {
+    return 'hace $days días';
+  }
+
+  @override
+  String onDate(Object date) {
+    return 'el $date';
+  }
 }

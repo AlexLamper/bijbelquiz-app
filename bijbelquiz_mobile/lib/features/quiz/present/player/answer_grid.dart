@@ -7,6 +7,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/bq.dart';
 import '../../domain/answer.dart';
 import 'player_widgets.dart';
+import '../../../../l10n/tr.dart';
 
 /// Text on tiles that were neither picked nor correct, once answered.
 const Color _dimmedText = Color(0xFF8A877F);
@@ -148,11 +149,11 @@ class _AnswerTileState extends State<AnswerTile> {
   String get _semanticSuffix {
     switch (widget.state) {
       case AnswerTileState.correctPicked:
-        return ', jouw antwoord, goed';
+        return tr.a11yYourAnswerRight;
       case AnswerTileState.correctRevealed:
-        return ', het goede antwoord';
+        return tr.a11yCorrectAnswer;
       case AnswerTileState.wrongPicked:
-        return ', jouw antwoord, fout';
+        return tr.a11yYourAnswerWrong;
       case AnswerTileState.idle:
       case AnswerTileState.dimmed:
         return '';

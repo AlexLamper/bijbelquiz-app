@@ -13,6 +13,7 @@ import '../../domain/quiz.dart';
 import '../../domain/quiz_submission_result.dart';
 import 'player_widgets.dart';
 import 'quiz_review_sheet.dart';
+import '../../../../l10n/tr.dart';
 
 /// The result page after the last question.
 ///
@@ -63,7 +64,7 @@ class QuizResultView extends ConsumerWidget {
 
     final firstName = (profile?.name ?? '').trim().split(RegExp(r'\s+')).first;
     final doingWell = total == 0 || correctCount * 2 >= total;
-    final praise = doingWell ? 'Mooi gespeeld' : 'Goed geprobeerd';
+    final praise = doingWell ? tr.wellPlayed : tr.niceTry;
     final greeting = firstName.isEmpty ? '$praise!' : '$praise, $firstName';
 
     return LayoutBuilder(
@@ -125,12 +126,12 @@ class QuizResultView extends ConsumerWidget {
                 const Spacer(),
                 const SizedBox(height: 20),
                 BqButton(
-                  label: 'Volgende quiz',
+                  label: tr.nextQuiz,
                   onPressed: () => context.go('/quizzes'),
                 ),
                 const SizedBox(height: 12),
                 BqButton(
-                  label: 'Speel samen met anderen',
+                  label: tr.playWithOthers,
                   style: BqButtonStyle.secondary,
                   icon: const BqIcon(
                     BqIcons.users,
@@ -146,7 +147,7 @@ class QuizResultView extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     _TextLink(
-                      label: 'Bekijk antwoorden',
+                      label: tr.viewAnswers,
                       onTap: () => showQuizReviewSheet(
                         context,
                         quiz: quiz,
@@ -200,7 +201,7 @@ class _ScoreCard extends StatelessWidget {
       child: Column(
         children: [
           Semantics(
-            label: 'Score $correct van $total',
+            label: tr.scoreA11yShort(correct, total),
             excludeSemantics: true,
             child: SizedBox(
               width: 148,
@@ -253,8 +254,8 @@ class _ScoreCard extends StatelessWidget {
           ),
           if (isNewBest) ...[
             const SizedBox(height: 10),
-            const PlayerChip(
-              label: 'Nieuwe beste score',
+            PlayerChip(
+              label: tr.newBestScore,
               icon: PlayerIcons.trophy,
               height: 28,
             ),
@@ -341,8 +342,8 @@ class _ProgressCard extends StatelessWidget {
             Expanded(
               child: _TwoLines(
                 title: failed
-                    ? 'Je score is nog niet opgeslagen'
-                    : 'Je score wordt opgeslagen',
+                    ? tr.scoreNotSaved
+                    : tr.scoreSaving,
                 subtitle: failed
                     ? 'Controleer je verbinding en probeer het opnieuw.'
                     : null,
@@ -350,7 +351,7 @@ class _ProgressCard extends StatelessWidget {
             ),
             const SizedBox(width: 10),
             if (failed)
-              _TextLink(label: 'Opnieuw', onTap: onRetry)
+              _TextLink(label: tr.again, onTap: onRetry)
             else
               const AppLoader(size: 18),
           ],
@@ -362,7 +363,7 @@ class _ProgressCard extends StatelessWidget {
     final earned = result.xpEarned;
     final title = earned > 0
         ? '+${formatPlayerNumber(earned)} XP verdiend'
-        : 'Geen extra XP deze keer';
+        : tr.noExtraXp;
 
     String? subtitle;
     double? levelFraction;
@@ -370,7 +371,7 @@ class _ProgressCard extends StatelessWidget {
     if (earned <= 0) {
       // Only the server awards XP, and a replay that beats no earlier attempt
       // awards none.
-      subtitle = 'Een herhaling telt alleen mee als je jezelf verbetert.';
+      subtitle = tr.replayRule;
     }
     if (profile != null) {
       final atTop = profile.xpToNextLevel <= 0;
@@ -380,8 +381,7 @@ class _ProgressCard extends StatelessWidget {
           : 'Voortgang naar level ${profile.level + 1}';
       subtitle ??= atTop
           ? 'Level ${profile.level} - ${profile.levelTitle}'
-          : 'Nog ${formatPlayerNumber(profile.xpToNextLevel)} XP tot level '
-                '${profile.level + 1}';
+          : tr.xpToLevelResult(formatPlayerNumber(profile.xpToNextLevel), profile.level + 1);
     }
 
     final streak = result.streak > 0 ? result.streak : (profile?.streak ?? 0);
@@ -434,7 +434,7 @@ class _ProgressCard extends StatelessWidget {
                   Expanded(
                     child: _TwoLines(
                       title: 'Reeks van $streak ${streak == 1 ? 'dag' : 'dagen'}',
-                      subtitle: 'Speel morgen om je reeks te houden',
+                      subtitle: tr.playTomorrowStreak,
                     ),
                   ),
                 ],
@@ -475,12 +475,9 @@ class _SaveScoreCard extends StatelessWidget {
               Expanded(
                 child: _TwoLines(
                   title:
-                      'Bewaar je score, ${formatPlayerNumber(previewXp)} XP en '
-                      'je reeks',
+                      tr.keepScoreXp(formatPlayerNumber(previewXp)),
                   subtitle:
-                      'Log in of maak een gratis account, dan wordt deze '
-                      'score direct bijgeschreven. Je quizzen tellen dan mee '
-                      'voor je niveau en de ranglijst.',
+                      tr.keepScoreBody,
                   subtitleLines: 5,
                 ),
               ),

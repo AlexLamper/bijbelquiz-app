@@ -1339,4 +1339,363 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get withAccount => 'Met een account';
+
+  @override
+  String get oneQuiz => '1 quiz';
+
+  @override
+  String quizzesN(Object total) {
+    return '$total quizzen';
+  }
+
+  @override
+  String playedOf(Object played, Object total) {
+    return '$played van $total gespeeld';
+  }
+
+  @override
+  String get quizzesLoadFailed => 'Quizzen konden niet laden';
+
+  @override
+  String get byBibleBook => 'Per bijbelboek';
+
+  @override
+  String booksAndQuizzes(Object booksCount, Object quizzes) {
+    return '$booksCount boeken · $quizzes quizzen';
+  }
+
+  @override
+  String get bibleBook => 'Bijbelboek';
+
+  @override
+  String quizzesCountList(Object quizzesCount) {
+    return '$quizzesCount quizzen';
+  }
+
+  @override
+  String playedOfList(Object played, Object quizzesCount) {
+    return '$played van $quizzesCount gespeeld';
+  }
+
+  @override
+  String get noQuizzesForBook => 'Over dit boek zijn nog geen quizzen.';
+
+  @override
+  String allQuizzesAbout(Object name) {
+    return 'Alle quizzen over $name';
+  }
+
+  @override
+  String get startWith => 'BEGIN MET';
+
+  @override
+  String get continueWith => 'GA VERDER MET';
+
+  @override
+  String get anyLevel => 'Elk niveau';
+
+  @override
+  String get easy => 'Makkelijk';
+
+  @override
+  String get medium => 'Gemiddeld';
+
+  @override
+  String get hard => 'Moeilijk';
+
+  @override
+  String get results => 'Resultaten';
+
+  @override
+  String get allQuizzes => 'Alle quizzen';
+
+  @override
+  String get popular => 'Populair';
+
+  @override
+  String get allBooks => 'Alle boeken';
+
+  @override
+  String get searchHint => 'Zoek een bijbelboek of onderwerp';
+
+  @override
+  String get clear => 'Wissen';
+
+  @override
+  String questionsAndMinutes(Object questionCount, Object questionCount2) {
+    return '$questionCount vragen · $questionCount2 min';
+  }
+
+  @override
+  String get notPlayedYet => 'Nog niet gespeeld';
+
+  @override
+  String get noQuizzesFilters =>
+      'Geen quizzen gevonden met de huidige filters.';
+
+  @override
+  String get sortBibleOrder => 'Bijbelvolgorde';
+
+  @override
+  String get sortMostPopular => 'Meest populair';
+
+  @override
+  String get sortNewest => 'Nieuwste eerst';
+
+  @override
+  String get sortShortest => 'Kortste';
+
+  @override
+  String get sort => 'Sorteren';
+
+  @override
+  String get hideText => 'Verberg tekst';
+
+  @override
+  String hideTextOf(Object reference) {
+    return 'Verberg de tekst van $reference';
+  }
+
+  @override
+  String get unlockPremiumExplain => 'Ontgrendel Premium voor uitleg';
+
+  @override
+  String get readWhyWrong => 'Lees waarom dit fout was';
+
+  @override
+  String get timeUp => 'Tijd om';
+
+  @override
+  String get finishQuiz => 'Rond quiz af';
+
+  @override
+  String get a11yYourAnswerRight => ', jouw antwoord, goed';
+
+  @override
+  String get a11yCorrectAnswer => ', het goede antwoord';
+
+  @override
+  String get a11yYourAnswerWrong => ', jouw antwoord, fout';
+
+  @override
+  String questionOf(Object current, Object total) {
+    return 'Vraag $current van $total';
+  }
+
+  @override
+  String secondsLeft(Object secondsLeft) {
+    return 'Nog $secondsLeft seconden';
+  }
+
+  @override
+  String get wellPlayed => 'Mooi gespeeld';
+
+  @override
+  String get niceTry => 'Goed geprobeerd';
+
+  @override
+  String get nextQuiz => 'Volgende quiz';
+
+  @override
+  String get playWithOthers => 'Speel samen met anderen';
+
+  @override
+  String get viewAnswers => 'Bekijk antwoorden';
+
+  @override
+  String scoreA11yShort(Object correct, Object total) {
+    return 'Score $correct van $total';
+  }
+
+  @override
+  String get newBestScore => 'Nieuwe beste score';
+
+  @override
+  String get scoreNotSaved => 'Je score is nog niet opgeslagen';
+
+  @override
+  String get scoreSaving => 'Je score wordt opgeslagen';
+
+  @override
+  String get again => 'Opnieuw';
+
+  @override
+  String get noExtraXp => 'Geen extra XP deze keer';
+
+  @override
+  String get replayRule =>
+      'Een herhaling telt alleen mee als je jezelf verbetert.';
+
+  @override
+  String xpToLevelResult(Object xpToNextLevel, Object level) {
+    return 'Nog $xpToNextLevel XP tot level $level';
+  }
+
+  @override
+  String get playTomorrowStreak => 'Speel morgen om je reeks te houden';
+
+  @override
+  String keepScoreXp(Object previewXp) {
+    return 'Bewaar je score, $previewXp XP en je reeks';
+  }
+
+  @override
+  String get keepScoreBody =>
+      'Log in of maak een gratis account, dan wordt deze score direct bijgeschreven. Je quizzen tellen dan mee voor je niveau en de ranglijst.';
+
+  @override
+  String get yourAnswers => 'Jouw antwoorden';
+
+  @override
+  String get allCorrectReview => 'Alles goed. Bekijk de uitleg bij elke vraag.';
+
+  @override
+  String wrongOf(Object wrongCount, Object questionsCount) {
+    return '$wrongCount van de $questionsCount vragen fout.';
+  }
+
+  @override
+  String get fullExplainPremium =>
+      'De volledige uitleg bij elke vraag is onderdeel van Premium.';
+
+  @override
+  String get unlockFullReview => 'Ontgrendel de volledige review';
+
+  @override
+  String get correct => 'Goed';
+
+  @override
+  String get wrong => 'Fout';
+
+  @override
+  String correctAnswerIs(Object text) {
+    return 'Goed antwoord: $text';
+  }
+
+  @override
+  String get quizLoadFailed => 'Quiz kon niet laden';
+
+  @override
+  String get howToPlay => 'Hoe wil je spelen?';
+
+  @override
+  String get rememberedNext =>
+      'Wordt onthouden voor je volgende quizzen, ook op de website.';
+
+  @override
+  String get freeLeftPrefix => 'Nog ';
+
+  @override
+  String get freeLeftOne => ' gratis quiz';
+
+  @override
+  String get freeLeftMany => ' gratis quizzen';
+
+  @override
+  String get unlockWithPremium => 'Ontgrendel met Premium';
+
+  @override
+  String readAndStart(Object label) {
+    return 'Lees $label en start';
+  }
+
+  @override
+  String get startQuiz => 'Start quiz';
+
+  @override
+  String readFirstLabel(Object label) {
+    return 'Lees eerst $label';
+  }
+
+  @override
+  String get alreadyPlayed => 'Al gespeeld';
+
+  @override
+  String get playAgainBetter => 'Speel opnieuw voor een betere score';
+
+  @override
+  String get yourBestScore => 'Jouw beste score';
+
+  @override
+  String lastPlayed(Object last) {
+    return 'Laatst gespeeld $last';
+  }
+
+  @override
+  String get testKnowledge => 'Test je kennis over dit onderwerp.';
+
+  @override
+  String get aboutQuiz => 'Over deze quiz';
+
+  @override
+  String get finished => 'Afgerond';
+
+  @override
+  String get readChapterExplain =>
+      'Je leest het hoofdstuk waar deze quiz over gaat voordat de vragen beginnen.';
+
+  @override
+  String get timePerQuestion => 'Tijd per vraag';
+
+  @override
+  String get timerExplain =>
+      'Standaard uit. Zet een klok aan als je jezelf wilt uitdagen.';
+
+  @override
+  String get off => 'Uit';
+
+  @override
+  String get noChapterToRead => 'Geen hoofdstuk om te lezen';
+
+  @override
+  String get multiChapter =>
+      'Deze quiz gaat over meer dan een hoofdstuk. Je kunt gewoon met de quiz beginnen.';
+
+  @override
+  String get chapterFetchFailed =>
+      'Dit hoofdstuk kon nu niet opgehaald worden. Je kunt gewoon met de quiz beginnen.';
+
+  @override
+  String get readFirst => 'Lees eerst';
+
+  @override
+  String readBeforeQuiz(Object title) {
+    return 'Lees voor de quiz $title';
+  }
+
+  @override
+  String get bibleVersionName => 'Statenvertaling';
+
+  @override
+  String get keepStreakQuestion => 'Je reeks vasthouden?';
+
+  @override
+  String keepStreakBody(Object streak) {
+    return 'Je hebt $streak dagen op rij gespeeld. Zullen we je om 19:00 een seintje geven op een dag dat je nog niet gespeeld hebt?';
+  }
+
+  @override
+  String get noQuestionsYet => 'Nog geen vragen';
+
+  @override
+  String get quizNoQuestions => 'Deze quiz heeft nog geen vragen.';
+
+  @override
+  String get goBack => 'Ga terug';
+
+  @override
+  String get today => 'vandaag';
+
+  @override
+  String get yesterday => 'gisteren';
+
+  @override
+  String daysAgo(Object days) {
+    return '$days dagen geleden';
+  }
+
+  @override
+  String onDate(Object date) {
+    return 'op $date';
+  }
 }

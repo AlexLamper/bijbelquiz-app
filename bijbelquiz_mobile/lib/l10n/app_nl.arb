@@ -760,5 +760,285 @@
       }
     }
   },
-  "withAccount": "Met een account"
+  "withAccount": "Met een account",
+  "oneQuiz": "1 quiz",
+  "quizzesN": "{total} quizzen",
+  "@quizzesN": {
+    "placeholders": {
+      "total": {
+        "type": "Object"
+      }
+    }
+  },
+  "playedOf": "{played} van {total} gespeeld",
+  "@playedOf": {
+    "placeholders": {
+      "played": {
+        "type": "Object"
+      },
+      "total": {
+        "type": "Object"
+      }
+    }
+  },
+  "quizzesLoadFailed": "Quizzen konden niet laden",
+  "byBibleBook": "Per bijbelboek",
+  "booksAndQuizzes": "{booksCount} boeken · {quizzes} quizzen",
+  "@booksAndQuizzes": {
+    "placeholders": {
+      "booksCount": {
+        "type": "Object"
+      },
+      "quizzes": {
+        "type": "Object"
+      }
+    }
+  },
+  "bibleBook": "Bijbelboek",
+  "quizzesCountList": "{quizzesCount} quizzen",
+  "@quizzesCountList": {
+    "placeholders": {
+      "quizzesCount": {
+        "type": "Object"
+      }
+    }
+  },
+  "playedOfList": "{played} van {quizzesCount} gespeeld",
+  "@playedOfList": {
+    "placeholders": {
+      "played": {
+        "type": "Object"
+      },
+      "quizzesCount": {
+        "type": "Object"
+      }
+    }
+  },
+  "noQuizzesForBook": "Over dit boek zijn nog geen quizzen.",
+  "allQuizzesAbout": "Alle quizzen over {name}",
+  "@allQuizzesAbout": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "startWith": "BEGIN MET",
+  "continueWith": "GA VERDER MET",
+  "anyLevel": "Elk niveau",
+  "easy": "Makkelijk",
+  "medium": "Gemiddeld",
+  "hard": "Moeilijk",
+  "results": "Resultaten",
+  "allQuizzes": "Alle quizzen",
+  "popular": "Populair",
+  "allBooks": "Alle boeken",
+  "searchHint": "Zoek een bijbelboek of onderwerp",
+  "clear": "Wissen",
+  "questionsAndMinutes": "{questionCount} vragen · {questionCount2} min",
+  "@questionsAndMinutes": {
+    "placeholders": {
+      "questionCount": {
+        "type": "Object"
+      },
+      "questionCount2": {
+        "type": "Object"
+      }
+    }
+  },
+  "notPlayedYet": "Nog niet gespeeld",
+  "noQuizzesFilters": "Geen quizzen gevonden met de huidige filters.",
+  "sortBibleOrder": "Bijbelvolgorde",
+  "sortMostPopular": "Meest populair",
+  "sortNewest": "Nieuwste eerst",
+  "sortShortest": "Kortste",
+  "sort": "Sorteren",
+  "hideText": "Verberg tekst",
+  "hideTextOf": "Verberg de tekst van {reference}",
+  "@hideTextOf": {
+    "placeholders": {
+      "reference": {
+        "type": "Object"
+      }
+    }
+  },
+  "unlockPremiumExplain": "Ontgrendel Premium voor uitleg",
+  "readWhyWrong": "Lees waarom dit fout was",
+  "timeUp": "Tijd om",
+  "finishQuiz": "Rond quiz af",
+  "a11yYourAnswerRight": ", jouw antwoord, goed",
+  "a11yCorrectAnswer": ", het goede antwoord",
+  "a11yYourAnswerWrong": ", jouw antwoord, fout",
+  "questionOf": "Vraag {current} van {total}",
+  "@questionOf": {
+    "placeholders": {
+      "current": {
+        "type": "Object"
+      },
+      "total": {
+        "type": "Object"
+      }
+    }
+  },
+  "secondsLeft": "Nog {secondsLeft} seconden",
+  "@secondsLeft": {
+    "placeholders": {
+      "secondsLeft": {
+        "type": "Object"
+      }
+    }
+  },
+  "wellPlayed": "Mooi gespeeld",
+  "niceTry": "Goed geprobeerd",
+  "nextQuiz": "Volgende quiz",
+  "playWithOthers": "Speel samen met anderen",
+  "viewAnswers": "Bekijk antwoorden",
+  "scoreA11yShort": "Score {correct} van {total}",
+  "@scoreA11yShort": {
+    "placeholders": {
+      "correct": {
+        "type": "Object"
+      },
+      "total": {
+        "type": "Object"
+      }
+    }
+  },
+  "newBestScore": "Nieuwe beste score",
+  "scoreNotSaved": "Je score is nog niet opgeslagen",
+  "scoreSaving": "Je score wordt opgeslagen",
+  "again": "Opnieuw",
+  "noExtraXp": "Geen extra XP deze keer",
+  "replayRule": "Een herhaling telt alleen mee als je jezelf verbetert.",
+  "xpToLevelResult": "Nog {xpToNextLevel} XP tot level {level}",
+  "@xpToLevelResult": {
+    "placeholders": {
+      "xpToNextLevel": {
+        "type": "Object"
+      },
+      "level": {
+        "type": "Object"
+      }
+    }
+  },
+  "playTomorrowStreak": "Speel morgen om je reeks te houden",
+  "keepScoreXp": "Bewaar je score, {previewXp} XP en je reeks",
+  "@keepScoreXp": {
+    "placeholders": {
+      "previewXp": {
+        "type": "Object"
+      }
+    }
+  },
+  "keepScoreBody": "Log in of maak een gratis account, dan wordt deze score direct bijgeschreven. Je quizzen tellen dan mee voor je niveau en de ranglijst.",
+  "yourAnswers": "Jouw antwoorden",
+  "allCorrectReview": "Alles goed. Bekijk de uitleg bij elke vraag.",
+  "wrongOf": "{wrongCount} van de {questionsCount} vragen fout.",
+  "@wrongOf": {
+    "placeholders": {
+      "wrongCount": {
+        "type": "Object"
+      },
+      "questionsCount": {
+        "type": "Object"
+      }
+    }
+  },
+  "fullExplainPremium": "De volledige uitleg bij elke vraag is onderdeel van Premium.",
+  "unlockFullReview": "Ontgrendel de volledige review",
+  "correct": "Goed",
+  "wrong": "Fout",
+  "correctAnswerIs": "Goed antwoord: {text}",
+  "@correctAnswerIs": {
+    "placeholders": {
+      "text": {
+        "type": "Object"
+      }
+    }
+  },
+  "quizLoadFailed": "Quiz kon niet laden",
+  "howToPlay": "Hoe wil je spelen?",
+  "rememberedNext": "Wordt onthouden voor je volgende quizzen, ook op de website.",
+  "freeLeftPrefix": "Nog ",
+  "freeLeftOne": " gratis quiz",
+  "freeLeftMany": " gratis quizzen",
+  "unlockWithPremium": "Ontgrendel met Premium",
+  "readAndStart": "Lees {label} en start",
+  "@readAndStart": {
+    "placeholders": {
+      "label": {
+        "type": "Object"
+      }
+    }
+  },
+  "startQuiz": "Start quiz",
+  "readFirstLabel": "Lees eerst {label}",
+  "@readFirstLabel": {
+    "placeholders": {
+      "label": {
+        "type": "Object"
+      }
+    }
+  },
+  "alreadyPlayed": "Al gespeeld",
+  "playAgainBetter": "Speel opnieuw voor een betere score",
+  "yourBestScore": "Jouw beste score",
+  "lastPlayed": "Laatst gespeeld {last}",
+  "@lastPlayed": {
+    "placeholders": {
+      "last": {
+        "type": "Object"
+      }
+    }
+  },
+  "testKnowledge": "Test je kennis over dit onderwerp.",
+  "aboutQuiz": "Over deze quiz",
+  "finished": "Afgerond",
+  "readChapterExplain": "Je leest het hoofdstuk waar deze quiz over gaat voordat de vragen beginnen.",
+  "timePerQuestion": "Tijd per vraag",
+  "timerExplain": "Standaard uit. Zet een klok aan als je jezelf wilt uitdagen.",
+  "off": "Uit",
+  "noChapterToRead": "Geen hoofdstuk om te lezen",
+  "multiChapter": "Deze quiz gaat over meer dan een hoofdstuk. Je kunt gewoon met de quiz beginnen.",
+  "chapterFetchFailed": "Dit hoofdstuk kon nu niet opgehaald worden. Je kunt gewoon met de quiz beginnen.",
+  "readFirst": "Lees eerst",
+  "readBeforeQuiz": "Lees voor de quiz {title}",
+  "@readBeforeQuiz": {
+    "placeholders": {
+      "title": {
+        "type": "Object"
+      }
+    }
+  },
+  "bibleVersionName": "Statenvertaling",
+  "keepStreakQuestion": "Je reeks vasthouden?",
+  "keepStreakBody": "Je hebt {streak} dagen op rij gespeeld. Zullen we je om 19:00 een seintje geven op een dag dat je nog niet gespeeld hebt?",
+  "@keepStreakBody": {
+    "placeholders": {
+      "streak": {
+        "type": "Object"
+      }
+    }
+  },
+  "noQuestionsYet": "Nog geen vragen",
+  "quizNoQuestions": "Deze quiz heeft nog geen vragen.",
+  "goBack": "Ga terug",
+  "today": "vandaag",
+  "yesterday": "gisteren",
+  "daysAgo": "{days} dagen geleden",
+  "@daysAgo": {
+    "placeholders": {
+      "days": {
+        "type": "Object"
+      }
+    }
+  },
+  "onDate": "op {date}",
+  "@onDate": {
+    "placeholders": {
+      "date": {
+        "type": "Object"
+      }
+    }
+  }
 }

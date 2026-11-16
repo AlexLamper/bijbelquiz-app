@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/config/brand.dart';
 import '../../../../core/theme/app_theme.dart';
+import 'intl_bible_books.dart';
 
 /// What the redesigned screens need to know about a Bible book: its place in
 /// the canon (for ordering), which testament it belongs to (for the green /
@@ -155,6 +157,19 @@ class BibleBooks {
     for (var i = 0; i < _canon.length; i++) _canon[i].$1: i,
   };
 
+  // Bible Quizzes: every language's spelling (and abbreviation) points at the
+  // same canonical index, so a book name from any of the sites resolves.
+  static final Map<String, int> _intlIndex = {
+    for (final titles in kIntlBookTitles.values)
+      for (var i = 0; i < titles.length; i++) _normalise(titles[i]): i,
+    for (final shorts in kIntlBookShorts.values)
+      for (var i = 0; i < shorts.length; i++) _normalise(shorts[i]): i,
+    'psalm': 18,
+    'songofsolomon': 21,
+    'canticles': 21,
+    'revelations': 65,
+  };
+
   static final RegExp _keep = RegExp(r'[a-z0-9]');
 
   static String _normalise(String raw) {
@@ -242,8 +257,11 @@ class BibleBooks {
   ];
 
   /// "1 Samuël" for order 9; null outside 1..66.
-  static String? nameFor(int order) =>
-      order >= 1 && order <= _names.length ? _names[order - 1] : null;
+  static String? nameFor(int order) {
+    if (order < 1 || order > _names.length) return null;
+    if (Brand.isBibleQuizzes) return kIntlBookTitles[Brand.language]![order - 1];
+    return _names[order - 1];
+  }
 
   /// A stable, URL-safe key for a book ("1samuel"), for the book page route.
   static String? keyFor(int order) =>
@@ -256,7 +274,9 @@ class BibleBooks {
   static BibleBookInfo info(String rawName) {
     final key = _normalise(rawName);
     final resolved = _aliases[key] ?? key;
-    final i = _index[resolved];
+    final i = Brand.isBibleQuizzes
+        ? (_intlIndex[key] ?? _index[resolved])
+        : _index[resolved];
     if (i == null) {
       final trimmed = rawName.trim();
       return BibleBookInfo(
@@ -267,7 +287,7 @@ class BibleBooks {
     }
     return BibleBookInfo(
       order: i + 1,
-      abbreviation: _canon[i].$2,
+      abbreviation: Brand.isBibleQuizzes ? kIntlBookShorts[Brand.language]![i] : _canon[i].$2,
       oldTestament: i < otCount,
     );
   }
@@ -282,8 +302,12 @@ class BibleBooks {
       }
     }
     final c = (category ?? '').toLowerCase();
-    if (c.contains('oude')) return BookTint.oldTestament;
-    if (c.contains('nieuwe')) return BookTint.newTestament;
+    if (c.contains('oude') || c.contains('old') || c.contains('antiguo') || c.contains('antigo') || c.contains('alte') || c.contains('ancien')) {
+      return BookTint.oldTestament;
+    }
+    if (c.contains('nieuwe') || c.contains('new') || c.contains('nuevo') || c.contains('novo') || c.contains('neue') || c.contains('nouveau')) {
+      return BookTint.newTestament;
+    }
     return BookTint.general;
   }
 

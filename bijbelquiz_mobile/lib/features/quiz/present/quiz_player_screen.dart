@@ -23,6 +23,7 @@ import 'player/answer_feedback_sheet.dart';
 import 'player/answer_grid.dart';
 import 'player/question_view.dart';
 import 'player/quiz_result_view.dart';
+import '../../../l10n/tr.dart';
 
 class QuizPlayerScreen extends ConsumerStatefulWidget {
   final String idOrSlug;
@@ -307,10 +308,9 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: AppTheme.paperRaised,
-        title: const Text('Je reeks vasthouden?'),
+        title: Text(tr.keepStreakQuestion),
         content: Text(
-          'Je hebt ${profile.streak} dagen op rij gespeeld. Zullen we je om '
-          '19:00 een seintje geven op een dag dat je nog niet gespeeld hebt?',
+          tr.keepStreakBody(profile.streak),
           style: AppTheme.bodyMuted,
         ),
         actions: [
@@ -489,7 +489,7 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
                   timer: _timerSeconds > 0
                       ? QuestionTimerPill(
                           label: _timedOut
-                              ? 'Tijd om'
+                              ? tr.timeUp
                               : _formatSeconds(_secondsLeft),
                           secondsLeft: _secondsLeft,
                           urgent: urgent,
@@ -538,10 +538,10 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
   Widget _buildEmptyState() {
     return AppEmptyState(
       icon: Icons.menu_book_outlined,
-      title: 'Nog geen vragen',
-      description: 'Deze quiz heeft nog geen vragen.',
+      title: tr.noQuestionsYet,
+      description: tr.quizNoQuestions,
       action: BqButton(
-        label: 'Ga terug',
+        label: tr.goBack,
         style: BqButtonStyle.tint,
         expand: false,
         height: 44,
@@ -553,10 +553,10 @@ class _QuizPlayerScreenState extends ConsumerState<QuizPlayerScreen> {
   Widget _buildErrorState(String error) {
     return AppEmptyState(
       icon: Icons.error_outline,
-      title: 'Er ging iets mis',
+      title: tr.errGenericTitle,
       description: error,
       action: BqButton(
-        label: 'Ga terug',
+        label: tr.goBack,
         style: BqButtonStyle.tint,
         expand: false,
         height: 44,

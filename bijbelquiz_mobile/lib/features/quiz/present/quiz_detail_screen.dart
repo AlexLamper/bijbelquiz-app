@@ -15,6 +15,9 @@ import '../data/free_quiz_limit.dart';
 import '../data/quiz_repository.dart';
 import '../domain/quiz.dart';
 import 'widgets/quiz_cover.dart';
+import 'package:intl/intl.dart';
+import '../../../core/config/brand.dart';
+import '../../../l10n/tr.dart';
 
 /// "Quiz starten": cover, title, description, the three facts, the best score
 /// so far, how the quiz is played (saved to the account), and the ways in -
@@ -59,7 +62,7 @@ class QuizDetailScreen extends ConsumerWidget {
               Expanded(
                 child: AppEmptyState(
                   icon: Icons.error_outline,
-                  title: 'Quiz kon niet laden',
+                  title: tr.quizLoadFailed,
                   description: '$err',
                   action: BqButton(
                     label: 'Opnieuw proberen',
@@ -184,8 +187,8 @@ class _DetailBody extends ConsumerWidget {
           // This screen is also where the quiz is set up. The choices
           // are saved to the account, so they are made once rather than
           // before every quiz.
-          const Text(
-            'Hoe wil je spelen?',
+          Text(
+            tr.howToPlay,
             style: TextStyle(
               fontFamily: AppTheme.sansFontName,
               fontSize: 16,
@@ -194,8 +197,8 @@ class _DetailBody extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 2),
-          const Text(
-            'Wordt onthouden voor je volgende quizzen, ook op de website.',
+          Text(
+            tr.rememberedNext,
             style: AppTheme.caption,
           ),
           const SizedBox(height: 10),
@@ -220,7 +223,7 @@ class _DetailBody extends ConsumerWidget {
         Text.rich(
           TextSpan(
             children: [
-              const TextSpan(text: 'Nog '),
+              TextSpan(text: tr.freeLeftPrefix),
               TextSpan(
                 text: '$freeLeft',
                 style: const TextStyle(
@@ -229,7 +232,7 @@ class _DetailBody extends ConsumerWidget {
                 ),
               ),
               TextSpan(
-                text: freeLeft == 1 ? ' gratis quiz' : ' gratis quizzen',
+                text: freeLeft == 1 ? tr.freeLeftOne : tr.freeLeftMany,
               ),
             ],
           ),
@@ -240,7 +243,7 @@ class _DetailBody extends ConsumerWidget {
       ],
       if (locked)
         BqButton(
-          label: 'Ontgrendel met Premium',
+          label: tr.unlockWithPremium,
           icon: SvgPicture.string(BqIcons.crown, width: 20, height: 20),
           onPressed: () {
             ref
@@ -260,8 +263,8 @@ class _DetailBody extends ConsumerWidget {
       else
         BqButton(
           label: readFirst && passage != null
-              ? 'Lees ${passage.label} en start'
-              : 'Start quiz',
+              ? tr.readAndStart(passage.label)
+              : tr.startQuiz,
           onPressed: () {
             // Over the free limit: straight to the locked paywall instead
             // of opening the player only to bounce. Reading stays free.
@@ -288,7 +291,7 @@ class _DetailBody extends ConsumerWidget {
         ),
       const SizedBox(height: 12),
       BqButton(
-        label: 'Speel samen met anderen',
+        label: tr.playWithOthers,
         style: BqButtonStyle.secondary,
         icon: const BqIcon(BqIcons.users, size: 18, color: AppTheme.lapis),
         onPressed: () => context.go(
@@ -307,7 +310,7 @@ class _DetailBody extends ConsumerWidget {
               height: 44,
               child: Center(
                 child: Text(
-                  'Lees eerst ${passage.label}',
+                  tr.readFirstLabel(passage.label),
                   style: const TextStyle(
                     fontFamily: AppTheme.sansFontName,
                     fontSize: 15,
@@ -334,11 +337,11 @@ class _DetailBody extends ConsumerWidget {
     if (!playedBefore) return const [];
 
     if (attempts.isEmpty) {
-      return const [
+      return [
         SizedBox(height: 16),
         _ScoreRow(
-          title: 'Al gespeeld',
-          subtitle: 'Speel opnieuw voor een betere score',
+          title: tr.alreadyPlayed,
+          subtitle: tr.playAgainBetter,
           trailing: _DoneBadge(),
         ),
       ];
@@ -357,10 +360,10 @@ class _DetailBody extends ConsumerWidget {
     return [
       const SizedBox(height: 16),
       _ScoreRow(
-        title: 'Jouw beste score',
+        title: tr.yourBestScore,
         subtitle: last != null
-            ? 'Laatst gespeeld ${_relativeDay(last)}'
-            : 'Al gespeeld',
+            ? tr.lastPlayed(_relativeDay(last))
+            : tr.alreadyPlayed,
         trailing: Text(
           '${best.score}/${best.totalQuestions}',
           style: const TextStyle(
@@ -398,9 +401,12 @@ String _relativeDay(DateTime when) {
     now.month,
     now.day,
   ).difference(DateTime(local.year, local.month, local.day)).inDays;
-  if (days <= 0) return 'vandaag';
-  if (days == 1) return 'gisteren';
-  if (days < 7) return '$days dagen geleden';
+  if (days <= 0) return tr.today;
+  if (days == 1) return tr.yesterday;
+  if (days < 7) return tr.daysAgo(days);
+  if (Brand.isBibleQuizzes) {
+    return tr.onDate(DateFormat.MMMd(Brand.language).format(local));
+  }
   return 'op ${local.day} ${months[local.month - 1]}';
 }
 
@@ -488,7 +494,7 @@ class _CoverCard extends StatelessWidget {
                 Text(
                   quiz.description.isNotEmpty
                       ? quiz.description
-                      : 'Test je kennis over dit onderwerp.',
+                      : tr.testKnowledge,
                   style: const TextStyle(
                     fontFamily: AppTheme.sansFontName,
                     fontSize: 15,
@@ -499,7 +505,7 @@ class _CoverCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Semantics(
-                  label: 'Over deze quiz',
+                  label: tr.aboutQuiz,
                   container: true,
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -560,11 +566,11 @@ class _CoverCard extends StatelessWidget {
 String _difficultyLabel(Quiz quiz) {
   switch (quiz.difficultyBucket) {
     case 'easy':
-      return 'Makkelijk';
+      return tr.easy;
     case 'hard':
-      return 'Moeilijk';
+      return tr.hard;
     default:
-      return 'Gemiddeld';
+      return tr.medium;
   }
 }
 
@@ -707,7 +713,7 @@ class _DoneBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: 'Afgerond',
+      label: tr.finished,
       child: Container(
         width: 26,
         height: 26,
@@ -747,9 +753,9 @@ class _QuizSettings extends ConsumerWidget {
         if (passage != null)
           _SettingRow(
             icon: BqIcons.book,
-            title: 'Lees eerst ${passage.label}',
+            title: tr.readFirstLabel(passage.label),
             description:
-                'Je leest het hoofdstuk waar deze quiz over gaat voordat de vragen beginnen.',
+                tr.readChapterExplain,
             trailing: Switch.adaptive(
               value: preferences.readPassageFirst,
               activeTrackColor: AppTheme.lapis,
@@ -758,9 +764,9 @@ class _QuizSettings extends ConsumerWidget {
           ),
         _SettingRow(
           icon: BqIcons.clock,
-          title: 'Tijd per vraag',
+          title: tr.timePerQuestion,
           description:
-              'Standaard uit. Zet een klok aan als je jezelf wilt uitdagen.',
+              tr.timerExplain,
           below: Row(
             children: [
               for (final choice in QuizPreferences.timerChoices) ...[
@@ -768,7 +774,7 @@ class _QuizSettings extends ConsumerWidget {
                   const SizedBox(width: 8),
                 Expanded(
                   child: _ChoiceChip(
-                    label: choice == 0 ? 'Uit' : '${choice}s',
+                    label: choice == 0 ? tr.off : '${choice}s',
                     selected: preferences.questionTimerSeconds == choice,
                     onTap: () => controller.setTimerSeconds(choice),
                   ),
