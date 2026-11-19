@@ -1,0 +1,294 @@
+name: iOS Bible Quizzes - Build & Upload to TestFlight
+
+# The Bible Quizzes build of the same app: `--dart-define=APP_BRAND=biblequizzes`,
+# bundle id com.biblequizzes.app, display name "Bible Quizzes", talking to
+# biblequizzes.app instead of bijbelquiz.com. Everything else (signing, version
+# resolving, altool upload) works exactly as ios-release.yml does for BijbelQuiz.
+#
+# Manual only. BijbelQuiz keeps building on every push to main; this one is run
+# from the Actions tab so a Dutch release never pushes an English build by accident.
+#
+# Reuses these secrets from the BijbelQuiz workflow (same Apple team):
+#   BUILD_CERTIFICATE_BASE64, P12_PASSWORD, KEYCHAIN_PASSWORD, APPLE_TEAM_ID,
+#   APP_STORE_CONNECT_KEY_ID, APP_STORE_CONNECT_ISSUER_ID, APP_STORE_CONNECT_API_KEY_P8
+# Needs these of its own:
+#   BQ_BUILD_PROVISION_PROFILE_BASE64 - App Store profile for com.biblequizzes.app
+#   BQ_REVENUECAT_APPLE_KEY           - optional; without it the build has no in-app purchases
+#   vars BQ_APPLE_SERVICE_ID, BQ_APPLE_REDIRECT_URI - optional; without them Apple sign-in is off
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch or tag to build (default: the branch you run this from)"
+        required: false
+        default: ""
+      build_name:
+        description: "Version name (e.g. 1.0.0). Blank resolves it from pubspec.yaml + App Store Connect."
+        required: false
+        default: ""
+      build_number:
+        description: "Build number. Blank resolves it from App Store Connect."
+        required: false
+        default: ""
+
+concurrency:
+  group: ios-testflight-biblequizzes
+  cancel-in-progress: true
+
+jobs:
+  build-and-upload-ios:
+    name: Build Bible Quizzes IPA and upload to TestFlight
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref || github.ref }}
+
+      - name: Select latest stable Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.x"
+          channel: stable
+          cache: true
+
+      - name: Install Flutter dependencies
+        working-directory: bijbelquiz_mobile
+        run: flutter pub get
+
+      # The iOS project carries BijbelQuiz's bundle id and display name in the
+      # Xcode project, which no dart-define can reach; this script swaps both.
+      - name: Switch the iOS project to Bible Quizzes
+        working-directory: bijbelquiz_mobile
+        run: |
+          tool/brand_biblequizzes.sh
+          grep -m1 PRODUCT_BUNDLE_IDENTIFIER ios/Runner.xcodeproj/project.pbxproj
+
+      - name: Import Distribution certificate
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o "$CERTIFICATE_PATH"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+          security default-keychain -s "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+      - name: Install provisioning profile
+        env:
+          BUILD_PROVISION_PROFILE_BASE64: ${{ secrets.BQ_BUILD_PROVISION_PROFILE_BASE64 }}
+        run: |
+          if [ -z "${BUILD_PROVISION_PROFILE_BASE64:-}" ]; then
+            echo "::error::Missing secret BQ_BUILD_PROVISION_PROFILE_BASE64."
+            echo "::error::Create an App Store provisioning profile for com.biblequizzes.app, then store it base64-encoded under that name."
+            exit 1
+          fi
+          PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
+          PP_PLIST=$RUNNER_TEMP/build_pp.plist
+          echo -n "$BUILD_PROVISION_PROFILE_BASE64" | base64 --decode -o "$PP_PATH"
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/build_pp.mobileprovision
+
+          security cms -D -i "$PP_PATH" > "$PP_PLIST"
+          PP_UUID=$(/usr/libexec/PlistBuddy -c 'Print UUID' "$PP_PLIST")
+          PP_NAME=$(/usr/libexec/PlistBuddy -c 'Print Name' "$PP_PLIST")
+          PP_APP_ID=$(/usr/libexec/PlistBuddy -c 'Print Entitlements:application-identifier' "$PP_PLIST")
+          APP_BUNDLE_ID="${PP_APP_ID#*.}"
+
+          if [ "$APP_BUNDLE_ID" != "com.biblequizzes.app" ]; then
+            echo "::error::This profile is for $APP_BUNDLE_ID, not com.biblequizzes.app."
+            exit 1
+          fi
+
+          # Sign in with Apple and Associated Domains are both optional for a
+          # first TestFlight build: a profile without them costs that feature,
+          # not the upload. The next step strips whichever is missing.
+          if /usr/libexec/PlistBuddy -c 'Print Entitlements:com.apple.developer.applesignin:0' "$PP_PLIST" >/dev/null 2>&1; then
+            echo "PROFILE_HAS_APPLE_SIGNIN=1" >> $GITHUB_ENV
+          else
+            echo "PROFILE_HAS_APPLE_SIGNIN=0" >> $GITHUB_ENV
+          fi
+          if /usr/libexec/PlistBuddy -c 'Print Entitlements:com.apple.developer.associated-domains' "$PP_PLIST" >/dev/null 2>&1; then
+            echo "PROFILE_HAS_ASSOCIATED_DOMAINS=1" >> $GITHUB_ENV
+          else
+            echo "PROFILE_HAS_ASSOCIATED_DOMAINS=0" >> $GITHUB_ENV
+          fi
+
+          echo "PP_UUID=$PP_UUID" >> $GITHUB_ENV
+          echo "PP_NAME=$PP_NAME" >> $GITHUB_ENV
+          echo "APP_BUNDLE_ID=$APP_BUNDLE_ID" >> $GITHUB_ENV
+          echo "Using provisioning profile: $PP_NAME ($PP_UUID) for $APP_BUNDLE_ID"
+
+      - name: Reconcile entitlements with provisioning profile
+        working-directory: bijbelquiz_mobile
+        run: |
+          if [ "${PROFILE_HAS_ASSOCIATED_DOMAINS:-0}" = "0" ]; then
+            echo "::warning::Profile has no Associated Domains; website invite links will open Safari instead of the app."
+            /usr/libexec/PlistBuddy -c 'Delete :com.apple.developer.associated-domains' ios/Runner/Runner.entitlements || true
+          fi
+          if [ "${PROFILE_HAS_APPLE_SIGNIN:-0}" = "0" ]; then
+            echo "::warning::Profile has no Sign in with Apple; that button will not work in this build."
+            /usr/libexec/PlistBuddy -c 'Delete :com.apple.developer.applesignin' ios/Runner/Runner.entitlements || true
+          fi
+          /usr/libexec/PlistBuddy -c 'Print' ios/Runner/Runner.entitlements
+
+      - name: Resolve version and build number
+        env:
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+          INPUT_BUILD_NAME: ${{ github.event.inputs.build_name }}
+          INPUT_BUILD_NUMBER: ${{ github.event.inputs.build_number }}
+          PUBSPEC_PATH: bijbelquiz_mobile/pubspec.yaml
+        run: |
+          python3 -m venv "$RUNNER_TEMP/versionvenv"
+          "$RUNNER_TEMP/versionvenv/bin/python" -m pip install --quiet --disable-pip-version-check pyjwt cryptography
+          "$RUNNER_TEMP/versionvenv/bin/python" .github/workflows/scripts/resolve_version.py
+
+      - name: Create ExportOptions.plist
+        env:
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          cat > /tmp/ExportOptions.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store-connect</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>teamID</key>
+            <string>${TEAM_ID}</string>
+            <key>signingCertificate</key>
+            <string>Apple Distribution</string>
+            <key>uploadBitcode</key>
+            <false/>
+            <key>uploadSymbols</key>
+            <true/>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>${APP_BUNDLE_ID}</key>
+              <string>${PP_NAME}</string>
+            </dict>
+          </dict>
+          </plist>
+          EOF
+
+      - name: Build Flutter iOS (unsigned)
+        working-directory: bijbelquiz_mobile
+        env:
+          REVENUECAT_APPLE_KEY: ${{ secrets.BQ_REVENUECAT_APPLE_KEY }}
+          APPLE_SERVICE_ID: ${{ vars.BQ_APPLE_SERVICE_ID }}
+          APPLE_REDIRECT_URI: ${{ vars.BQ_APPLE_REDIRECT_URI }}
+        run: |
+          echo "Building Bible Quizzes $BUILD_NAME ($BUILD_NUMBER)"
+
+          # Unlike the BijbelQuiz workflow these three are optional: a first
+          # TestFlight build is worth having before RevenueCat and Sign in with
+          # Apple exist for this brand. Each one left out disables its feature
+          # and nothing else.
+          DEFINES=(--dart-define=APP_BRAND=biblequizzes --dart-define=USE_PRODUCTION_API=true)
+          if [ -n "${REVENUECAT_APPLE_KEY:-}" ]; then
+            DEFINES+=(--dart-define=REVENUECAT_APPLE_KEY="$REVENUECAT_APPLE_KEY")
+          else
+            echo "::warning::No BQ_REVENUECAT_APPLE_KEY; this build has no in-app purchases."
+          fi
+          if [ -n "${APPLE_SERVICE_ID:-}" ] && [ -n "${APPLE_REDIRECT_URI:-}" ]; then
+            DEFINES+=(--dart-define=APPLE_SERVICE_ID="$APPLE_SERVICE_ID")
+            DEFINES+=(--dart-define=APPLE_REDIRECT_URI="$APPLE_REDIRECT_URI")
+          else
+            echo "::warning::No BQ_APPLE_SERVICE_ID / BQ_APPLE_REDIRECT_URI; Sign in with Apple is not configured for this build."
+          fi
+
+          flutter build ios --release --no-codesign \
+            --build-name="$BUILD_NAME" \
+            --build-number="$BUILD_NUMBER" \
+            "${DEFINES[@]}"
+
+      - name: Archive and export signed IPA
+        working-directory: bijbelquiz_mobile/ios
+        env:
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          xcodebuild -workspace Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/Runner.xcarchive" \
+            archive \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/Runner.xcarchive" \
+            -exportOptionsPlist /tmp/ExportOptions.plist \
+            -exportPath ../build/ios/ipa
+
+          IPA_PATH=$(find ../build/ios/ipa -name "*.ipa" | head -1)
+          if [ -z "${IPA_PATH:-}" ]; then
+            echo "::error::No IPA file produced."
+            exit 1
+          fi
+          echo "Exported $IPA_PATH"
+
+      - name: Upload IPA to TestFlight
+        env:
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+        run: |
+          set -euo pipefail
+          KEY_DIR="$HOME/.appstoreconnect/private_keys"
+          KEY_PATH="$KEY_DIR/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8"
+          mkdir -p "$KEY_DIR"
+          echo -n "$APP_STORE_CONNECT_API_KEY_P8" | base64 --decode -o "$KEY_PATH"
+
+          IPA_PATH=$(find bijbelquiz_mobile/build/ios/ipa -name "*.ipa" | head -1)
+          echo "Uploading: $IPA_PATH"
+
+          UPLOAD_LOG="$RUNNER_TEMP/altool-upload.log"
+          set +e
+          xcrun altool --upload-app \
+            --type ios \
+            --file "$IPA_PATH" \
+            --apiKey "$APP_STORE_CONNECT_KEY_ID" \
+            --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID" \
+            --verbose 2>&1 | tee "$UPLOAD_LOG"
+          ALTOOL_EXIT=${PIPESTATUS[0]}
+          set -e
+
+          if [ "$ALTOOL_EXIT" -ne 0 ] || grep -qiE "UPLOAD FAILED|Failed to upload package|ERROR:" "$UPLOAD_LOG"; then
+            REASON=$(awk -F'"' '/description/ {print $(NF-1)}' "$UPLOAD_LOG" | sort -u | head -5)
+            echo "::error::TestFlight upload failed as $BUILD_NAME ($BUILD_NUMBER)."
+            if [ -n "${REASON:-}" ]; then
+              echo "$REASON" | while read -r line; do echo "::error::$line"; done
+            else
+              echo "::error::No error description in the altool output; see the full log above."
+            fi
+            exit 1
+          fi
+          echo "Upload accepted by App Store Connect."
+
+      - name: Clean up keychain and provisioning profile
+        if: always()
+        run: |
+          security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
+          rm -f ~/Library/MobileDevice/Provisioning\ Profiles/build_pp.mobileprovision
+          rm -f "$HOME/.appstoreconnect/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8"
